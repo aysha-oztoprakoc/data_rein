@@ -1,0 +1,1 @@
+/usr/bin/c++  -Wall -Wextra -Werror -Wpedantic -Wl,--dependency-file=CMakeFiles/test_safety_security.dir/link.d CMakeFiles/test_safety_security.dir/tests/test_safety_security.cpp.o -o test_safety_security

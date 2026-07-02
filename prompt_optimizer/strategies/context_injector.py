@@ -1,7 +1,7 @@
 import os
 import re
 from rank_bm25 import BM25Okapi
-from services.logger import get_logger
+from reins.services.logger import get_logger
 
 logger = get_logger("context_injector")
 

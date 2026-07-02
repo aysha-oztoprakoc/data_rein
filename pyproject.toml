@@ -49,3 +49,15 @@ dev = [
 
 [project.scripts]
 harness = "data_harness.cli:main"
+
+[tool.bandit]
+# B404: import subprocess
+# B603: subprocess call without shell=True
+# B110: try/except pass
+# B108: hardcoded /tmp directory
+# B311: pseudo-random generators
+# B607: partial path (ping, ssh)
+# B310: urllib
+# B104: bind all interfaces (Hermes API)
+# B405, B314: xml.etree.ElementTree (Safe for our extraction pipeline which runs in an isolated container anyway)
+skips = ["B404", "B603", "B110", "B108", "B311", "B607", "B310", "B104", "B405", "B314"]

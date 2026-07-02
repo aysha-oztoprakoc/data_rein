@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/amdy/data_rein/cpp_core/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

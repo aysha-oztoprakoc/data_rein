@@ -1,0 +1,11 @@
+[Unit]
+Description=Data Nexus Trigger Timer (5 Minutes)
+
+[Timer]
+# Fire every 5 minutes
+OnBootSec=5min
+OnUnitActiveSec=5min
+Unit=data-nexus-trigger.service
+
+[Install]
+WantedBy=timers.target

@@ -12,7 +12,7 @@ import paho.mqtt.client as mqtt
 from strategies.token_compressor import TokenCompressor
 from strategies.context_injector import ContextInjector
 from strategies.format_adapter import FormatAdapter
-from services.logger import get_logger
+from reins.services.logger import get_logger
 
 logger = get_logger("prompt_optimizer_agent")
 

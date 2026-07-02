@@ -12,7 +12,7 @@ except ImportError:
     PAHO_V2 = False
 import paho.mqtt.client as mqtt
 
-from src.data_harness.services.logger import get_logger
+from src.reins.services.logger import get_logger
 
 logger = get_logger("sync_daemon")
 

@@ -1,0 +1,1 @@
+/usr/bin/c++  -Wall -Wextra -Werror -Wpedantic -Wl,--dependency-file=CMakeFiles/pon_engine.dir/link.d CMakeFiles/pon_engine.dir/src/main.cpp.o -o pon_engine

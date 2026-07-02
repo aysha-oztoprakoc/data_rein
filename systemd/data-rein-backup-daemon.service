@@ -7,7 +7,7 @@ Type=simple
 WorkingDirectory=/home/amdy/data_rein
 # Execute Python within the uv virtual environment to guarantee dependencies (like paho-mqtt) are met
 # Wrapping with taskset to force CPU Pinning to cores 6 and 7 (simulating 2 threads as requested on this 8-core node)
-ExecStart=/usr/bin/taskset -c 6,7 /home/amdy/data_rein/.venv/bin/python3 src/data_harness/services/backup_service.py
+ExecStart=/usr/bin/taskset -c 6,7 /home/amdy/data_rein/.venv/bin/python3 src/reins/services/backup_rein.py
 
 # Auto-Restart to guarantee 24/7 Uptime
 Restart=always
