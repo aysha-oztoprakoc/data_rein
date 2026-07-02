@@ -1,0 +1,27 @@
+{
+  "extraction": {
+    "trigger": "data_rein/extract/trigger",
+    "result": "data_rein/extract/result",
+    "status": "data_rein/extract/status"
+  },
+  "prompt": {
+    "optimize": "data_rein/prompt/optimize",
+    "optimized": "data_rein/prompt/optimized"
+  },
+  "sync": {
+    "changed": "data_rein/sync/changed",
+    "completed": "data_rein/sync/completed"
+  },
+  "backup": {
+    "trigger": "data_rein/backup/trigger",
+    "result": "data_rein/backup/result"
+  },
+  "health": {
+    "trigger": "data_rein/health/trigger",
+    "result": "data_rein/health/result"
+  },
+  "getinfo": {
+    "trigger": "data_rein/getinfo/trigger",
+    "result": "data_rein/getinfo/result"
+  }
+}

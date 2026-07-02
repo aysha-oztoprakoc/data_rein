@@ -1,0 +1,1146 @@
+2013 IEEE 32nd International Symposium on Reliable Distributed Systems
+
+Automated Multi-Graceful Degradation: A Case Study
+Yiyan Lin
+Michigan State University
+East Lansing, USA
+linyiyan@cse.msu.edu
+
+Sandeep Kulkarni
+Michigan State University
+East Lansing, USA
+sandeep@cse.msu.edu
+
+most stringent level, masking, requires that both these properties
+are satisﬁed.
+Although the three levels are sufﬁcient to describe several
+important fault-tolerance requirements, they cannot be applied in
+certain circumstances. To illustrate this, consider the case where
+the given system satisﬁes two safety constraints Sf1 , (say, two
+processes are never in the critical section simultaneously) and Sf2
+(say, processes enter critical section in an alternating manner when
+they are requesting for critical section constantly) and a liveness
+constraint, say Lv1 (say, each requesting process must eventually
+enter critical section). Furthermore, assume that in the presence of
+some fault, it is necessary to satisfy Sf1 at all times even though
+Sf2 may be temporarily violated before the system recovers from
+the fault. However, after recovery is complete, the system must
+satisfy the entire speciﬁcation consisting of Sf1 , Sf2 and Lv1 .
+This requirement cannot be captured by masking fault-tolerance
+since it would require both Sf1 and Sf2 to be satisﬁed in the
+presence of faults. Hence, if we use the algorithm for adding
+masking fault-tolerance in this context, it is likely to declare failure
+since it will try to ensure that Sf2 is satisﬁed in the presence
+of faults. It cannot be captured by failsafe fault-tolerance since it
+may not guarantee recovery to legitimate states. Hence, if we use
+the algorithm for adding failsafe fault-tolerance in this context, it
+may produce a program that does not recover to legitimate states.
+Likewise it cannot be captured by nonmasking fault-tolerance, since
+it may not guarantee that Sf1 is satisﬁed during recovery. Hence,
+if we use an algorithm for adding nonmasking fault-tolerance in
+this context, it may produce a program that violates Sf1 during
+recovery.
+This requirement can be captured by the notion of graceful
+degradation. Intuitively, in a graceful fault-tolerant program1 , the
+program satisﬁes a subset of the requirements in the presence
+of faults. The exact subset of requirements can vary depending
+upon the nature of faults and the aspects of the original system.
+Moreover, a graceful fault-tolerant program may not reach the
+original legitimate states after recovery is complete. For example,
+one variation of the above problem is that upon recovery, the
+program only satisﬁes Sf1 and Lv1 . In this case, the program
+cannot necessarily recover to original behavior since that would
+force Sf2 to be also satisﬁed upon recovery. In other words, new
+behavior that only satisﬁes a subset of the original speciﬁcation
+needs to be added. Another instance where recovering to original
+behavior is not possible includes the case where it is necessary to
+provide liveness requirement for only a subset of processes and
+preventing some other processes from accessing critical section.
+When a system is subject to different types of faults, it is often
+necessary to consider multi-graceful degradation, where the exact
+
+Abstract—We focus on the problem of multi-graceful degradation. In
+multi-graceful degradation, the system provides successively reduced
+guarantees in the presence of increasingly severe faults. We present an
+automated technique for generation of a multi-graceful-degraded program from its original fault-intolerant/ideal version. In this algorithm,
+we begin with (1) an ideal program that satisﬁes all its speciﬁcation in
+the absence of faults, (2) a set of faults that need to be tolerated and
+(3) reduced requirements in their presence. We subsequently generate
+several gracefullly degrading programs that only satisfy the reduced
+requirements. This step also identiﬁes new states to which program
+needs to recover to satisfy the reduced speciﬁcation. Subsequently, we
+utilize the original input program and the generated programs that
+ensures that (1) in the absence of faults, the entire speciﬁcation is
+satisﬁed and (2) in the presence of faults, the program recovers to
+states from where the corresponding reduced speciﬁcation is satisﬁed.
+We illustrate our technique with a case study of a system in the fuelcell lab of the Ohio Coal Research Center (OCRC). In this system, it is
+important to satisfy safety of lab personnel as well as safety of people
+in the building in which it is located. Moreover, in case of device
+failures, it is necessary to provide weaker guarantees that capture
+the best possible protection. In our example, we begin with an ideal
+model for this system and successively add multi-graceful degradation
+to obtain the same program (with some abstractions) as the one that
+was designed manually for this system.
+
+I. I NTRODUCTION
+Fault-tolerance is one of the essential requirements for computer
+systems. Speciﬁcally, it is desirable that the system continues to
+operate correctly even when it is perturbed by faults such as
+message loss, Byzantine nodes, crashed nodes, failed components,
+etc. Moreover, it is important to provide assurance about the faulttolerance property.
+One way to provide such assurance is through formal methods
+such as model checking, where one veriﬁes the given model
+satisﬁes its speciﬁcation, model revision, where one revises a
+model to satisfy a given property (e.g., a fault-tolerance property),
+or model synthesis where one constructs a model for the given
+(fault-intolerant and/or fault-tolerant) system that is correct by
+construction.
+In this paper, we focus on providing fault-tolerance via model
+revision where we begin with a fault-intolerant model of the system
+and subsequently revise it to add fault-tolerance. Model revision is
+especially useful in cases where new faults that affect a system
+are identiﬁed. It is also useful in providing separation of concerns
+where the designer focuses on functionality aspect and can utilize
+automated techniques for providing fault-tolerance.
+In the context of automation with model revision, three levels
+of fault-tolerance have been typically considered in the literature.
+These three levels are based on decomposition the system speciﬁcation in terms of safety and liveness. Of these, the ﬁrst level, failsafe
+, requires that safety be preserved in the presence of faults. The
+second level, nonmasking, requires that the system should recover
+to a legitimate state after the occurrence of faults. And, the third and
+1060-9857/13 $26.00 © 2013 IEEE
+DOI 10.1109/SRDS.2013.17
+
+1 The word graceful degradation has several interpretations in the literature. Our interpretation is from [1] and is described later in this paper.
+
+81
+
+Authorized licensed use limited to: Universidade Tecnologica Federal do Parana. Downloaded on July 02,2026 at 14:08:26 UTC from IEEE Xplore. Restrictions apply.
+
+II. P ROGRAM , S PECIFICATION AND G RACEFUL D EGRADATION
+
+subset of functionality that is provided depends upon the type
+of fault that occurs in the system. Speciﬁcally, in multi-graceful
+degradation, we consider faults that are increasing in severity. And,
+with each increase in severity, the requirements that need to be
+satisﬁed are reduced.
+
+In this section, we give formal deﬁnitions of programs, program
+speciﬁcations, and graceful degradation. The program is speciﬁed
+in terms of its state space and transitions. The deﬁnition of speciﬁcation is adapted from [2]. The notion of graceful degradation is
+adapted from [1].
+
+Based on the above discussion, in this paper, we consider the
+problem of automation in designing multi-graceful degradation.
+Our approach orders the faults into different fault-classes based on
+the increasing order of severity and decreasing order of guarantees
+in their presence. Then, we design a multi-step process where each
+fault class is considered independently. In each step of this process,
+we, ﬁrst, automatically expand the given program (if needed) to
+introduce new behaviors that are necessary for providing degraded
+speciﬁcation. We also shrink the given program to ensure that the
+requirements in the presence of faults are satisﬁed, i.e. we eliminate
+behaviors that violate the new speciﬁcation. The resulting program
+is then used in the next step to add graceful fault-tolerance to the
+new fault class.
+
+A. Program
+A program p, speciﬁed as a tuple Sp , δp , consists of its
+state space Sp and transitions δp , where δp ⊆ Sp × Sp . A state
+predicate of p is any subset of Sp . A state predicate S is closed
+in p (respectively, δp ) iff (∀(s0 , s1 ) ∈ δp : (s0 ∈ S ⇒ s1 ∈ S)).
+A sequence of states, σ = s0 , s1 , · · ·, is a computation of p
+iff(1) ∀j : 0 < j < length(σ) : (sj−1 , sj ) ∈ δp , and (2) if σ is
+ﬁnite and terminates in state sl then there does not exist state s such
+that (sl , s) ∈ δp . In other words, in each step of the computation
+of p, some transition of p is executed. And, the computation is
+ﬁnite iff p does not have any transition in the ﬁnal state.
+The projection of program p on state predicate S, denoted as
+p|S is the program Sp , {(s0 , s1 ) ∈ δp ∧ s0 , s1 ∈ S}. In other
+words, p|S includes transitions of p that begin and end in S.
+Notation. In the remaining part of this paper, if the context is
+clear, we use p and δp (transitions of p) interchangeably. Also, we
+say that a state predicate S is true in state s iff s ∈ S.
+
+We illustrate our algorithm based on a real-world example
+of Ohio Coal Research Center (OCRC) fuel lab safety system.
+This system was developed in collaboration with Dr. Leal and is
+deployed at Ohio University. This system is intended for use in the
+fuel cell lab where there dangerous gases such as hydrogen and
+carbon monoxide are generated. In some cases, these gases may
+leak into the lab thereby creating a hazard. Moreover, for efﬁciency
+purposes, it is desirable that the lab use central supply and exhaust
+system thereby creating a possibility that the leaked gases may
+escape into the other parts of the building. The goal of the system
+is to ensure safety of the lab as well as the building in which the
+lab is located. Moreover, equipment failure can make it necessary
+to provide a graceful behavior where a subset of requirements is
+provided.
+
+B. Speciﬁcation
+Following Alpern and Schneider [2], we let the speciﬁcation
+of program consisting of a safety speciﬁcation and a liveness
+speciﬁcation. The safety speciﬁcation is speciﬁed in terms of a
+set of bad states, say specbs , that program is not allowed to reach,
+and a set of bad transitions, specbt , that the program is not allowed
+to execute. Thus, a sequence s0 , s1 , · · · (denoted by σ) satisﬁes
+the safety speciﬁcation iff (1) ∀j : 0 ≤ j < length(σ) : sj ∈
+specbs , and (2) ∀j : 0 < j < length(σ) : (sj−1 , sj ) ∈ specbt .
+The liveness speciﬁcation, on the other hand, denotes “good
+thing” happens during program execution. We use leadsto property
+(L T ) to denote liveness speciﬁcation, where both L and T
+are state predicates. Thus, a sequence s0 , s1 , · · · (denoted by
+σ) satisﬁes the safety speciﬁcation iff ∀j : (L is true in sj
+⇒ ∃k : j ≤ k < length(σ) :T is true in sk ).
+A speciﬁcation, say spec is a tuple Sfp , Lvp , where Sfp is a
+safety speciﬁcation and Lvp is a liveness speciﬁcation. A sequence
+σ satisﬁes spec iff it satisﬁes Sfp and Lvp . Hence, for brevity,
+we say that the program speciﬁcation is an intersection of a safety
+speciﬁcation and a liveness speciﬁcation.
+We say that program p satisﬁes spec from state predicate S iff
+(1) S is closed in p and (2) Every computation of p that starts in
+a state, say s, where s ∈ S satisﬁes spec.
+Given a program p, a state predicate S, and speciﬁcation spec,
+we say S is invariant of p iff (1) p satisﬁes spec from S and (2)
+S = ∅.
+
+In this paper, we begin with an ideal model for this system
+where no gas leak has occurred. We subsequently consider faults
+(and environment conditions that are treated as faults) that include
+leakage of gas and failure of equipment. Then, we consider the
+maximum guarantees that can be provided when different faults
+occur. We utilize these weaker speciﬁcations in the derivation of
+multi-graceful degradation model for the OCRC fuel lab system.
+Contributions of the paper.
+− We formalize the problem of multi-graceful degradation in
+the context of model revision.
+− We present a stepwise algorithm for adding multi-graceful
+degradation.
+− We illustrate how our algorithm can be applied to a distributed system.
+− We illustrate our algorithm with the real-world case study
+about the OCRC fuel lab system.
+Organization of the paper. The rest of the paper is organized
+as follows: In Section II, we deﬁne programs, speciﬁcations and
+graceful degradation. Section III describes the problem statement
+for adding multi-graceful degradation and Section IV describes
+the corresponding algorithm. Section V describes the fault-free
+behaviors of the ventilation system at Ohio Coal Research Center.
+Section VI shows how our algorithm is applied in this case
+study to obtain the program that was designed manually for this
+task. Finally, Section VII describes related work and Section VIII
+describes the conclusion and future work.
+
+C. Graceful Degradation
+In graceful degradation, it is expected that the program will
+satisfy a stronger speciﬁcation under normal circumstances; and, it
+will satisfy a weaker speciﬁcation under some other circumstances
+(e.g., in the presence of faults). Let spec = Sf, Lv and
+specr = Sfr , Lvr  be two speciﬁcations. We say that specr is
+weaker than spec iff for any sequence σ if σ satisﬁes specr then
+σ satisﬁes spec. We denote the relation between spec and specr
+as spec ⊆ specr
+
+82
+Authorized licensed use limited to: Universidade Tecnologica Federal do Parana. Downloaded on July 02,2026 at 14:08:26 UTC from IEEE Xplore. Restrictions apply.
+
+weaker speciﬁcations. It also takes in as inputs state predicates
+Sa1 , Sa2 , · · · , San . These state predicates capture constraints, if
+any, under which the corresponding graceful behavior is expected.
+By default, they could be set to ¬I, i.e., all states outside the
+invariant of the original program. Algorithm 1 considers the faults
+successively. For fault class f1 , it generates a graceful program
+satisfying a relaxed speciﬁcation specr1 (Line 3). This program
+preserves all original behaviors of p and adds new behaviors that
+satisfy specr1 . The details of this algorithm (repeated from [4])
+are presented in Algorithm 2.
+After obtaining the graceful program that satisﬁes specr1 , we
+add fault tolerance to f1 (Line 4). This algorithm adds masking tolerance to the input program. Towards this end, we can utilize any of
+the algorithms in [5], [6], [7]. We use the name Add masking to
+describe such a generic algorithm. These algorithms differ in terms
+of the speciﬁcations they handle and the ability of processes to read
+and write variables. They also differ in terms of the complexity.
+Speciﬁcally, the algorithm in [5] is for high atomicity programs.
+Algorithm in [6] is for distributed programs. Algorithms in [5],
+[6] deal with speciﬁcations discussed in Section II. Algorithm
+in [7] deals with more general speciﬁcations. Algorithms in [5],
+[6] are polynomial in the size of the state space. The soundness
+results of algorithms in our paper are not affected by the choice
+of implementation of Add masking. Regarding complexity, we
+utilize the algorithms in [5], [6] (which are polynomial in |Sp |).
+Since our reuse is black-box in nature, we only rely on the proof
+(from [5], [6], [7]) that it adds masking fault-tolerance to the
+input program without introducing new transitions in the absence
+of faults. However, for the convenience of the reader, we brieﬂy
+describe the key steps these algorithms. Given the fault-intolerant
+program, a set of fault transitions, the invariant and speciﬁcation,
+Add masking ﬁrst ensures all the reachable states by p in the
+presence of f satisfy the safety speciﬁcation, and then excludes the
+computation that starts outside the invariant and cannot possibly
+reach a state in the invariant. In addition, Add masking also
+resolves deadlock states and removes computations that reach the
+deadlock states if it is impossible to add recovery.
+If adding fault-tolerance causes removal of states inside the
+original invariant I then those states must also be removed from
+the ﬁnal invariant If . Moreover, removal of such states from If
+should not create deadlocks inside If . Hence, the loop on Line
+6-11 removes such offending states.
+Finally, this whole process is repeated for each fault-class.
+
+III. P ROBLEM S TATEMENT
+In this section, we formally deﬁne the problem of adding
+multi-graceful degradation. A multi-graceful degradation program
+satisﬁes its original speciﬁcation when no faults have occurred.
+However, if faults occur then depending upon their severity, it
+satisﬁes a weaker speciﬁcation. Using the standard approach (e.g.,
+[3]) for modeling faults, we model faults of program p as state
+perturbations, i.e., faults of program p are a subset of Sp × Sp
+where Sp is the state space of program p. To characterize the
+severity of faults, a multi-graceful degradation program identiﬁes
+a set of faults, say f1 , f2 , · · · , fn such that ∀j : 0 < j < n :
+fj ⊆ fj+1 . Since fj ⊆ fj+1 , fj+1 can perturb the program
+at least as much as fj does. Hence, we say that fj+1 is more
+severe than fj . In the presence of increasingly severe faults, multigraceful degradation program provides successively weaker guarantees. Hence, it identiﬁes a set of speciﬁcations specr0 (= spec,
+the original speciﬁcation), specr1 , specr2 , · · · , specrn such that
+∀j : 0 ≤ j < n : specrj+1 is weaker than specrj Moreover, in
+the presence of increasingly severe faults, the program may not
+recover to its original behavior. Hence, it identiﬁes a set of state
+predicates I1 , I2 , · · · In to which it recovers after the recovery is
+complete.
+For each class of faults, a multi-graceful degradation program
+provides the desired level of tolerance. As discussed earlier in the
+paper, the tolerance level can be masking, nonmasking or failsafe.
+For brevity, we use masking fault-tolerance in this paper, where
+we say that p is masking f -tolerant to spec (=Sf, Lv) from I
+iff (1) p satisﬁes spec from I and (2) ∃T :: (a) I ⊆ T , (b) p ∪ f
+satisﬁes Sf from T , and (c) Every computation of p that starts
+from a state in T has a state in I. In other words, a masking faulttolerant program ensures that in the presence of faults, the safety
+speciﬁcation is always preserved and that the program recovers
+to states from where it satisﬁes both the safety and liveness
+speciﬁcation. We note that all deﬁnitions and algorithms in this
+paper could be extended to other levels of tolerances as well.
+To add multi-graceful degradation to a given program p that
+satisﬁes its speciﬁcation, say spec from invariant, say I, we need to
+construct a program pf with invariant If such that pf satisﬁes spec
+from If without using any new behaviors other than those used
+by p. However, if faults occur then it needs to provide appropriate
+level of tolerance to them as well as recover to states from where it
+satisﬁes the corresponding weaker speciﬁcation. Thus, the problem
+statement is as follows:
+
+Theorem 1. Algorithm 1 is sound.
+
+Problem Statement: III.1
+Addition of Fault-Tolerant Graceful-Degradation
+Given p, spec, I , such that p satisﬁes spec (= specr0 ) from I ,
+set of faults, f1 , f2 , · · · , fn ,
+where ∀j : 0 ≤ j < n : fj ⊆ fj+1
+set of relaxed speciﬁcations specr1 , specr2 , · · · , specrn ,
+where ∀j : 0 ≤ j < n : specrj+1 is weaker than specrj
+Generate a multi-graceful fault-tolerant program pf
+and the invariant If such that
+∃I1 , I2 , · · · In where If ⊆ I1 ⊆ I2 ⊆ · · · ⊆ In
+1: If ⊆ I , pf |If ⊆ p|If
+2: pf satisﬁes spec from If
+3: pf is masking fi -tolerant to specri from Ii .
+
+Proof:
+To show Algorithm 1 is sound we ﬁrst show that Algorithm 2
+is sound. That is by given a program p, its invariant I, original
+speciﬁcation spec and the weaker speciﬁcation specr , the graceful
+program pg and its invariant Ig satisﬁes the following conditions
+− pg |I = p|I, I ⊆ Ig .
+All transitions of p that start in I are preserved in pg on
+Line 1. And, none of them are removed on Line 7 or 11, as
+p satisﬁes spec from I. Hence, this condition is satisﬁed.
+− pg satisﬁes specr from Ig .
+Closure of Ig follows from Line 7 where transitions that can
+potentially violate the closure are removed.
+Moreover, by construction, pg cannot reach a state in specrbs
+and cannot execute a transition in specrbt . Finally, by Lines
+11 and 12, the liveness property is also satisﬁed. Hence, pg
+satisﬁes specr from Ig .
+
+IV. A LGORITHM
+In this section, we introduce the algorithm for adding multigraceful degradation in Algorithm 1. Algorithm 1 takes as input the set of increasingly severe faults and correspondingly
+
+83
+Authorized licensed use limited to: Universidade Tecnologica Federal do Parana. Downloaded on July 02,2026 at 14:08:26 UTC from IEEE Xplore. Restrictions apply.
+
+Algorithm 1 Adding multi-graceful degradation
+Input: fault-intolerant program p, fault-intolerant program invariant I.
+state predicates Sa1 , Sa2 , · · · , San
+weaker speciﬁcations specr1 , specr2 , · · · , specrn .
+fault transitions f1 , f2 , · · · , fn .
+Output: masking fault-tolerant program pf , and its invariant If
+1: p := p, I  := I
+2: for i = 1 to n do
+3:
+pgi , Igi := Gen graceful(Sai ,p ,I  ,specri ) // This function invokes Algorithm 2 .
+4:
+p , I  :=Add masking(pgi ,fi , Igi , specri ) // If any of above two procedures fails, then algorithm aborts and reports no result
+returned.
+5:
+p := p |I  , I  := I  ∩ I 
+6:
+while deadlock(I  , p ) = ∅ do
+7:
+I  := I  − deadlock(I  , p )
+8:
+I  := I  ∩ I 
+9:
+p := maxp(p , I  , I  )
+10:
+p := p |I 
+11:
+end while
+12:
+p := p , I  := I 
+13: end for
+14: return p as pf and I  ∩ I as If
+Function: maxp(t: transition predicate, S1 ,S2 ,· · · :set of state predicates where S1 ⊆ S2 ⊆ · · · )
+return {(s0 , s1 )|t ∩ (s0 ∈ S1 ⇒ s1 ∈ S1 ) ∧ (s0 ∈ S2 ⇒ s1 ∈ S2 ) ∧ · · · }
+Function: deadlock(S: state predicate , t: transition predicate)
+/ t)}
+return {s0 |s0 ∈ S ∧ (∀s1 ∈ S : (s0 , s1 ) ∈
+
+Algorithm 2 Graceful program generation
+Input: state predicate Sa , program transitions p, invariant I,
+weaker speciﬁcation specr = Sfr , Lvr , including weaker safety speciﬁcation Sfr (consisting of Sfrbs and Sfrbt ) and weaker
+liveness speciﬁcation Lvr (consisting n leads-to properties of the form Fi  Ti , i ∈ 1 · · · n).
+Output: graceful program pg and invariant Ig .
+1: IΔ := Sa − Sfrbs
+2: I  := I ∪ IΔ
+3: p := {(s0 , s1 )|s0 , s1 ∈ I  :: (s0 ∈ I ∧ (s0 , s1 ) ∈ p) ∨ (s0 ∈ IΔ ∧ (s0 , s1 ) ∈
+/ Sfrbt )}
+4: repeat
+5:
+repeat
+6:
+Iold := I 
+7:
+p := maxp(p , I, I  )
+8:
+I  := I  − deadlock(I  , p )
+9:
+until Iold = I 
+10:
+Iold := I  , 
+pold := p
+11:
+p := p − i∈1···n {(s0 , s1 )|s0 ∈ I  ∧ rank(s0 , Ti , p ) ≤ rank(s1 , Ti , p ) ∧ rank(s0 , Ti , p ) = 0 ∧ rank(s1 , Ti , p ) = ∞}
+12:
+I  := I  − i∈1···n {s|rank(s, Ti , p ) = ∞ ∧ s ∈ Fi ∧ s ∈
+/ I}
+13: until Iold = I  ∧ pold = p
+14: return p as pg , I  as Ig if I  = ∅, otherwise declare no graceful program generated.
+Function: rank(s: state , T : state predicate , t: transition predicate)
+return the shortest path length from s to one of the state in T , if the path(consisting only transitions in t) exists; or ∞, otherwise.
+
+84
+Authorized licensed use limited to: Universidade Tecnologica Federal do Parana. Downloaded on July 02,2026 at 14:08:26 UTC from IEEE Xplore. Restrictions apply.
+
+− pg satisﬁes spec from I.
+Since p satisﬁes spec from I, none of the transitions that
+begin in I are removed. Hence, pg |I = p|I. Hence, pg
+satisﬁes spec from I.
+Now we use the above three properties to prove soundness of
+Algorithm 1. To prove soundness of Algorithm 1, we need to show
+that pf and If satisfy conditions in Problem Statement III.1
+− If ⊆ I, pf |If ⊆ p|If .
+If ⊆ I follows from Line 14. pf |If ⊆ p|If follows from
+Line 4 since it does not add any new transition to p|If .
+− pf satisﬁes spec from If .
+Note that after each iteration (Line 2 to Line 13) p satisﬁes
+the speciﬁcation from invariant generated in previous steps.
+It follows from Line 3 that I  is closed in pgi ; and from Line
+4 that I  is closed in p since Add masking does not add
+any new transition in Igi as well as in I  . In addition, from
+Line 6 to Line 11, no new transition is added and deadlock
+states are resolved. Hence If is closed in pf . Moreover pf
+satisﬁes spec since If ⊆ I.
+− pf is masking fi -tolerant to specri from Ii .
+Th fact that p obtained after each iteration (Line 2 to
+Line 13) satisﬁes specri follows the same proof above.
+And the fact that pf is masking fi -tolerant is ensured via
+Add masking.
+
+should be restricted to utilize a version of Add masking
+that adds fault-tolerance to a distributed program (e.g. [6]).
+− Read Restrictions. Consider a transition (s0 , s1 ), (s0 = s1 )
+excluded from program p. If process j cannot read a variable,
+say v, then p must exclude corresponding transitions from
+s0 where s0 and s0 differ only in the variable v. Let this
+transition be (s0 , s1 ). Now, it must be the case that s0 and
+s0 are identical except for the value of v. And the value
+of v must remain unchanged in transition (s0 , s1 ). Thus, if
+(s0 , s1 ) is a transition of process j whose set of readable
+variables is rj , then the corresponding group of transitions
+is identiﬁed as follows:
+group(j, rj )(s0 , s1 ) =
+{(s0 , s1 )|(∀x ∈ rj :: x(s0 ) = x(s0 ) ∧ x(s1 ) = x(s1 ))∧
+(∀x ∈
+/ rj :: x(s0 ) = x(s1 ) ∧ x(s0 ) = x(s1 ))}
+Thus, when transitions are removed from a program (e.g.,
+on Line 9 in Algorithm 1, Line 3, Line7 and Line 11 in
+Algorithm 2), we need to remove the corresponding group
+of transitions.
+It is straightforward to observe that these changes do not affect
+the soundness of the algorithm (Theorem 1). However, with this
+change, the algorithm may be incomplete. This is unavoidable
+since it is expected that adding multi-graceful degradation to a
+distributed program is NP-complete. We also have technical report
+for synthesizing graceful fault-tolerant program, including case
+studies for printer system and Byzantine Agreement problem [8].
+
+Theorem 2. Algorithm 1 is polynomial in the size of (|Sp | ∗ n)
+where Sp is the size of state space and n is number of fault classes.
+
+V. O HIO C OAL R ESEARCH C ENTER V ENTILATION S YSTEM
+The OCRC safety system [9] was designed to protect personnel
+and facilities by detecting the presence of explosive and/or toxic
+gas and either dealing with it, or by alerting lab personnel and
+emergency responders. The ﬁrst line of defense is ventilation: to
+evacuate any gas before it becomes a hazard. Ordinarily, ventilation
+is handled by the building’s central air supply (see Fig 1) and
+exhaust, augmented by an exhaust booster fan. If gas is detected
+(above a speciﬁed threshold), the lab needs to be isolated from
+the rest of the building by closing the exhaust vent cover and
+then turning off the booster, and turning on a local exhaust fan
+that evacuates air directly outside the building. Depending on the
+level of gas concentration, status lights in the lab will change from
+red to yellow or red, and a claxon alarm will sound. In addition,
+automated phone calls are placed to lab personnel and emails are
+sent.
+The system needs to tolerate equipment faults. For example,
+if the central exhaust supply fails, a local supply fan is turned
+on. Sensors are generally duplicated so that failure of one sensor
+is tolerated, and relative accuracy can be compared. When a gas
+hazard is detected, isolation will not be possible if the vent cover
+does not close; or isolation might be possible but the local exhaust
+fan does not turn on. In the presence of these faults, the system
+needs to reach the safest available status. Possible status values are
+Safe, NotLocal, UnsafeLab and UnsafeCentral.
+Status Safe corresponds to the case where there is ventilation,
+and the lab is isolated if necessary. Ventilation can be Central
+(central exhaust on, vent cover open, booster on) or Local (vent
+cover closed and local exhaust on); in both cases central and/or
+local supply are on. NotLocal corresponds to the case where there
+is ventilation but not isolation; this means central exhaust is being
+used. UnsafeLab corresponds to the case where the lab is isolated
+although ventilation is inadequate. UnsafeCentral corresponds to
+the case where the lab should be isolated but is not, and ventilation
+
+Proof: The number of iterations from Line 5 to Line 9 and
+from Line 4 to Line 13 in Algorithm 2 is polynomial in (|Sp |).
+Hence the complexity of Algorithm 2 is polynomial in the size of
+(|Sp |). If we utilize the Add masking algorithm from [5] then
+its complexity is also polynomial in the size of (|Sp |). Moreover,
+in Algorithm 1, the outer loop (from Line 2 to Line 13) executes
+at most n iterations and the inner loop (from Line 6 to Line 11)
+executes polynomial times in (|Sp |). Therefore, the complexity of
+Algorithm 1 is polynomial in the size of (|Sp | ∗ n).
+A. Application of Algorithm 1 for Distributed Programs
+Algorithm 1 can be applied to distributed programs as follows.
+Intuitively, in a distributed program, a process can read and write
+only a subset of program variables. Hence, to apply the algorithm in
+a distributed system, we need to ensure that the program generated
+is realizable under the constraints imposed by the distributed
+system. To capture such notion, we introduce wj as a set of
+variables process j can write and rj as a set of variables process
+j can read. Furthermore transitions of a program are partitioned
+into transitions of its processes. And, the transitions included in
+a process need to satisfy the constraints imposed by their readwrite restriction. We identify these restrictions, and their effect on
+Algorithm 1, next.
+− Write Restrictions. Process j must exclude those transitions, say write(j, wj ), in which j changes the variables not
+in wj . Hence, any time program transitions are computed
+in Algorithm 1, we need to ensure that its transitions are
+writable by some process in that program. For instance, write
+restrictions affect Line 3 of Algorithm 2. Hence, this line is
+modiﬁed to include only those transitions that some process
+can write. Same restrictions also apply on Line 9, Line 11
+and Line 7 in Algorithm 2. Also, Line 4 of Algorithm 1
+
+85
+Authorized licensed use limited to: Universidade Tecnologica Federal do Parana. Downloaded on July 02,2026 at 14:08:26 UTC from IEEE Xplore. Restrictions apply.
+
+turned on (c = 1, l = 1). Thus
+
+is inadequate. These form a total order from safest to most
+hazardous.
+To illustrate graceful degradation, we focus on the key components of ventilation: central supply, central exhaust, vent cover,
+local supply and local exhaust. For simplicity, we ignore the
+exhaust booster. Speciﬁcally, if exhaust booster fails, we made
+it as a failures of central exhaust system. Central supply and
+exhaust are not controllable but other components are. Controllable
+components have an actuation status (open/closed, on/off) and
+controllability status (controllable or not). A component is declared
+uncontrollable if an attempt to actuate it fails, and it remains
+uncontrollable until an operator ﬁxes it and declares it controllable.
+Controllability lets us know whether it can be actuated or whether
+we have to adapt to its present status.
+
+Sfbs = {s|(¬cc(s) ∧ c(s)) ∨ (¬lc(s) ∧ l(s))}
+Notation. We use gas, vc, cc, lc|v, c, l to represent the state.
+If a variable value is ‘∗’, it means it can be either 0 or 1. Thus,
+1, 1, 1, 1|∗, 0, 1 denotes a state where gas is present; vent cover,
+central exhaust and local exhaust are controllable; vent cover may
+be open or closed, central exhaust is not in use and local exhaust
+is in use.
+2) Speciﬁcation. : There are two major requirements considered
+critical in the system design. First of all, when gas hazardous is
+detected, the lab should be isolated with the building (denoted as
+Riso ), to prevent gas leak from the lab to the rest of the building.
+Second, a poisonous gas must be exhausted from lab (denoted as
+Rexh ) to outside air. These requirements are captured by Riso and
+Rexh , where
+− Riso = gas ⇒ ¬v, gas isolated.
+− Rexh = gas ⇒ ((v ∧ c) ∨ l), gas exhausted.
+Rexh is considered much more important than Riso since gases
+like hydrogen and carbon monoxide can explode. Hence, we can
+consider three requirements that are used in describing the graceful
+behavior.
+− Sf1 = Riso ∧ Rexh , where Sf1 is the ideal requirement
+that should be satisﬁed whenever possible. In this state, any
+leaked gas is exhausted while isolating the rest of building
+from gas. This corresponds to status Safe described at the
+beginning of this section.
+− Sf2 = Rexh , where Sf2 is desirable when Sf1 cannot
+be met, i.e., if isolation cannot occur then exhaust must be
+provided. This corresponds to the status NotLocal described
+at the beginning of this section.
+− Sf3 = Riso ∨ Rexh , where Sf3 speciﬁes at least one of
+the two requirements should be met. This corresponds to the
+status UnsafeLab described at the beginning of this section.
+Remark.
+For brevity of presentation, we do not model
+UnsafeCentral. To model it will require three different levels of
+graceful degradation. However, our algorithm can be easily applied
+in deriving this third level of graceful degradation.
+3) Original program. : In the ideal scenario, there is no gas
+leak and at least one of the exhaust systems is functioning correctly.
+Moreover, since no gas is leaked, the vent is always open. For
+efﬁciency reasons, whenever possible, the program chooses the
+central exhaust. But it switches to the local exhaust if needed.
+Thus, the program consists of three actions. Speciﬁcally, the ﬁrst
+action turns on the central exhaust and turns off the local exhaust
+when both are available. If only one of the exhaust is available,
+the last two actions utilize the corresponding exhaust. The three
+actions of the program are as shown in Table I.
+
+A. Modeling Ventilation System
+1) Variables. : Based on the assumption made by system
+designers, either central supply or local supply is functioning and
+it is acceptable to use either one or both. Moreover, the choice
+of supply does not affect the status (Safe, NotLocal, etc.) of the
+system. Hence, we only model the central exhaust and local exhaust
+system. Hence, we introduce the variable cc (denoting whether
+central exhaust is available to use, i.e., it has not been turned off
+by building.) and variable lc (denoting whether local exhaust is
+available to use, i.e., whether it is controllable). We also introduce
+variable c (denoting whether the central exhaust system is being
+used by the lab) and variable l (denoting whether the local exhaust
+system is being used by the lab). Likewise, we introduce variables
+v and vc to denote status of vent cover and its controllability.
+Finally, the variable gas denotes whether hazardous gas exists at a
+sufﬁciently high concentration. Thus, the variables are as follows:
+− gas : {0, 1}: Gas hazard detected (gas = 1) or not (gas =
+0).
+− vc : {0, 1}: Vent controllable (vc = 1) or not (vc = 0).
+− v : {0, 1}: Vent closed (v = 0) or open (v = 1).
+− cc : {0, 1}: Central exhaust controllable (cc = 1) or not
+(cc = 0).
+− c : {0, 1}: Central exhaust in use (c = 1) or not (c = 0).
+− lc : {0, 1}: Local exhaust controllable (lc = 1) or not (lc =
+0).
+− l : {0, 1}: Local exhaust in use (l = 1) or not (l = 0).
+Thus, the state space of this program consists of all states
+obtained by assigning each variable value from the domain. Additionally, when the context is clear, we would abuse C-style syntax,
+that is ¬v evaluating to true if v = 0.
+Based on the above modeling, we identify certain structural
+constraints. These constraints describe limitations in terms of
+transitions that a revised program can include. For example, if the
+central exhaust is not controllable then the system cannot use it by
+setting c = 1. Observe that this structural constraint can be modeled
+as a set of transitions that the program cannot include. Hence,
+during the synthesis algorithm, we model it as (an additional) safety
+speciﬁcation that has to be satisﬁed by the revised program. The set
+of (bad) transitions identifying the structural constraints are given
+by the following set of transitions.
+
+VI. A PPLICATION OF M ULTI -G RACEFUL D EGRADATION IN
+OCRC
+In this section, we present the technique of adding multigraceful degradation to program with multi-graceful-degradation
+by applying Algorithm 1 on OCRC. First, we discuss the faults
+in different severity and the expected requirements in the presence
+of these faults. Then, specify corresponding relaxed speciﬁcations.
+In particular, we split the whole synthesis progress into four parts
+following Algorithm 1. In the end, we show the resulting program
+and compare it with the original OCRC system design.
+
+Sfbt = {(s0 , s1 )|(gas(s0 ) = gas(s1 )) ∨ (vc(s0 ) = vc(s1 ))
+∨ (cc(s0 ) = cc(s1 )) ∨ (lc(s0 ) = lc(s1 ))}
+In addition, program cannot reach certain states in which central/local exhaust is uncontrollable (cc = 0, lc = 0) while it is
+
+86
+Authorized licensed use limited to: Universidade Tecnologica Federal do Parana. Downloaded on July 02,2026 at 14:08:26 UTC from IEEE Xplore. Restrictions apply.
+
+Figure 1.
+
+Overview of OCRC Lab Safety System
+
+¬gas ∧ lc ∧ cc ∧ (¬c ∨ l) −→ c := 1, l := 0
+¬gas ∧ ¬lc ∧ cc ∧ ¬c −→ c := 1
+¬gas ∧ lc ∧ ¬cc ∧ ¬l −→ l := 1
+
+central exhaust is turned on if both controllable
+central exhaust is turned on if local exhaust is uncontrollable
+local exhaust is turned on if central exhaust is uncontrollable
+Table I
+ACTIONS OF FAULT- INTOLERANT P ROGRAM p
+
+A. Faults
+
+it would be impossible to satisfy Sf1 . Hence, if the system is
+exposed to all four faults, the system may reach states that violate
+Sf2 . However, all such states still satisfy Sf3 . Hence, the desired
+graceful behavior in this context is one that satisﬁes the safety
+speciﬁcation Sf3 and liveness speciﬁcation Lv2 := true  Sf2 .
+Thus, the system design requires us to consider two classes of
+faults. The ﬁrst class includes actions f1 and f2 . These faults are
+combined into one class since requirements in their presence are
+the same. And, the second class includes f1 , f2 , f3 and f4 .
+
+Before adding graceful degradation to the program in Table I,
+we identify the faults that may require one to provide a weaker
+speciﬁcation. We consider four possible faults that affect the
+system. Of these, the ﬁrst fault, f1 , corresponds to the case where
+a gas leak occurs. The next two faults, f2 and f3 cause the
+central and the local exhaust to become uncontrollable. When the
+exhaust becomes unavailable/uncontrollable, the system receives a
+notiﬁcation upon which the system must turn the corresponding
+exhaust to off. Moreover, it cannot turn that exhaust on again
+(except under manual intervention). Note that the assumption in
+this system is that both the local and the central exhaust do not
+become uncontrollable. This is captured in the modeling of fault
+actions f2 and f3 . Finally, the last fault action, f4 , causes the vent
+cover to be uncontrollable. This is a stuck-at fault that causes the
+vent to remain in its current position. Its status cannot be changed
+by the program. These faults are as shown in Table II.
+
+C. Application of Algorithm 1
+First, we identify the inputs for Algorithm 1.
+− The fault-intolerant program p is same as those shown in
+Table I.
+− The invariant I is set of reachable states by p, which in
+particular are represented as I = {s|¬gas(s)∧(l(s)∨(c(s)∧
+v(s)))}
+− In this case study, graceful behavior is desired only if gas is
+present. Thus the set of state predicates Sa1 , Sa2 , · · · , San
+are all set to {1, ∗, ∗, ∗|∗, ∗, ∗}.
+− Faults are as described in Section VI-A and the relaxed
+speciﬁcation is as described in Section VI-B.
+Recall that Algorithm 1 utilizes a multi-step approach where
+in each step, one class of faults is considered. The Algorithm 1
+invokes Algorithm 2 on Line 3. This subroutine expands the behavior of the original program to add new behaviors that only satisfy
+the weaker speciﬁcation. Subsequently, it utilizes this program to
+add fault-tolerance in Line 4. Thus, for ease of understanding,
+we partition the application of Algorithm 1 into four parts, given
+below:
+Part 1. (Line 3 in ﬁrst iteration of loop 2-13): Generate graceful
+program pg1 , such that it satisﬁes safety speciﬁcation Sf2 and
+
+B. Requirements in the presence of Faults
+In this system, the ﬁrst graceful program, say pgf t1 , is designed
+for the case where faults f1 and f2 occur. Observe that in the
+presence of f1 and f2 , local exhaust and vent cover are still
+controllable. Hence, we can eventually ensure both Riso and Rexh .
+Note that in the presence of f1 and f2 , system may reach states that
+violate Sf1 if f1 occurs while the central exhaust is being used.
+But all such states are still in Sf2 . Hence, the desired graceful
+behavior in this context is one that satisﬁes the safety speciﬁcation
+Sf2 and liveness speciﬁcation Lv2 := true  Sf1 .
+The second graceful program, say pgf t2 , is designed for the
+case where all four faults can happen. If the local exhaust is
+uncontrollable then it would be impossible to satisfy Sf1 when
+a gas leak occurs. Likewise, if the vent cover cannot be closed,
+
+87
+Authorized licensed use limited to: Universidade Tecnologica Federal do Parana. Downloaded on July 02,2026 at 14:08:26 UTC from IEEE Xplore. Restrictions apply.
+
+f1 : ¬gas −→ gas := 1
+f2 : cc ∧ lc −→ cc := 0, l := 1, c := 0
+f3 : cc ∧ lc −→ lc := 0, l := 0, c := 1
+f4 : vc −→ vc := 0
+Table II
+FAULTS
+
+hazardous gas is detected
+central exhaust loses its control
+local exhaust is loses its control
+vent cover loses its control
+
+which ranks are ∞ are removed, i.e. those underlined states
+in Figure 2.
+− Iteration #2: Algorithm 2 applies no change in the next
+iteration, thus the loop terminates.
+
+liveness speciﬁcation Lv2 := true  Sf1 .
+Part 2. (Line 4 in ﬁrst iteration of loop 2-13): Add fault-tolerance
+to pg1 to obtain pgf t1 .
+Part 3. (Line 3 in second iteration of loop 2-13): Generate graceful
+program pg2 , such that it satisﬁes safety speciﬁcation Sf3 and
+liveness speciﬁcation Lv3 := true  Sf2 .
+Part 4. (Line 4 in second iteration of loop 2-13): Add faulttolerance to pg2 to obtain pgf t2 .
+1) Part 1: Generation of Graceful Program pg1 . : To generate pg1 (on Line 3 of Algorithm 1), we invoke procedure
+Gen gracef ul. Based on the inputs to Algorithm 1, the inputs
+to the algorithm are as follows.
+
+Therefore the remaining transitions (and states) together with
+those in p (and in I) are returned as pg1 (and Ig1 ). We show
+transitions of pg1 (except those shown in Table I) in Figure 2.
+2) Part 2: Adding Fault-tolerance to pg1 . : To add faulttolerance, we use procedure Add masking as a black box. Thus
+to illustrate the result of adding fault-tolerance, we ﬁrst consider
+consider how the program can be perturbed to by faults, that
+is set of reachable states by pg1 in the presence of f , where
+f = f1 ∪ f2 ; then show that starting from all these reachable
+states there are transitions provided by either original program p
+or graceful program pg1 .
+In the absence of faults, if only f1 occurs, the system reaches
+one of the states in 1, 1, 1, 1|∗, ∗, ∗. Note that all these states are
+generated in pg1 and have outgoing transition, thus f1 is tolerated.
+In the absence of faults, if only f2 occurs, following transitions in
+p, system switches to local exhaust, thus f2 is tolerated. If original
+program perturbed by f1 and f2 together, the only state can be
+perturbed to is 1, 1, 0, 1|1, 0, 1 which is generated in pg1 and
+has an outgoing transition. Thus, there is no changes on Line 4 in
+Algorithm 1.
+3) Part 3: Generation of Graceful Program pg2 . : In this case,
+we add fault-tolerance to the program generated in Part 2. The
+inputs of program and invariant are selected from the ﬁrst iteration.
+Faults consist of all four faults in Table II and the speciﬁcation in
+the presence of faults is as speciﬁed in Section VI-B.
+We do not elaboration the effect of Algorithm 2 again on pg2 .
+Instead, we show set of newly discovered transitions and states in
+pg2 (not including those in pg1 ) in Table III.
+
+− Sa : As mentioned, Sa1 = {1, ∗, ∗, ∗|∗, ∗, ∗}.
+− p: In the ﬁrst iteration (2-13), the program transitions for
+gen gracef ul is the fault-intolerant program p.
+− I: Same as the invariant identiﬁed for fault-intolerant program.
+− specr1 : The relaxed speciﬁcation is a pair of safety speciﬁcation and liveness speciﬁcation.
+– Relaxed Safety: We specify safety speciﬁcation as set of
+bad states and bad transitions. First of all, we require that
+program always satisﬁes Sf2 , thus states in ¬Sf2 are
+not allowed. In addition, the relaxed safety speciﬁcation
+should always contains structure constraints Sfbs and
+Sfbt .
+– Relaxed Liveness: We require program ensure both
+exhaustion and isolation eventually, i.e. reach a states
+satisfying Sf1 .
+Hence specr1 := (¬Sf2 ∪ Sfbs , Sfbt ), true  Sf1 .
+First on Line 1, we identify all the states in Sa satisfying Sfrbs .
+These states are denoted as IΔ := ((v = 1 ∧ c = 1) ∨ (l =
+1)) ∧ (cc = 0 → c = 0) ∧ (lc = 0 → l = 0). Then, I  includes all
+states in I and IΔ . On Line 3, we obtain set of transitions satisfying
+safety speciﬁcation. In particular, we show all the transitions in
+Figure 2 (including solid and dashed arrow). Note that on Line
+3, each states in IΔ is added with a self-loop transition. Now we
+discuss the synthesis by loop (from Line 4 to Line 13) in different
+iterations.
+
+4) Part 4: Adding Fault-tolerance to pg2 .: For the brevity
+of presentation, we do not illustrate the detail of adding faulttolerance. However, there are no new transitions added by
+Add masking. Thus pgf t2 is same as pg2 .
+D. Extension to deal with UnsafeCentral
+
+− Iteration #1: By construction I only includes states where
+no hazardous gas is present and IΔ only includes states
+where hazardous gas is present. The program cannot write
+the variable gas. Hence no transition from IΔ to I is
+added on Line 7. There is no deadlock state identiﬁed in
+this iteration on Line 8. To realize the effect of Line 11,
+we ﬁrst assign the rank (using function rank) over each
+state. According to Lv, states in Sf1 are assigned rank
+0. Since both states 1, 1, 1, 1|1, 1, 1 and 1, 1, 1, 1|1, 0, 1
+reach some states in Sf1 in one step, their ranks are 1.
+Therefore the transition between them is removed on Line
+11. Likewise, on Line 11, the self-loop transitions on states
+1, 1, 1, 1|1, 1, 0, 1, 1, 1, 1|1, 1, 1, 1, 1, 1, 1|1, 0, 1 and
+1, 1, 0, 1|1, 0, 1 are removed. On Line 12, those states of
+
+To ﬁnalize the synthesis, we also consider the status of UnsafeCentral. In this case, neither isolation nor exhaust may be
+satisﬁed, at least temporarily. Hence, the relaxed requirement does
+not include any safety speciﬁcation. However, it includes a liveness
+speciﬁcation, namely, true  Sf3 . Although we do not present the
+application of Algorithm 1, we can easily obtain the corresponding
+program by considering only another class of faults and applying
+Algorithm 1 in a third iteration.
+The state where Sf3 is violated is reached due to faults such as
+transients. It could also be reached if both exhaust systems fail
+temporarily. Algorithm 1 already handles this scenario as well.
+Speciﬁcally, for this case, we need to model fault f5 as a transient
+fault that requires the liveness speciﬁcation true  Sf3 . If we add
+this as the third fault class and apply Algorithm 1, the resulting
+
+88
+Authorized licensed use limited to: Universidade Tecnologica Federal do Parana. Downloaded on July 02,2026 at 14:08:26 UTC from IEEE Xplore. Restrictions apply.
+
+gas, vc, cc, lc|v, c, l
+: state
+gas, vc, cc, lc|v, c, l
+: removed state
+
+1, 0, 1, 0|1, 1, 0
+
+1, 1, 1, 0|1, 1, 0
+
+1, 0, 0, 1|1, 0, 1
+
+1, 0, 1, 1|1, 1, 0
+
+1, 0, 1, 1|1, 1, 1
+
+1, 0, 1, 1|1, 0, 1
+
+: program transition
+
+1, 1, 1, 1|1, 1, 0
+
+1, 1, 1, 1|1, 1, 1
+
+1, 1, 1, 1|1, 0, 1
+
+Sf2
+
+: removed transition
+
+1, 1, 0, 1|0, 0, 1
+
+1, 1, 0, 1|1, 0, 1
+
+1, 0, 1, 1|0, 0, 1
+
+1, 0, 1, 1|0, 1, 1
+
+Figure 2.
+1, 0, 1, 1|0, 1, 0
+1, 0, 1, 1|0, 0, 0
+1, 1, 0, 1|0, 0, 1
+1, 1, 1, 1|0, 1, 0
+
+→
+→
+→
+→
+
+Sf1
+
+1, 1, 1, 1|0, 0, 1
+
+1, 1, 1, 1|0, 1, 1
+
+1, 0, 0, 1|0, 0, 1
+
+Transitions of pg1 (except those shown in Table I)
+1, 0, 1, 1|0, 1, 1
+1, 0, 1, 1|0, 0, 1
+1, 1, 0, 1|0, 0, 1
+1, 1, 1, 1|0, 1, 1
+
+1, 0, 0, 1|0, 0, 0 →
+1, 1, 1, 0|0, 1, 0 →
+1, 1, 1, 1|0, 0, 0 →
+1, 1, 1, 0|0, 0, 0 →
+Table III
+N EWLY DISCOVERED TRANSITIONS IN PART 3
+
+program is same as the ventilation system (i.e., the system except
+alarms, status lights etc) of OCRC.
+
+1, 0, 0, 1|0, 0, 1
+1, 1, 1, 0|1, 1, 0
+1, 1, 1, 1|0, 0, 1
+1, 1, 1, 0|0, 1, 0
+
+aims to circumvent the difﬁculties in composing components with
+stabilizing requirements. A program is ideal stabilizing if all its
+states are legitimate according to its speciﬁcation. For both ideal
+speciﬁcation (allows all possible states) and non-ideal speciﬁcation
+(allows parts of possible states), they propose two mapping apporaches which map program states to speciﬁcation states to reason
+its ideal stabilizing properties. Our work differs from this work
+in two aspects. First, the notion of multi-graceful degradation is
+more general than ideal stabilization in the sense that in multigraceful program satisﬁes different speciﬁcations based on the
+severity of faults. Second, our work focuses on the aspect of design
+and revision while they focus on deﬁning ideal stabilization and
+deﬁning its properties. If the given speciﬁcations are relaxed only
+liveness speciﬁcations, our approach can be applied to synthesize
+ideal stabilizing components.
+Some existing work has also considered using graceful degradation to provide fault tolerance against unexpected failures. For
+example in [19] authors consider the design of a distributed storage
+systems. They propose two weaker consistency speciﬁcations, i.e.
+Preﬁx Serializability and Subsequence Linearizability, to relax the
+original one, namely Preﬁx Linearizability. They point out that a
+system under the weaker consistency speciﬁcations achives more
+availability in the sense that more legal states (though degraded)
+are allowed. And, it can be considered to offer trade-off according
+to the CAP theorem [20]. In [19], authors also present three
+implementations for such systems under three speciﬁcations. By
+modeling the faults under which one provides weaker level of
+speciﬁcation, we can apply our synthesis approach in obtaining the
+implemetation (one satisfying Subsequence Linearizability) from
+another (one satisfying Preﬁx Serializability). Note that Subsequence Linearizability is weaker than Preﬁx Serializability.
+
+VII. R ELATED W ORK
+The work in this paper is closely related to that of controller
+synthesis, game theory, automated addition of fault-tolerance and
+graceful degradation in distributed computing. Controller synthesis
+considers the following problem: Given two languages U (plant)
+and D (desired system), identify a third language C (controller),
+such that U ∩ D ⊆ C [10]. Thus, the goal is to begin with
+the plant and add controller to obtain the desired system. The
+idea of transforming a fault-intolerant system into a fault-tolerant
+system using controller synthesis is was used in in [11]. Also in
+[12], Girault and Rutten demonstrate the application of discrete
+controller synthesis in automated addition of fault-tolerance in the
+context of untimed systems. Our work in this paper differs from
+this work in that we are trying to relax the speciﬁcation of the
+given system whereas they are trying to strengthen it.
+In the context of game theoretical approach for model revision,
+program is automatically ﬁxed as a game [13], [14]. The game
+is played on the model of two players [15], i.e., program and
+environment. A program is considered to win the game if the
+speciﬁcation is always satisﬁed no matter how the environment
+interacts with the program. Game theoretic methods are generally
+based on the theory of tree automata [16].
+Our work is also a generalization of multitolerance [17]. The
+notion of multitolerance is based on the idea of providing failsafe,
+nonmasking and masking tolerance to individual faults. By contrast,
+the notion of multi-graceful degradation allows us to capture more
+general requirements. This work is also more general than that in
+[4] in that the notion of fault-tolerance is not considered in [4]. By
+contrast, this paper focuses on providing multi-graceful degradation
+to several types of faults.
+We obtain a multi-graceful fault-tolerant program by synthesizing and composing multiple programs that provide degradation.
+In [18], Nesterenko and Tixeuil advocate ideal stabilization which
+
+VIII. C ONCLUSION
+In this paper, we focused on automated addition multi-graceful
+degradation to a fault-intolerant program. Designing multi-graceful
+degradation introduces several challenges. First, unlike tolerances
+
+89
+Authorized licensed use limited to: Universidade Tecnologica Federal do Parana. Downloaded on July 02,2026 at 14:08:26 UTC from IEEE Xplore. Restrictions apply.
+
+such as failsafe, nonmasking and masking, in multi-graceful degradation, the given program may not include behaviors that the repaired program can use after recovery is complete. For this reason,
+we need to relax the given program so that it satisﬁes a reduced
+speciﬁcation. In other words, one needs to generate a graceful
+version of the given program. Another challenge in multi-graceful
+degradation is that the requirements in the presence of faults vary.
+Hence, it is necessary to generate several graceful programs and
+ensure that depending upon which fault have occurred, the revised
+program satisﬁes the required speciﬁcation.
+We presented an algorithm for automated addition of multigraceful degradation to an existing program. This program performed the task in a stepwise manner where we considered the least
+severe faults for which most of the original speciﬁcation needed
+to be satisﬁed. Then, in each subsequent step, we consider more
+severe faults for which the requirements were relaxed/reduced.
+We illustrated the problem in the context of a case study from
+the ventilation system at Ohio Coal Research Center. This system
+was designed to protect personnel and facilities by detecting the
+presence of explosive and/or toxic gas and either dealing with
+it, or by alerting lab personnel and emergency responders. We
+focused on the ventilation system of at OCRC. We began with a
+fault-intolerant version of this system where no gases have leaked
+and all components are functioning correctly. Then, we used our
+algorithms to add multi-graceful degradation. We achieved this by
+using two classes of faults. We applied our algorithms to provide
+multi-graceful degradation to these two classes of faults. Moreover,
+the ﬁnal program synthesized thus is the same as that designed
+manually for the ventilation system at Ohio Coal Research Center.
+This approach is also more general than that in [5], [6], [7].
+Speciﬁcally, in this work, failsafe, nonmasking or masking faulttolerance has been considered. And, as discussed earlier in the
+paper, the notion of multi-graceful degradation is more general than
+these tolerances. The case study in this paper could not be designed
+using algorithms in [5], [6] due to the fact that when faults occur,
+it is impossible for the program to recover to its original behavior.
+Also, this work is more general than [4] in that [4] only considers
+the problem of designing graceful program. It does not address the
+issue of fault-tolerance (or multi-graceful degradation).
+
+[7] F. C. Gärtner and A. Jhumka, “Automating the addition of
+fail-safe fault-tolerance: Beyond fusion-closed speciﬁcations,” in
+FORMATS/FTRTFT, ser. Lecture Notes in Computer Science,
+Y. Lakhnech and S. Yovine, Eds., vol. 3253. Springer, 2004,
+pp. 183–198.
+[8] Y. Lin and S. Kulkarni, “Tech report: Automation of
+fault-tolerant graceful degradation.” [Online]. Available: http:
+//www.cse.msu.edu/∼linyiyan/srds12/main.pdf
+[9] W. Leal, M. McCreery, and D. Faria, “The ocrc fuel cell
+lab safety system: a self-stabilizing safety-critical system,” in
+Proceedings of the 13th international conference on Stabilization,
+safety, and security of distributed systems, ser. SSS’11. Berlin,
+Heidelberg: Springer-Verlag, 2011, pp. 326–340. [Online].
+Available: http://dl.acm.org/citation.cfm?id=2050613.2050638
+[10] P. J. Ramadge and W. M. Wonham, “The control of discrete event
+systems,” Proceedings of the IEEE, vol. 77, no. 1, pp. 81–98,
+1989.
+[11] K. H. Cho and J. T. Lim, “Synthesis of fault-tolerant supervisor for automated manufacturing systems: A case study on
+photolithography process,” IEEE Transactions on Robotics and
+Automation, vol. 14, no. 2, pp. 348–351, 1998.
+[12] A. Girault and É. Rutten, “Automating the addition of fault
+tolerance with discrete controller synthesis,” Formal Methods in
+System Design (FMSD), vol. 35, no. 2, pp. 190–225, 2009.
+[13] A. Pnueli and R. Rosner, “On the synthesis of a reactive module,”
+in Principles of Programming Languages (POPL), 1989, pp. 179–
+190.
+[14] B. Jobstmann, A. Griesmayer, and R. Bloem, “Program repair as
+a game,” in Conference on Computer Aided Veriﬁcation (CAV),
+2005, pp. 226–238, LNCS 3576.
+[15] W. Thomas, “On the synthesis of strategies in inﬁnite games.”
+in Theoretical Aspects of Computer Science (STACS), 1995, pp.
+1–13.
+[16] ——, Handbook of Theoretical Computer Science: Chapter 4,
+Automata on Inﬁnite Objects. Elsevier Science Publishers B. V.,
+1990.
+
+R EFERENCES
+[1] M. Herlihy and J. M. Wing, “Specifying graceful degradation,”
+IEEE Trans. Parallel Distrib. Syst., vol. 2, no. 1, pp. 93–104,
+1991.
+
+[17] A. Ebnenasir and S. S. Kulkarni, “Feasibility of stepwise design
+of multitolerant programs,” ACM Trans. Softw. Eng. Methodol.,
+vol. 21, no. 1, p. 1, 2011.
+
+[2] B. Alpern and F. B. Schneider, “Deﬁning liveness,” Information
+Processing Letters, vol. 21, no. 4, pp. 181 – 185, 1985.
+
+[18] M. Nesterenko and S. Tixeuil, “Ideal stabilization,” CoRR, vol.
+abs/0906.1947, 2009.
+
+[3] A. Arora and M. G. Gouda, “Closure and convergence: A
+foundation of fault-tolerant computing,” IEEE Trans. Software
+Eng., vol. 19, no. 11, pp. 1015–1027, 1993.
+
+[19] L. Zhou, V. Prabhakaran, V. Ramasubramanian, R. Levin, and
+C. A. Thekkath, “Graceful degradation via versions: speciﬁcations
+and implementations,” in Proceedings of the twenty-sixth annual
+ACM symposium on Principles of distributed computing, ser.
+PODC ’07. New York, NY, USA: ACM, 2007, pp. 264–273.
+
+[4] Y. Lin and S. S. Kulkarni, “Automatic generation of graceful
+degradation,” in International Symposium on Reliable Distributed
+Systems, 2012.
+
+[20] E. A. Brewer, “Lessons from giant-scale services,” IEEE Internet
+Computing, vol. 5, no. 4, pp. 46–55, Jul. 2001. [Online].
+Available: http://dx.doi.org/10.1109/4236.939450
+
+[5] S. S. Kulkarni and A. Arora, “Automating the addition of faulttolerance,” in Formal Techniques in Real-Time and Fault-Tolerant
+Systems (FTRTFT), 2000, pp. 82–93.
+[6] B. Bonakdarpour and S. S. Kulkarni, “Exploiting symbolic techniques in automated synthesis of distributed programs,” in In
+IEEE International Conference on Distributed Computing Systems, 2007, pp. 3–10.
+
+90
+Authorized licensed use limited to: Universidade Tecnologica Federal do Parana. Downloaded on July 02,2026 at 14:08:26 UTC from IEEE Xplore. Restrictions apply.
+
+

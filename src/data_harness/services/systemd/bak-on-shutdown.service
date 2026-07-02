@@ -1,0 +1,16 @@
+[Unit]
+Description=BAK-1.1 PON Shutdown Trigger
+DefaultDependencies=no
+Before=poweroff.target reboot.target halt.target shutdown.target
+Requires=mosquitto.service
+After=mosquitto.service
+
+[Service]
+Type=oneshot
+User=amdy
+Environment="PATH=/home/amdy/.local/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/amdy/.local/bin/uv run --project /home/amdy/data_rein python /home/amdy/data_rein/services/systemd/pon_shutdown_trigger.py
+TimeoutStartSec=300
+
+[Install]
+WantedBy=poweroff.target reboot.target halt.target

@@ -1,0 +1,18 @@
+================================================================================
+DOCUMENTO DE DIRETRIZES E CORREÇÕES ARQUITETURAIS: PROJETO KAD 1.1
+Contexto: Unificação Antigravity (agy), Odysseus AI e PON (Amdy <-> Tell)
+Objetivo: Maximização de RAG para Ingestão em Modelos de Linguagem
+================================================================================
+1. INTRODUÇÃO E DIAGNÓSTICO DO ESTADO ATUAL
+--------------------------------------------------------------------------------
+O presente documento detalha as lacunas no entendimento e na implementação do framework Antigravity (agy) operando sobre o Paradigma Orientado a Notificações (PON). A orquestração atual do ecossistema distribuído Omarchy Linux (amdy <-> tell) ainda apresenta vícios de acoplamento temporal e espacial derivados do Paradigma Orientado a Objetos (POO) e da programação imperativa.
+2. CORREÇÃO 1: ELIMINAÇÃO DA FALSA REATIVIDADE (POLLING ATIVO)
+--------------------------------------------------------------------------------
+O problema primário do Antigravity atual é a utilização de buscas ativas (polling) no amdy para verificar filas ou estados de requisição.
+* O PON é uma abordagem arquitetural cujo cerne é a reatividade absoluta e a eliminação do acoplamento temporal (loops imperativos, polling, bloqueios ativos)[cite: 50].
+* O processamento só deve ocorrer estritamente quando há uma mudança de estado, mitigando desperdício de ciclos de CPU e reduzindo latência[cite: 51].
+* Diretriz para o agy: Abandonar imediatamente os loops de verificação (`while True`). O daemon pon_engine.py deve aguardar via blocking I/O, consumindo 0.0% de CPU[cite: 36].
+* A comunicação IPC baseada em pipes nomeados (/tmp/pon_bus) substitui totalmente as chamadas síncronas de shell para ações locais[cite: 35].
+* Para comunicação externa com o servidor tell, o sistema deve utilizar os tópicos MQTT de publicação (omarchy/sync) como barramento padrão de dados[cite: 60].
+3. CORREÇÃO 2: ABSTRAÇÃO DE ENTIDADES FATO-EX
+

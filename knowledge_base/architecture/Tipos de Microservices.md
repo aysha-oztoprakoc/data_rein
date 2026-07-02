@@ -1,0 +1,1 @@
+https://www.alura.com.br/videos/tipos-de-microservices-c698

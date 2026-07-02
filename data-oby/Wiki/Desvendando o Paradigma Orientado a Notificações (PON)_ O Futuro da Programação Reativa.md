@@ -1,0 +1,10 @@
+### Desvendando o Paradigma Orientado a Notificações (PON): O Futuro da Programação Reativa
+Seja bem-vindo à fronteira da computação de alto desempenho\! Se você já se perguntou como os pequenos cérebros eletrônicos dentro de um carro, de um smartphone ou de um dispositivo médico conseguem ser tão rápidos e eficientes, você está prestes a descobrir uma revolução conceitual. Prepare-se para conhecer o Paradigma Orientado a Notificações (PON), uma abordagem que muda a forma como "ensinamos" máquinas a pensar.
+##### 1\. O Desafio dos Sistemas que nos Cercam
+Hoje, vivemos mergulhados nos chamados **Sistemas Embarcados (ES)** . Para sermos precisos, como define **Wolf (2002)** , um Sistema Embarcado é "qualquer computador que seja um componente de um sistema maior e que possui processamento próprio". Eles não são computadores de uso geral, mas especialistas projetados para tarefas específicas sob condições rigorosas.A escala dessa tecnologia é monumental. Segundo dados de **Patterson e Hennessy (2011)** representados na Figura 1 do estudo de Eduardo Peters, o mercado de dispositivos móveis explodiu: em 2007, as vendas de telefones celulares ultrapassaram a marca de **1 bilhão de unidades** , enquanto os PCs tradicionais estagnaram na casa dos **250 milhões** .No entanto, esses bilhões de dispositivos operam com "orçamentos" de hardware curtíssimos, enfrentando três gargalos críticos:
+* **Processamento:** CPUs de baixo custo com poder limitado. 
+* **Memória:** Espaço extremamente reduzido para armazenamento de dados e instruções. 
+* **Energia:** Dependência total de baterias, o que exige um consumo energético mínimo para garantir a autonomia.Os paradigmas tradicionais de programação (como o Procedimental e o Orientado a Objetos) costumam desperdiçar esses recursos porque foram feitos para computadores de mesa, onde a energia e a memória são abundantes.
+##### 2\. O Problema do "Se-Então" Tradicional
+Imagine uma empresa onde o chefe precisa perguntar a cada cinco minutos pa
+

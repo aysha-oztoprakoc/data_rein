@@ -1,0 +1,26 @@
+{
+  "mappings": [
+    {
+      "source": "/home/amdy/.gemini/",
+      "destination": "/home/amdy/data_rein/knowledge_base/agents/antigravity/"
+    },
+    {
+      "source": "/home/amdy/.agents/",
+      "destination": "/home/amdy/data_rein/knowledge_base/agents/agents_md/"
+    },
+    {
+      "source": "/home/amdy/.hermes/",
+      "destination": "/home/amdy/data_rein/knowledge_base/agents/hermes/"
+    }
+  ],
+  "exclude": [
+    "*.db",
+    "*.db-shm",
+    "*.db-wal",
+    "*.log",
+    "__pycache__",
+    ".git",
+    "node_modules",
+    ".venv"
+  ]
+}

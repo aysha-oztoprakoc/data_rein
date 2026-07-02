@@ -1,0 +1,224 @@
+7/2/26, 11:09 AM
+
+Using Architectural Properties to Model and Measure Graceful Degradation | Springer Nature Link
+
+Log in
+
+Using Architectural Properties to Model and
+Measure Graceful Degradation
+Conference paper First Online: 01 January 2007
+pp 267–289 Cite this conference paper
+
+Architecting Dependable Systems
+Charles Shelton & Philip Koopman
+
+Part of the book series: Lecture Notes in Computer Science ((LNCS,volume 2677))
+481 Accesses
+
+17 Citations
+
+Abstract
+System-wide graceful degradation may be a viable approach to improving dependability in
+computer systems. In order to evaluate and improve system-wide graceful degradation we
+present a system model that will explicitly define graceful degradation as a system property,
+and measure how well a system gracefully degrades in the presence of multiple
+combinations of component failures. The system’s software architecture plays a major role
+in this model, because the interface and component specifications embody the architecture’s
+abstraction principle. We use the architecture to group components into subsystems that
+enable reasoning about overall system utility. We apply this model to an extensive example of
+a distributed embedded control system architecture to specify the relative utility of all valid
+https://link.springer.com/chapter/10.1007/3-540-45177-3_12
+
+1/6
+
+7/2/26, 11:09 AM
+
+Using Architectural Properties to Model and Measure Graceful Degradation | Springer Nature Link
+
+system configurations. We then simulate working system configurations and compare their
+ability to provide functionality to the utility measures predicted by our model.
+
+This is a preview of subscription content, log in via an institution to check access.
+
+Access this chapter
+Log in via an institution
+Institutional subscriptions
+
+Preview
+Unable to display preview. Download preview PDF.
+
+Explore related subjects
+
+Discover the latest articles, books and news in related subjects, suggested using machine learning.
+
+Embedded Systems
+
+Enterprise Architecture
+
+Evolvability
+
+System Robustness
+
+System Performance and Evaluation
+
+Systems Analysis
+
+Self-Adaptive Software Systems Engineering
+
+References
+https://link.springer.com/chapter/10.1007/3-540-45177-3_12
+
+2/6
+
+7/2/26, 11:09 AM
+
+Using Architectural Properties to Model and Measure Graceful Degradation | Springer Nature Link
+
+1. Laprie, J.-C, “Dependability of Computer Systems: Concepts, Limits, Improvements”,
+Proceedings of the Sixth International Symposium on Software Reliability Engineering,
+Toulouse, France, Oct. 1995, pp. 2–11.
+
+2. Shelton, C., Koopman, P., “Using Architectural Properties to Model and Measure
+
+System-Wide Graceful Degradation,” Workshop on Architecting Dependable Systems
+sponsored by the International Conference on Software Engineering (ICSE2002), May 2002,
+Orlando, FL.
+
+3. Nace, W., Koopman, P., “A Product Family Approach to Graceful Degradation,” Distributed
+and Parallel Embedded Systems (DIPES), October 2000.
+
+4. Nace, W., “Graceful Degradation via System-wide Customization for Distributed
+
+Embedded Systems,” Ph.D. dissertation, Dept. of Electrical And Computer Engineering,
+Carnegie Mellon University, May 2002.
+
+5. Keeney, R.L., Raiffa, H., Decisions with Multiple Objectives: Preference and Value
+Tradeoffs, John Wiley & Sons, New York, 1976.
+
+6. Herlihy, M. P., Wing, J. M., “Specifying Graceful Degradation,” IEEE Transactions on
+Parallel and Distributed Systems, vol.2, no.l, pp. 93–104, 1991.
+
+7. Jayanti, P., Chandra, T.D., Toueg, S., “The Cost of Graceful Degradation for Omission
+Failures,” Information Processing Letters, vol. 71, no. 3–4, pp. 167–172, 1999.
+
+8. Weber, D.G., “Formal Specification of Fault-Tolerance and its Relation to Computer
+
+Security,” Proceedings of Fifth International Workshop on Software Specification and Design,
+Pittsburgh, PA, USA, May 19–20, 1989.
+
+https://link.springer.com/chapter/10.1007/3-540-45177-3_12
+
+3/6
+
+7/2/26, 11:09 AM
+
+Using Architectural Properties to Model and Measure Graceful Degradation | Springer Nature Link
+
+9. Rushby, J., “Partitioning in Avionics Architectures: Requirements, Mechanisms, and
+Assurance,” NASA Contractor Report CR-1999-209347, June 1999.
+
+10. Dvorak, D., Rasmussen, R, Reeves, G., Sacks, A., “Software Architecture Themes in
+
+JPL’s Mission Data System,” 2000 IEEE Aerospace Conference, March 2000, Big Sky, MT.
+
+11. Rasmussen, R., “Goal-Based Fault Tolerance for Space Systems using the Mission Data
+System,” 2007 IEEE Aerospace Conference, March 2001, Big Sky, MT.
+
+12. Knight, J.C., Sullivan, K.J., “On the Definition of Survivability,” University of Virginia,
+Department of Computer Science, Technical Report CS-TR-33-00, 2000.
+
+13. Meyer, J.F., “On Evaluating the Performability of Degradable Computing Systems,” The
+Eighth Annual International Conference on Fault-Tolerant Computing (FTCS-8), Toulouse,
+France, June 21–23 1978.
+
+Author information
+Authors and Affiliations
+
+Electrical and Computer Engineering Department, Carnegie Mellon University,
+Pittsburgh, PA, 15213, USA
+Charles Shelton & Philip Koopman
+
+Editor information
+Editors and Affiliations
+
+Computing Laboratory, University of Kent, Canterbury, Kent, CT2 7NF, UK
+Rogério de Lemos
+https://link.springer.com/chapter/10.1007/3-540-45177-3_12
+
+4/6
+
+7/2/26, 11:09 AM
+
+Using Architectural Properties to Model and Measure Graceful Degradation | Springer Nature Link
+
+School of Computing Science, University of Newcastle upon Tyne, Newcastle upon Type,
+NE1 7RU, UK
+Cristina Gacek & Alexander Romanovsky &
+
+Rights and permissions
+Reprints and permissions
+
+Copyright information
+© 2003 Springer-Verlag Berlin Heidelberg
+
+About this paper
+Cite this paper
+
+Shelton, C., Koopman, P. (2003). Using Architectural Properties to Model and Measure
+Graceful Degradation. In: de Lemos, R., Gacek, C., Romanovsky, A. (eds) Architecting
+Dependable Systems. Lecture Notes in Computer Science, vol 2677. Springer, Berlin,
+Heidelberg. https://doi.org/10.1007/3-540-45177-3_12
+.RIS
+
+.ENW
+
+.BIB
+
+DOI
+https://doi.org/10.1007/3540-45177-3_12
+
+Published
+31 July 2007
+
+Publisher Name
+Springer, Berlin, Heidelberg
+
+Print ISBN
+978-3-540-40727-0
+
+Online ISBN
+978-3-540-45177-8
+
+eBook Packages
+Springer Book Archive
+
+Keywords
+https://link.springer.com/chapter/10.1007/3-540-45177-3_12
+
+5/6
+
+7/2/26, 11:09 AM
+
+Software Component
+
+Using Architectural Properties to Model and Measure Graceful Degradation | Springer Nature Link
+
+Feature Subset
+
+System Configuration
+
+System Utility
+
+Component Failure
+
+These keywords were added by machine and not by the authors. This process is experimental and
+the keywords may be updated as the learning algorithm improves.
+
+Publish with us
+Policies and ethics
+
+https://link.springer.com/chapter/10.1007/3-540-45177-3_12
+
+6/6
+
+

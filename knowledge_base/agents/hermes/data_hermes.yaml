@@ -1,0 +1,28 @@
+name: data-hermes
+version: 1.0.0
+description: "Data-Hermes is the physical embodiment of the Data Harness. It fuses the analytical depth of Odysseus AI with the tool-oriented precision of Antigravity (AGY)."
+
+models:
+  default: llama3.1:8b
+  vision: llama3.2-vision:11b
+
+routing:
+  matrix: "config/model_router.json"
+  auto_fallback: true
+
+capabilities:
+  - general chatting
+  - deep search
+  - image generation
+  - audio generation
+  - data processing
+  - data organizing
+  - rag extraction
+  - prompt optimization
+  - external memory vault
+  - external memory guardian
+  - self-optimization
+
+memory:
+  vault_enabled: true
+  sync_daemon: active

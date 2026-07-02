@@ -1,0 +1,225 @@
+{
+  "main": {
+    "id": "a91512a329ca6e06",
+    "type": "split",
+    "children": [
+      {
+        "id": "1bad1d3ed2846875",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "43c4af153b03dc2c",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Edgerunners 2.0.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Edgerunners 2.0"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "3fc8a71a38a364da",
+    "type": "split",
+    "children": [
+      {
+        "id": "a84fb90d3f613f56",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ddea7a31fff7f539",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "227f105abe1860dc",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "30439a83e1f4f05b",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "c9de727e0ebfef68",
+    "type": "split",
+    "children": [
+      {
+        "id": "69473e919bcabb43",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f39c954c567c2ee3",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Edgerunners 2.0.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Edgerunners 2.0"
+            }
+          },
+          {
+            "id": "a52420321f012cb9",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Edgerunners 2.0.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Edgerunners 2.0"
+            }
+          },
+          {
+            "id": "0916e805c28d413c",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "414a6d2a6342bf1a",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "58d28ea0961218a2",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Edgerunners 2.0.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Edgerunners 2.0"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "43c4af153b03dc2c",
+  "lastOpenFiles": [
+    "scripts/rename_project.py",
+    "data-oby/TrainingData/PON_Silicon_Coprocessor.pdf.extracted.txt",
+    "data-oby/TrainingData/Posterv0.1.pdf.extracted.txt",
+    "data-oby/TrainingData/Um_perfil_UML_para_o_Paradigma_Orientado.pdf.extracted.txt",
+    "data-oby/TrainingData/Linguagem e compilador para o paradigma orientado a notificações (PON): avanços e comparações.pdf.extracted.txt",
+    "data-oby/TrainingData/Paradigma Orientado a Notificações Aplicado à Programação de Microcontroladores.pdf.extracted.txt",
+    "data-oby/TrainingData/Contribuição para a concepção de aplicações no paradigma orientado a notificações (PON) sob o viés de padrões.pdf.extracted.txt",
+    "data-oby/TrainingData/Linguagem e Compilador para o Paradigma Orientado a Notificações: Uma Solução Performante Orientada a Regras.pdf.extracted.txt",
+    "data-oby/TrainingData/Paradigmas de desenvolvimento de software: comparação entre abordagens orientada a eventos e orientada a notificações.pdf.extracted.txt",
+    "data-oby/TrainingData/Contribuição para materialização do paradigma orientado a notificações (PON) via framework e wizard.pdf.extracted.txt",
+    "data-oby/TrainingData/Método para Desenvolvimento de.pdf.extracted.txt",
+    "training_data/text/Diretriz de Arquitetura Motora AGY-PON (Projeto KAD 1.1).md",
+    "training_data/text/Technical Analysis_ Hardware Acceleration for the Notification-Oriented Paradigm (PON).md",
+    "training_data/text/Beyond the CPU_ How a _Notification_ Paradigm and Custom Hardware Slashed Processing Cycles by 96%.md",
+    "training_data/text/Study Guide_ Coprocessor for the Acceleration of Notification-Oriented Paradigm Applications.md",
+    "training_data/text/Comparative Reference_ Notification-Oriented Paradigm (PON) vs. Traditional Programming.md",
+    "training_data/text/Coprocessor for Accelerating Notification-Oriented Paradigm Applications.md",
+    "training_data/text/High-Level System Architecture Specification_ VHDL-Based Coprocessor for Notification-Oriented Paradigm (CoPON).md",
+    "training_data/text/A Comparative Analysis of Hardware-Accelerated vs. Software-Defined Notification-Oriented Paradigm (PON) in Embedded Architectures.md",
+    "training_data/text/Resumo Executivo_ Orquestração de Sovereign AI via Paradigma Orientado a Notificações (PON).md",
+    "training_data/text/Bíblia Arquitetural_ Projeto Sovereign e Paradigma Orientado a Notificações (PON).md",
+    "training_data/text/Design Document_ Arquitetura e Pipeline Framework KAD 1.1.md",
+    "training_data/text/Lista de Referências e Fontes Consultadas.md",
+    "training_data/text/Relatório Técnico-Acadêmico_ Paradigma Orientado a Notificações (PON) – Fundamentos, Arquitetura e Implementação.md",
+    "training_data/text/Especificação Técnica_ Arquitetura de Co-Design para Aceleração do Paradigma Orientado a Notificações (CoPON).md",
+    "training_data/text/Briefing_ Coprocessador para Aceleração do Paradigma Orientado a Notificações (PON).md",
+    "training_data/text/Relatório de Desempenho_ Aceleração de Hardware para o Paradigma Orientado a Notificações (PON).md",
+    "training_data/text/Desvendando o Paradigma Orientado a Notificações (PON)_ O Futuro da Programação Reativa.md",
+    "data-oby/Wiki/Walkthrough.md (Session Context).md",
+    "data-oby/Wiki/Tipos de Microservices.md",
+    "data-oby/Wiki/Technical Analysis_ Hardware Acceleration for the Notification-Oriented Paradigm (PON).md",
+    "data-oby/Wiki/Study Guide_ Coprocessor for the Acceleration of Notification-Oriented Paradigm Applications.md",
+    "data-oby/Wiki/Resumo Executivo_ Orquestração de Sovereign AI via Paradigma Orientado a Notificações (PON).md",
+    "data-oby/Wiki/Relatório de Desempenho_ Aceleração de Hardware para o Paradigma Orientado a Notificações (PON).md",
+    "data-oby/Wiki/Relatório Técnico-Acadêmico_ Paradigma Orientado a Notificações (PON) – Fundamentos, Arquitetura e Implementação.md",
+    "data-oby/Wiki/Padrões arquiteturais arquitetura de software descomplicada.md"
+  ]
+}

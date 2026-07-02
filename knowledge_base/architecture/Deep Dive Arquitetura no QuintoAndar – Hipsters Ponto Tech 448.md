@@ -1,0 +1,1 @@
+https://www.alura.com.br/podcast/hipsterstech-deep-dive-arquitetura-no-quintoandar-hipsters-ponto-tech-448-a9631

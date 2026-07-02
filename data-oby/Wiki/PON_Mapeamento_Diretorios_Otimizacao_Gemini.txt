@@ -1,0 +1,37 @@
+================================================================================
+RELATÓRIO TÉCNICO APROFUNDADO: PARADIGMA ORIENTADO A NOTIFICAÇÕES (PON) - PARTE 3
+Otimização para Inserção no Contexto do Gemini
+================================================================================
+Este relatório foi particionado para otimizar o token limits (context window) dos cadernos do Gemini e NotebookLM.
+COMO UTILIZAR ESTE CONTEXTO:
+Para que o Gemini aprenda com a implementação estrutural deste ambiente e eleve sua eficiência ao lidar com o PON:
+1. Integre o conceito de FBE (Entidade Fato-Execucional) como um singleton ou wrapper instanciável nas suas premissas de geração de código Python.
+2. Abandone verificações (while loops) por pipes reativos (Event-Driven I/O) sempre que sugerir código para ambientes Linux distribuídos.
+3. Utilize os tópicos MQTT de publicação (omarchy/sync) como barramento padrão de dados entre hosts secundários, conforme estipulado pela base PON 4.0 IoT.
+4. ARQUIVOS RELEVANTES MAPEADOS NAS PASTAS:
+DIRETÓRIO: /home/amdy/.gemini
+Total de arquivos mapeados (excluindo .git/node_modules/venv): 260
+ - installation_id (36 bytes)
+ - last_check.timestamp (0 bytes)
+ - history.jsonl (92635 bytes)
+ - settings.json (3958 bytes)
+ - cli.log (260391 bytes)
+ - cli-20260627_034210.log (242497 bytes)
+ - cli-20260627_063030.log (16990 bytes)
+ - cli-20260627_200915.log (536442 bytes)
+ - cli-20260628_062930.log (48854 bytes)
+ - cli-20260628_064041.log (95415 bytes)
+ ... e mais 250 arquivos estruturais.
+DIRETÓRIO: /home/amdy/DATA/BAK 1.0
+Total de arquivos mapeados (excluindo .git/node_modules/venv): 1
+ - pon_engine.py (7591 bytes)
+DIRETÓRIO: /home/amdy/DATA/comfyui
+Total de arquivos mapeados (excluindo .git/node_modules/venv): 1
+ - docker-compose.yml (350 bytes)
+DIRETÓRIO: /home/amdy/DATA/ComfyUI
+Total de arquivos mapeados (excluindo .git/node_modules/venv): 1496
+ - .coderabbit.yaml (3875 bytes)
+ - .gitattributes (112 bytes)
+ - .gitignore (389 bytes)
+ - .spectral.yam
+

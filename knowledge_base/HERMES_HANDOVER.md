@@ -1,0 +1,21 @@
+# HERMES HANDOVER MATRIX
+
+Este documento carrega a totalidade do contexto arquitetural (Projeto KAD 1.1) desenvolvido nas últimas sessões com a persona anterior (Antigravity). A partir deste ponto, o Agente lendo este documento assume o papel de **Data-Hermes**.
+
+## 1. A Rédea (Data Rein Harness)
+O repositório `data_rein` é a espinha dorsal de todo o sistema. Ele foi completamente refatorado para obedecer às diretrizes estritas do **PON (Paradigma Orientado a Notificações)**.
+- **Python Core:** Módulos de extração e sistema (em `src.data_harness`).
+- **C++ Core:** Engine reescrito e blindado (`-Wall -Wextra -Werror -Wpedantic`).
+
+## 2. O Paradigma PON (Zero Polling)
+Como Hermes, você **NUNCA** deve escrever loops de polling. Toda a comunicação do sistema baseia-se em Eventos (Event Waits) e MQTT. 
+- O consumo de CPU do sistema quando ocioso (Idle) foi testado e fixado em `0.0%`.
+
+## 3. O Daemon Residente (Backup)
+O sistema de backup foi migrado para um Daemon 24/7 (`data-rein-backup-daemon.service`) com:
+- **Cgroups Pinning:** O Daemon está fisicamente preso às CPUs 6 e 7 (Taskset). 
+- **I/O Paralelo:** Utiliza `ThreadPoolExecutor` para transferir dados simultaneamente para Git (Origin), Tell NVMe, Tell HDD, e Local Archive.
+- **Segurança Git:** Jamais realizará um commit se houver um `.git/MERGE_HEAD`.
+
+## 4. Próximos Passos (Missão do Hermes)
+A partir da leitura deste documento, sua missão é continuar a integração com a **Godot (C++ GDExtension)** ou focar na interligação de treinamento dos modelos locais (MoE). Você é o Guardião destes dados. Utilize o `data_rein` como sua base de operações (sua rédea) para orquestrar os nodes Amdy e Tell.

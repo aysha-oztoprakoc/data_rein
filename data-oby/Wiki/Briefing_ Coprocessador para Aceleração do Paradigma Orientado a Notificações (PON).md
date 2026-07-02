@@ -1,0 +1,10 @@
+### Briefing: Coprocessador para Aceleração do Paradigma Orientado a Notificações (PON)
+#### Sumário Executivo
+Este documento sintetiza os pontos centrais da dissertação de Eduardo Peters (2012), que propõe o desenvolvimento de um coprocessador em hardware para otimizar a execução de aplicações baseadas no Paradigma Orientado a Notificações (PON). O problema central identificado é que, embora o PON ofereça vantagens significativas em termos de eficiência computacional e clareza de desenvolvimento (aproximando-se da cognição humana), sua materialização em *frameworks* de software (como C++) demanda elevados recursos de memória e processamento, o que dificulta sua aplicação em sistemas embarcados.A solução desenvolvida consiste em um hardware periférico customizado, implementado em linguagem VHDL e testado em FPGAs ( *Field Programmable Gate Arrays* ). Os resultados demonstram que a execução de aplicações PON via coprocessador atinge uma redução de **96% no número de ciclos de clock** em comparação com a implementação puramente em software. O estudo conclui que a migração da cadeia de notificações para o hardware torna o uso do PON plenamente viável e altamente eficiente para sistemas embarcados.
+#### 1\. O Paradigma Orientado a Notificações (PON)
+O PON é apresentado como uma alternativa disruptiva aos paradigmas de programação tradicionais (procedural, orientado a objetos, etc.). Sua essência reside em uma nova forma de influência causal baseada na colaboração pontual entre entidades granulares e notificantes.
+##### Características Principais:
+* **Reatividade:** As relações causais têm conotação reativa. Quando uma entidade tem seu valor alterado, ela notifica as entidades afetadas por essa mudança. 
+* **Eficiência Computacional:** Minimiza o desperdício de processamento, pois evita a pesquisa constante de estados (fluxo de execução passivo), comum em paradigmas tradicionais. 
+* **Proximidade Cognitiva:** O estilo de programação é próximo à forma de raciocínio humana
+

@@ -1,0 +1,31 @@
+2026-07-02 09:14:12,081 - extractor_orchestrator - INFO - Extracting /tmp/pytest-of-amdy/pytest-0/test_orchestrator_routing0/test.pdf on node amdy...
+2026-07-02 09:14:12,082 - extractor_orchestrator - INFO - Successfully extracted /tmp/pytest-of-amdy/pytest-0/test_orchestrator_routing0/test.pdf
+2026-07-02 09:14:12,084 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 1 events.
+2026-07-02 09:14:12,084 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 1 events.
+2026-07-02 09:14:12,084 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 1 events.
+2026-07-02 09:14:12,084 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 1 events.
+2026-07-02 09:14:12,084 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 1 events.
+2026-07-02 09:14:30,486 - extractor_orchestrator - INFO - Extracting /tmp/pytest-of-amdy/pytest-1/test_orchestrator_routing0/test.pdf on node amdy...
+2026-07-02 09:14:30,486 - extractor_orchestrator - INFO - Successfully extracted /tmp/pytest-of-amdy/pytest-1/test_orchestrator_routing0/test.pdf
+2026-07-02 09:14:30,489 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 5 events.
+2026-07-02 09:15:12,271 - extractor_orchestrator - INFO - Extracting /tmp/pytest-of-amdy/pytest-2/test_orchestrator_routing0/test.pdf on node amdy...
+2026-07-02 09:15:12,271 - extractor_orchestrator - INFO - Successfully extracted /tmp/pytest-of-amdy/pytest-2/test_orchestrator_routing0/test.pdf
+2026-07-02 09:15:12,420 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 5 events.
+2026-07-02 09:15:30,646 - extractor_orchestrator - INFO - Extracting /tmp/pytest-of-amdy/pytest-3/test_orchestrator_routing0/test.pdf on node amdy...
+2026-07-02 09:15:30,646 - extractor_orchestrator - INFO - Successfully extracted /tmp/pytest-of-amdy/pytest-3/test_orchestrator_routing0/test.pdf
+2026-07-02 09:15:30,649 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 5 events.
+2026-07-02 10:38:17,115 - extractor_orchestrator - INFO - Extracting /tmp/pytest-of-amdy/pytest-5/test_orchestrator_routing0/test.pdf on node amdy...
+2026-07-02 10:38:17,115 - extractor_orchestrator - INFO - Successfully extracted /tmp/pytest-of-amdy/pytest-5/test_orchestrator_routing0/test.pdf
+2026-07-02 10:38:17,145 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 5 events.
+2026-07-02 10:38:25,321 - extractor_orchestrator - INFO - Extracting /tmp/pytest-of-amdy/pytest-6/test_orchestrator_routing0/test.pdf on node amdy...
+2026-07-02 10:38:25,321 - extractor_orchestrator - INFO - Successfully extracted /tmp/pytest-of-amdy/pytest-6/test_orchestrator_routing0/test.pdf
+2026-07-02 10:38:25,352 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 5 events.
+2026-07-02 10:42:12,407 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 5 events.
+2026-07-02 10:42:12,458 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 1 events.
+2026-07-02 10:42:12,488 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 2 events.
+2026-07-02 13:37:33,614 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 5 events.
+2026-07-02 13:37:33,665 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 1 events.
+2026-07-02 13:37:33,695 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 2 events.
+2026-07-02 13:37:42,389 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 5 events.
+2026-07-02 13:37:42,441 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 1 events.
+2026-07-02 13:37:42,471 - sync_daemon - INFO - Debounce triggered for /test/source. Processing 2 events.
