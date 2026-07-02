@@ -1,5 +1,5 @@
 import os
-import random
+import json
 import subprocess
 from typing import Optional, List
 from reins.services.logger import get_logger
@@ -9,55 +9,83 @@ logger = get_logger("reasoning_engine")
 class ReasoningEngine:
     def __init__(self) -> None:
         self.repo_dir = os.path.expanduser("~/data_rein")
-        self.model = "deepseek-r1:14b" # Will use Ollama locally if available
+        self.training_dir = os.path.join(self.repo_dir, "moe_training")
+        self.state_file = os.path.expanduser("~/.config/data_nexus/state.json")
+        self.model = "deepseek-r1:14b"
+        
+        # Ensure training and state directories exist
+        os.makedirs(self.training_dir, exist_ok=True)
+        os.makedirs(os.path.dirname(self.state_file), exist_ok=True)
 
-    def gather_context(self) -> str:
+    def get_last_run_timestamp(self) -> float:
+        if os.path.exists(self.state_file):
+            try:
+                with open(self.state_file, "r") as f:
+                    return json.load(f).get("last_run", 0.0)
+            except Exception:
+                return 0.0
+        return 0.0
+
+    def update_last_run_timestamp(self, ts: float) -> None:
+        try:
+            with open(self.state_file, "w") as f:
+                json.dump({"last_run": ts}, f)
+        except Exception as e:
+            logger.error(f"Failed to update state: {e}")
+
+    def gather_training_context(self) -> str:
         """
-        Randomly samples 3 Python or C++ files from the repository to analyze.
+        Scans the training data folder for files modified since the last run.
         """
-        all_files: List[str] = []
-        for root, dirs, files in os.walk(self.repo_dir):
-            if ".git" in root or ".venv" in root or "node_modules" in root:
-                continue
+        last_run = self.get_last_run_timestamp()
+        current_time = __import__('time').time()
+        
+        modified_files = []
+        for root, _, files in os.walk(self.training_dir):
             for f in files:
-                if f.endswith((".py", ".cpp", ".hpp", ".h", ".md")):
-                    all_files.append(os.path.join(root, f))
+                fpath = os.path.join(root, f)
+                try:
+                    if os.path.getmtime(fpath) > last_run:
+                        modified_files.append(fpath)
+                except Exception:
+                    pass
         
-        if not all_files:
-            return "No files found to analyze."
+        if not modified_files:
+            return "" # No changes
 
-        sampled_files = random.sample(all_files, min(3, len(all_files)))
-        
+        self.update_last_run_timestamp(current_time)
+
         context = ""
-        for fpath in sampled_files:
+        for fpath in modified_files[:5]: # Cap to 5 files to avoid context blowout
             try:
                 with open(fpath, "r", encoding="utf-8") as file_obj:
                     content = file_obj.read()
-                    # Truncate content if too large (naive chunking)
-                    if len(content) > 10000:
-                        content = content[:10000] + "\n...[TRUNCATED]"
-                    context += f"--- FILE: {os.path.basename(fpath)} ---\n{content}\n\n"
+                    if len(content) > 5000:
+                        content = content[:5000] + "\n...[TRUNCATED]"
+                    context += f"--- NEW/MODIFIED FILE: {os.path.basename(fpath)} ---\n{content}\n\n"
             except Exception as e:
-                context += f"Failed to read {fpath}: {e}\n"
+                logger.error(f"Failed to read {fpath}: {e}")
         
         return context
 
     def generate_optimization(self) -> Optional[str]:
         """
-        Uses Ollama to generate an optimization or test for the given context.
+        Uses Ollama to generate an optimization based on newly found training data.
         """
-        context = self.gather_context()
+        context = self.gather_training_context()
+        if not context:
+            logger.info("No training data changes detected. Idling.")
+            return None
+            
         prompt = (
-            "You are Data-Nexus, an autonomous 24/7 observer daemon.\n"
-            "Analyze the following codebase snippets and generate a specific, actionable optimization "
-            "or a new test case. Focus on safety, performance, and PON (Notification-Oriented Paradigm) compliance.\n\n"
+            "You are Data-Nexus, the Searcher of Knowledge.\n"
+            "Analyze the following newly added/modified training data and generate a synthesized insight, "
+            "optimization, or learning extraction. Focus on safety, performance, and scalability.\n\n"
             f"Context:\n{context}\n\n"
-            "Provide your analysis, optimization, or test case in Markdown format."
+            "Provide your insight in Markdown format."
         )
 
         try:
-            # We use subprocess to call local ollama run.
-            # This is pedantically restricted but we need inference.
             res = subprocess.run(
                 ["ollama", "run", self.model],
                 input=prompt.encode("utf-8"),

@@ -1,7 +1,7 @@
 import os
 
-# 10 GB limit in bytes
-STORAGE_LIMIT_BYTES = 10 * 1024 * 1024 * 1024
+# 100 GB limit in bytes
+STORAGE_LIMIT_BYTES = 100 * 1024 * 1024 * 1024
 KB_DIR = os.path.expanduser("~/data_rein/DATA/data_nexus_kb")
 
 class KnowledgeManager:
