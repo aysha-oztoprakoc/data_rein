@@ -1,0 +1,55 @@
+{
+  "amdy": {
+    "hardware": {
+      "vram_gb": 16.0
+    },
+    "models": [
+      {
+        "model": "mistral:instruct",
+        "score": 92.5
+      },
+      {
+        "model": "phi4:latest",
+        "score": 92.5
+      },
+      {
+        "model": "bakllava:latest",
+        "score": 92.5
+      },
+      {
+        "model": "starcoder2:7b",
+        "score": 90.8
+      },
+      {
+        "model": "codegemma:7b",
+        "score": 90.8
+      },
+      {
+        "model": "gemma2:9b",
+        "score": 88.2
+      },
+      {
+        "model": "llama3.2-vision:11b",
+        "score": 85.6
+      },
+      {
+        "model": "qwen2.5-coder:7b",
+        "score": 90.8
+      },
+      {
+        "model": "qwen2.5:7b",
+        "score": 90.8
+      },
+      {
+        "model": "llama3.1:8b",
+        "score": 89.5
+      }
+    ]
+  },
+  "tell": {
+    "hardware": {
+      "vram_gb": 16.0
+    },
+    "models": []
+  }
+}

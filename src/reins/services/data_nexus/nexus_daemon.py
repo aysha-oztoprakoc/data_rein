@@ -25,7 +25,7 @@ EXTRACT_TOPIC = "data_rein/extract/trigger"
 RESULT_TOPIC = "data_rein/extract/result"
 DEDUPE_TOPIC = "data_rein/nexus/deduplicate"
 
-TRAINING_DATA_DIR = os.path.expanduser("~/data_rein/training_data")
+TRAINING_DATA_DIR = os.path.expanduser("~/data_rein/data-oby/TrainingData")
 
 # PON compliant execution pools for graceful degradation
 local_executor = ThreadPoolExecutor(max_workers=16, thread_name_prefix="ext_local")
@@ -167,7 +167,7 @@ class NexusDaemon:
             
             if insight:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"nexus_insight_{timestamp}.md"
+                filename = f"nexus_insight_{timestamp}.xml"
                 self.km.save_insight(filename, insight)
                 logger.info(f"Insight generated and saved as {filename}.")
         except Exception as e:

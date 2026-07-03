@@ -1,0 +1,132 @@
+<?xml version="1.0" ?>
+<knowledge_document>
+  <metadata>
+    <title>data_hermes_wiki.xml</title>
+    <path>/home/amdy/data_rein/knowledge_base/agents/hermes/data_hermes_wiki.xml</path>
+    <description>The ultimate Data Hermes transition guide, containing data extraction pipelines and optimized local AI model tier lists for both AMDY and TELL nodes.</description>
+  </metadata>
+  <content>
+    <![CDATA[
+# DATA HERMES: SYSTEM INTEGRATION WIKI
+
+This document serves as the master blueprint for transitioning the Data Rein harness into the Hermes AI core. All data-nexus responsibilities are hereby transferred to Hermes.
+
+## 1. DATA EXTRACTION PIPELINE
+Data extraction is handled by `reins/extraction/extractors/text_extractors.py`. 
+Hermes must execute this process entirely in event-driven architecture (PON):
+1. Listen to `data_rein/extract/trigger` via MQTT.
+2. Read the `filepath` from the JSON payload.
+3. Call `registry.get_extractor(ext)`.
+4. Trigger extraction and route the normalized text/XML into `~/data_rein/training_data`.
+5. Emit `data_rein/extract/result` upon completion.
+6. The entire dataset is now strictly formatted in XML to maximize RAG token-efficiency and structural parsing.
+
+## 2. THE LOCAL MODEL MATRIX (TIER LIST)
+This matrix categorizes 3 local models per category for your two distinct hardware nodes, ensuring maximum utilization.
+
+### NODE: AMDY (Ryzen 7 7700, 16GB RAM, RX 9060 XT 16GB VRAM)
+Target: Heavy, state-of-the-art models running locally with high precision (FP16/Q8).
+
+1. **[General Chatting]**
+   - Tier 1: Llama-3-8B-Instruct (Best overall reasoning)
+   - Tier 2: Mistral-Nemo-12B-Instruct (High intelligence)
+   - Tier 3: Phi-3-Mini-128k (Fastest tokens/sec)
+2. **[Deep Search]**
+   - Tier 1: Command-R-35B (Q4 - Best for complex web searches)
+   - Tier 2: Llama-3-8B-Instruct (Good JSON parsing)
+   - Tier 3: Qwen2-7B (Strong multi-lingual search)
+3. **[Image Generation]**
+   - Tier 1: SDXL 1.0 (Refiner included - Best quality)
+   - Tier 2: PixArt-Alpha (Fast generation)
+   - Tier 3: SD 1.5 (Maximum speed/low VRAM)
+4. **[Audio Generation]**
+   - Tier 1: Bark (Suno - best voice cloning)
+   - Tier 2: AudioLDM2 (Best sound effects)
+   - Tier 3: MusicGen-Small (Best for background music)
+5. **[Data Processing]**
+   - Tier 1: Llama-3-8B-Instruct (Accurate JSON/XML output)
+   - Tier 2: Qwen2-7B (Fast parsing)
+   - Tier 3: Gemma-2-9B (Strong structural logic)
+6. **[Data Organizing]**
+   - Tier 1: Mistral-Nemo-12B (Excellent categorization)
+   - Tier 2: Llama-3-8B-Instruct (Reliable tagging)
+   - Tier 3: Phi-3-Mini-128k (Fast sorting)
+7. **[RAG Extraction]**
+   - Tier 1: Nomic-Embed-Text (Best embedding model)
+   - Tier 2: BGE-M3 (Multilingual RAG)
+   - Tier 3: All-MiniLM-L6-v2 (Fastest embeddings)
+8. **[Prompt Optimization]**
+   - Tier 1: Llama-3-8B-Instruct (Best meta-prompting)
+   - Tier 2: Mistral-Nemo-12B
+   - Tier 3: Gemma-2-9B
+9. **[External Memory Vault]**
+   - Tier 1: Llama-3-8B-Instruct (Excellent context recall)
+   - Tier 2: Phi-3-Mini-128k (Massive context window)
+   - Tier 3: Qwen2-7B (Strong memory retention)
+10. **[External Memory Guardian]**
+    - Tier 1: Llama-Guard-2-8B (Best safety/alignment)
+    - Tier 2: Mistral-Nemo-12B (Good at filtering)
+    - Tier 3: Phi-3-Mini-128k (Fast classification)
+11. **[Self-Optimization]**
+    - Tier 1: Llama-3-8B-Instruct (Best coding/refactoring)
+    - Tier 2: DeepSeek-Coder-V2-Lite-Base (Best code generation)
+    - Tier 3: Qwen2-Math-7B (Best logic validation)
+
+
+### NODE: TELL (Intel i5-7400, 16GB RAM, GTX 1060 6GB VRAM)
+Target: Highly quantized (Q4_K_M) or smaller models specifically curated to fit within a strict 6GB VRAM ceiling to avoid system RAM fallback.
+
+1. **[General Chatting]**
+   - Tier 1: Phi-3-Mini-4K-Instruct (Q4 - Fits entirely in 6GB)
+   - Tier 2: Qwen2-1.5B-Instruct (Blazing fast)
+   - Tier 3: Gemma-2-2B (High quality for size)
+2. **[Deep Search]**
+   - Tier 1: Phi-3-Mini-4K-Instruct (Reliable search queries)
+   - Tier 2: Qwen2-1.5B (Good web parsing)
+   - Tier 3: TinyLlama-1.1B (Fallback)
+3. **[Image Generation]**
+   - Tier 1: SD 1.5 (Optimized for 6GB VRAM)
+   - Tier 2: LCM-LoRA (Latent Consistency Model - Fast SD 1.5)
+   - Tier 3: SD-Turbo (Fastest generation)
+4. **[Audio Generation]**
+   - Tier 1: MusicGen-Small (Barely fits in 6GB)
+   - Tier 2: AudioLDM-Small
+   - Tier 3: Bark-Small
+5. **[Data Processing]**
+   - Tier 1: Phi-3-Mini-4K-Instruct (Good at strict JSON)
+   - Tier 2: Qwen2-1.5B
+   - Tier 3: Gemma-2-2B
+6. **[Data Organizing]**
+   - Tier 1: Phi-3-Mini-4K-Instruct
+   - Tier 2: Qwen2-1.5B
+   - Tier 3: Gemma-2-2B
+7. **[RAG Extraction]**
+   - Tier 1: All-MiniLM-L6-v2 (Minimal memory footprint)
+   - Tier 2: BGE-Small-EN-v1.5
+   - Tier 3: Nomic-Embed-Text (Quantized)
+8. **[Prompt Optimization]**
+   - Tier 1: Phi-3-Mini-4K-Instruct
+   - Tier 2: Gemma-2-2B
+   - Tier 3: Qwen2-1.5B
+9. **[External Memory Vault]**
+   - Tier 1: Phi-3-Mini-4K-Instruct (Good 4k context)
+   - Tier 2: Qwen2-1.5B
+   - Tier 3: TinyLlama-1.1B
+10. **[External Memory Guardian]**
+    - Tier 1: Phi-3-Mini-4K-Instruct (Tuned for moderation)
+    - Tier 2: Qwen2-1.5B
+    - Tier 3: Gemma-2-2B
+11. **[Self-Optimization]**
+    - Tier 1: DeepSeek-Coder-1.3B (Best small coding model)
+    - Tier 2: Phi-3-Mini-4K-Instruct
+    - Tier 3: Qwen2-1.5B
+    
+## 3. THE GRAND CONVERGENCE (KAD 1.2 LOG)
+On 2026-07-03, the Sovereign AI architecture underwent the Grand Convergence:
+- All disparate AI nodes (AGY, Hermes, Odysseus) have been strictly unified under the `data_rein` Universal Harness.
+- The `task_trail.json` serves as the absolute Loop-Agentic state machine for all entities, allowing seamless task handover and Graceful Degradation upon prompt failure.
+- The system is now self-improving via the `knowledge_ingestor.py` service, which passively captures successful tasks and injects their solutions back into this XML database.
+- The Omarchy Linux UI automatically orchestrates 6 decoupled Tmux sessions, binding the Universal CLI (`reins.cli`) and the AI network instantly upon startup.
+    ]]>
+  </content>
+</knowledge_document>

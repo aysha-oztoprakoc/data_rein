@@ -1,8 +1,0 @@
-[Unit]
-Description=Data Nexus Trigger Action (PON)
-
-[Service]
-Type=oneshot
-User=amdy
-# Lightweight trigger publishing empty payload to the correct topic
-ExecStart=/usr/bin/mosquitto_pub -h localhost -t "data_rein/nexus/trigger" -m "{}"

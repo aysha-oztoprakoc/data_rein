@@ -1,1 +1,0 @@
-https://www.alura.com.br/artigos/padroes-arquiteturais-arquitetura-software-descomplicada

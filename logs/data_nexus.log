@@ -37,3 +37,6 @@
 2026-07-02 16:18:08,411 - data_nexus - WARNING - Nexus is already processing an insight. Skipping this trigger.
 2026-07-02 16:20:29,457 - data_nexus - INFO - Insight generated and saved as nexus_insight_20260702_162029.md.
 2026-07-02 16:23:10,405 - data_nexus - INFO - Data Nexus triggered. Initiating observation cycle...
+2026-07-02 16:28:10,516 - data_nexus - WARNING - Nexus is already processing an insight. Skipping this trigger.
+2026-07-02 16:33:10,692 - data_nexus - WARNING - Nexus is already processing an insight. Skipping this trigger.
+2026-07-02 16:38:14,716 - data_nexus - WARNING - Nexus is already processing an insight. Skipping this trigger.

@@ -1,1 +1,0 @@
-https://www.alura.com.br/podcast/o-futuro-da-arquitetura-de-software-autonomia-e-responsabilidade-tecnica-cristiano-gomes-hipsters-talks-20-a9974
