@@ -52,3 +52,18 @@ class VaultManager:
             logger.info(f"External memory saved to Wiki: {filepath}")
         except Exception as e:
             logger.error(f"Failed to write memory to vault: {e}")
+
+        # Mirror into the single monolith Wiki DB (source of truth for all envs).
+        # Graceful degradation: a failure here must never break the vault write.
+        try:
+            from reins.harness.wiki import WikiDB
+            with WikiDB() as db:
+                db.upsert_page(
+                    title=payload.get("title", "Untitled_Memory"),
+                    content=content,
+                    source_path=filepath,
+                    category="vault",
+                    owner="vault_manager",
+                )
+        except Exception as e:
+            logger.error(f"Failed to mirror memory into monolith wiki: {e}")

@@ -1,0 +1,3775 @@
+<?xml version="1.0" ?>
+<knowledge_document>
+  <metadata>
+    <title>Formalização e implementação de um mecanismo de interferência do paradigma orientado a notificações baseado em multiplicação de matrizes esparsas.pdf</title>
+    <path>/home/amdy/Downloads/raw_data/sofia_protocol/Formalização e implementação de um mecanismo de interferência do paradigma orientado a notificações baseado em multiplicação de matrizes esparsas.pdf</path>
+  </metadata>
+  <content>UNIVERSIDADE TECNOLÓGICA FEDERAL DO PARANÁ
+
+GUSTAVO BRUNHOLI CHIERICI
+
+FORMALIZAÇÃO E IMPLEMENTAÇÃO DE UM MECANISMO DE
+INTERFERÊNCIA DO PARADIGMA ORIENTADO A NOTIFICAÇÕES BASEADO
+EM MULTIPLICAÇÃO DE MATRIZES ESPARSAS
+
+CURITIBA
+2025
+
+versão 11.0 (abr.25)
+
+GUSTAVO BRUNHOLI CHIERICI
+
+FORMALIZAÇÃO E IMPLEMENTAÇÃO DE UM MECANISMO DE
+INTERFERÊNCIA DO PARADIGMA ORIENTADO A NOTIFICAÇÕES BASEADO
+EM MULTIPLICAÇÃO DE MATRIZES ESPARSAS
+Formalization and implementation of an inference mechanism for the
+Notification Oriented Paradigm based on sparse matrix multiplication
+Trabalho de Conclusão de Curso de Graduação
+apresentado como requisito para obtenção do
+título de Bacharel em Engenharia de Computação,
+da Universidade Tecnológica Federal do Paraná
+(UTFPR).
+Orientador(a): Jean Marcelo Simão
+Coorientador(a): Robson Ribeiro Linhares
+
+CURITIBA
+2025
+
+4.0 Internacional
+
+Esta licença permite compartilhamento, remixe, adaptação e criação a partir do
+trabalho, mesmo para fins comerciais, desde que sejam atribuídos créditos ao(s)
+autor(es). Conteúdos elaborados por terceiros, citados e referenciados nesta
+obra não são cobertos pela licença.
+
+GUSTAVO BRUNHOLI CHIERICI
+
+FORMALIZAÇÃO E IMPLEMENTAÇÃO DE UM MECANISMO DE
+INTERFERÊNCIA DO PARADIGMA ORIENTADO A NOTIFICAÇÕES BASEADO
+EM MULTIPLICAÇÃO DE MATRIZES ESPARSAS
+
+Trabalho de Conclusão de Curso de Graduação
+apresentado como requisito para obtenção do
+título de Bacharel em Engenharia de Computação,
+da Universidade Tecnológica Federal do Paraná
+(UTFPR).
+
+Data de aprovação: 11/julho/2025
+
+___________________________________________________________________________
+Robson Ribeiro Linhares
+Doutorado
+Universidade Tecnológica Federal do Paraná
+
+___________________________________________________________________________
+Paulo Cézar Stadzisz
+Doutorado
+Universidade Tecnológica Federal do Paraná
+
+___________________________________________________________________________
+João Alberto Fabro
+Doutorado
+Universidade Tecnológica Federal do Paraná
+
+CURITIBA
+2025
+
+Dedico este trabalho à minha namorada, por ter me
+acompanhado nessa jornada, à minha família, por
+ter possibilitado que eu chegasse até aqui, e à
+minha melhor amiga, que mesmo distante na
+França, corroborou com as minhas loucuras.
+
+AGRADECIMENTOS
+
+Seria impossível expressar, em tão poucas palavras, tamanha a gratidão
+que eu tenho por todos que me acompanharam ao longo desta minha jornada na
+graduação, bem como seria impossível contemplar a todos nestes parágrafos. No
+entanto, saibam que guardo, com muito carinho, o nome de cada um contribuiu para
+que eu chegasse até este trabalho.
+Agradeço primeiramente à minha família, que me possibilitou dar entrada na
+graduação, mesmo em outro estado, e me deu o suporte necessário para que eu me
+mantivesse nela até o final.
+Aos professores que me deram aula durante a graduação.
+Aos meus colegas de sala, por todos os trabalhos que desenvolvemos juntos
+e boas conversas que tivemos nos intervalos das aulas. Em especial, à minha
+melhor amiga Lu Skora, por todos os momentos em que discutimos nossas ideias
+malucas sobre o Paradigma Orientado a Notificações, compiladores e afins. Fico
+imensamente feliz e orgulhoso de saber que seus sonhos, aí na França, estão se
+concretizando.
+Agradeço ao meu orientador Prof. Dr. Jean Marcelo Simão e coorientador
+Prof. Dr. Robson Ribeiro Linhares, que me guiaram com sabedoria durante o
+desenvolvimento deste trabalho. Ao Prof. Simão, em especial, agradeço por ser meu
+orientador de longa data na graduação como um todo, passando pelos meus
+estágios, iniciação científica e, enfim, este trabalho de conclusão de curso.
+Por fim, mas o mais importante de todos, agradeço à minha namorada
+Jhenifer Nery Maciel. Você acompanhou praticamente toda a minha graduação, viu
+minhas angústias, minhas inseguranças, os momentos em que eu quis desistir e
+minhas conquistas. Sem todo o seu apoio emocional, eu jamais teria sido capaz de
+chegar até aqui.
+
+RESUMO
+
+Sistemas Baseados em Regras (SBR) são sistemas computacionais que organizam
+o conhecimento em elementos da base de fatos e regras, nos quais alterações nos
+elementos da base de fatos causam a aprovação/desaprovação de diferentes regras
+ao longo do fluxo de execução de um programa. SBRs são normalmente
+implementados por percorrimento de estruturas de dados (computacionalmente
+custosas) para verificar se os elementos da base de fatos mudaram e para saber
+quais regras devem ser aprovadas ou desaprovadas com base nessas mudanças,
+causando redundâncias temporais (i.e., repetição do cálculo de expressões
+booleanas) e estruturais (i.e., repetição de código). Nesse sentido, o Paradigma
+Orientado a Notificações (PON) propõe a divisão do programa em entidades
+notificantes “inteligentes”, as quais notificam suas dependências ao sofrerem
+alterações nos seus estados internos, eliminando pesquisas com redundâncias
+temporais e estruturais para a inferência de regras. Em suma, ao ter seu estado
+interno alterado, um elemento da base de fatos notificará apenas as regras
+pertinentes a ele, isto é, as regras que dependem dele, para serem
+aprovadas/ativadas ou desaprovadas/desativadas. O propósito deste trabalho é, por
+meio da álgebra, formalizar a dependência entre regras e os elementos da base de
+fatos de um sistema PON como a multiplicação de matrizes esparsas por vetores
+densos, ou SpMV (Sparse Matrix-Vector Multiplication). A partir da formalização, foi
+desenvolvido um novo framework do PON em C++, chamado de MBRIS 0.1 (MatrixBased Rule Inference System), o qual implementa um novo mecanismo de
+inferência orientado a notificações, inspirado em multiplicação de matrizes para
+animar as notificações. Isto em detrimento da forma usual de implementar na qual
+uma entidade tem o endereço das notificáveis, o PON, como nos Frameworks PON
+que, ao ensejo, permitiram linguagens usuais (e.g., C++, Java e C#) trabalharem
+orientadas a notificações. Além da inovação na forma de notificar, visando aproveitar
+o hardware de placas de vídeo, especializado em realizar operações com matrizes
+de forma altamente paralelizável, foi implementado um kernel de OpenCL no MBRIS
+para ser capaz de executar o fluxo de notificações do PON em placa de vídeo. Por
+fim, foi implementada uma aplicação de simulação de sensores como prova de
+conceito utilizando o MBRIS, e comparou-se o desempenho da aplicação em MBRIS
+com a mesma aplicação desenvolvida utilizando o Framework PON C++ 4.0. Ainda
+que os resultados do experimento realizado não tenham sido promissores em
+termos de desempenho, com a implementação em Framework MBRIS 0.1
+apresentando tempos de execução superiores aos da implementação em
+Framework PON C++ 4.0 em todos os cenários, eles demonstram a viabilidade
+técnica de implementar o fluxo lógico-causal de notificações do PON por meio de
+operações de SpMV.
+Palavras-chave:
+OpenCL
+
+Paradigma Orientado a Notificações; matrizes esparsas; SpMV;
+
+ABSTRACT
+
+Rule-Based Systems (RBS) are computational systems that organize knowledge into
+fact-base elements and rules, in which changes in fact-base elements cause the
+approval/disapproval of different rules throughout the execution flow of a program.
+RBSs are typically implemented by traversing (computationally expensive) data
+structures to check whether fact-base elements have changed and to know which
+rules should be approved or disapproved based on these changes, causing temporal
+(i.e., repetition of the calculation of boolean expressions) and structural (i.e.,
+repetition of code) redundancies. In this sense, the Notification Oriented Paradigm
+(NOP) proposes the division of the program into “intelligent” notifying entities, which
+notify their dependencies when their internal states change, eliminating searches
+with temporal and structural redundancies for rule inference. In short, when its
+internal state changes, an element of the fact base will notify only the rules that are
+relevant to it, that is, the rules that depend on it, to be approved/activated or
+disapproved/deactivated. The purpose of this work is to formalize, through algebra,
+the dependency between rules and the elements of the fact base of a NOP system
+as the multiplication of sparse matrices by dense vectors, or SpMV (Sparse MatrixVector Multiplication). From the formalization, a new NOP framework was developed
+in C++, called MBRIS 0.1 (Matrix-Based Rule Inference System), which implements a
+new notification-oriented inference mechanism, inspired by matrix multiplication to
+animate notifications. This is to the detriment of the usual way of implementing in
+which an entity has the address of the notifiable entities, the NOP, as in the NOP
+Frameworks that, at the time, allowed usual languages (e.g., C++, Java and C#) to
+work in a notification-oriented manner. In addition to the innovation in the notification
+method, aiming to take advantage of the graphics card hardware, specialized in
+performing operations with matrices in a highly parallelizable way, an OpenCL kernel
+was implemented in MBRIS to be able to execute the NOP notification flow on the
+graphics card. Finally, a sensor simulation application was implemented as a proof of
+concept using MBRIS, and the performance of the application in MBRIS was
+compared with the same application developed using the Framework NOP C++ 4.0.
+Although the results of the experiment carried out were not promising in terms of
+performance, with the implementation in the MBRIS 0.1 Framework presenting
+superior execution times to the implementation of the operations in the PON C++ 4.0
+Framework in all scenarios, they demonstrate a technique for implementing the
+logical-causal flow of NOP notifications through SpMV scenarios.
+Keywords: Notification Oriented Paradigm; sparse matrices; SpMV; OpenCL.
+
+LISTA DE ILUSTRAÇÕES
+
+Figura 1 - Um exemplo de FBE, Rule e seus elementos ..................................... 20
+Figura 2 - Ilustração do ciclo de notificações do PON ........................................ 21
+Figura 3 – Exemplo de matriz esparsa ................................................................. 23
+Figura 4 - Exemplo de representação de uma matriz esparsa usando o formato
+COO ......................................................................................................................... 24
+Figura 5 - Exemplo de representação de uma matriz esparsa usando o formato
+CSR .......................................................................................................................... 25
+Figura 6 - Comparação de como CPUs e GPUs dividem os recursos de um chip
+................................................................................................................................. 27
+Figura 7 - Modelo de plataforma do OpenCL ....................................................... 29
+Figura 8 - Relação de notificações entre o FBE “Sensor” e a Rule “SensorRule”
+como operações de SpMV ..................................................................................... 34
+Figura 9 - Relação de notificações entre as entidades dos Códigos 4 e 5 como
+operações de SpMV ............................................................................................... 35
+Figura 10 - Representação da dependência entre Rules e Attributes como uma
+operação de SpMV ................................................................................................. 36
+Figura 11 - Operação da Figura 9 definida com os conceitos da matriz de
+ativadores ............................................................................................................... 37
+Figura 12 - Matriz de ativadores B de exemplo .................................................... 42
+Figura 13 - Matrizes de ativadores C e B’ de exemplo ........................................ 42
+Figura 14 - Matrizes de ativadores D e E de exemplo ......................................... 43
+Figura 15 - Matrizes de ativadores D e E de exemplo ......................................... 43
+Figura 16 - Matrizes da Figura 11 combinadas numa só matriz ......................... 44
+Figura 17 - Diagrama de classes dos componentes base do framework .......... 45
+Figura 18 - Diagrama de sequência das operações entre instâncias de
+AttributeMtx, RuleMtx e do singleton Executor ao ocorrer uma alteração de
+estado interno......................................................................................................... 46
+Figura 19 - Operação de SpMV para a aplicação NOPSensorFull com dois
+sensores.................................................................................................................. 57
+Figura 20 - Operação de SpMV para a aplicação NOPSensorSimplified com dois
+sensores.................................................................................................................. 59
+Figura 21 - Exemplo de FBEs em LingPON 3.0 e a dependência entre suas
+entidades representada por uma operação de SpMV ......................................... 79
+Figura 22 - Premise “atIsRead == false” representada na operação de SpMV da
+Figura 21 ................................................................................................................. 80
+
+Figura 23 - Premise “atIsActivated == true” representada na operação de SpMV
+da Figura 21 ............................................................................................................ 80
+Figura 24 - Premise “atX &gt; atY + 10” representada na operação de SpMV da
+Figura 21 ................................................................................................................. 81
+Figura 25 - Premise “atZ != 3” representada na operação de SpMV da Figura 21
+................................................................................................................................. 81
+Figura 26 - Condition da Rule “sensorRule” representada na operação de
+SpMV da Figura 21 ................................................................................................. 82
+Figura 27 - Condition da Rule “GenericRule” representada na operação de
+SpMV da Figura 21 ................................................................................................. 82
+Figura 28 - Rule “sensorRule” representada na operação de SpMV da Figura 21
+................................................................................................................................. 83
+Figura 29 - Rule “GenericRule” representada na operação de SpMV da Figura
+21 ............................................................................................................................. 83
+Figura 30 - Exemplo de FBE em LingPON 3.0 com compartilhamento de
+entidades e a sua representação por uma operação de SpMV .......................... 84
+Figura 31 - Compartilhamento do Attribute “atIsActivated” representado na
+operação de SpMV da Figura 30 ........................................................................... 84
+Figura 32 - Compartilhamento da Premise “prSensorActivated” representado
+na operação de SpMV da Figura 30 ...................................................................... 85
+Figura 33 - Compartilhamento da Premise “prSendMessage” representado na
+operação de SpMV da Figura 30 ........................................................................... 85
+Figura 34 - Representação de que a Premise “atIsRead == false” não depende
+do Attribute “atSendMessage” na operação de SpMV da Figura 30 ................. 86
+Figura 35 - Representação de que a Condition da Rule “SensorRule” não
+depende da Premise “atIsActivated == false” na operação de SpMV da Figura
+30 ............................................................................................................................. 86
+
+LISTA DE GRÁFICOS
+
+Gráfico 1 - Tempo de execução pelo número de Rules aprovadas da aplicação
+NOPSensorFull ....................................................................................................... 58
+Gráfico 2 - Tempo de execução pelo número de Rules aprovadas da aplicação
+NOPSensorSimplified ............................................................................................ 61
+Gráfico 3 - Tempo de execução pelo número de Rules aprovadas da aplicação
+NOPSensorOneExecution ..................................................................................... 63
+Gráfico 4 – Comparação do tempo de CPU entre as três versões da aplicação
+NOPSensor implementadas no Framework MBRIS 0.1....................................... 64
+Gráfico 5 – Comparação do tempo de execução do compute kernel (GPU) entre
+as três versões da aplicação NOPSensor implementadas no Framework MBRIS
+0.1 ............................................................................................................................ 64
+Gráfico 6 - Comparação entre o Framework MBRIS 0.1 e o Framework PON C++
+4.0 para a aplicação NOPSensor........................................................................... 67
+
+LISTA DE CÓDIGOS
+
+Código 1 - Exemplo de código com redundâncias ............................................. 18
+Código 2 - Algoritmo de SpMV para o COO ......................................................... 25
+Código 3 - Algoritmo de SpMV para o CSR.......................................................... 26
+Código 4 - Exemplo do FBE Sensor em LingPON 3.0 ......................................... 33
+Código 5 - Exemplo de FBE com Rule genérica em LingPON 3.0 ..................... 35
+Código 6 - Definição da classe MixedEntityMtx no MBRIS 0.1........................... 48
+Código 7 - Definição do FBE Generic em MBRIS ................................................ 49
+Código 8 - Exemplo de instanciação e uso de Attributes ................................... 50
+Código 9 - Exemplo de instanciação de Premises .............................................. 51
+Código 10 - Exemplo de instanciação de Conditions ......................................... 52
+Código 11 - Instanciação da regra sensorRule da Figura 1 utilizando a interface
+PON do MBRIS........................................................................................................ 53
+Código 12 - Classe NOPSensorSimplified ........................................................... 60
+Código 13 - Exemplo do uso do método waitExecution no contexto da
+aplicação NOPSensorOneExecution .................................................................... 62
+Código 14 – Classe NOPSensorFw4 ..................................................................... 66
+
+LISTA DE TABELAS
+
+Tabela 1 – Tempo de execução em CPU e GPU em microssegundos para a
+aplicação NOPSensorFull ...................................................................................... 58
+Tabela 2 - Tempo de execução em CPU e GPU em microssegundos para a
+aplicação NOPSensorSimplified ........................................................................... 61
+Tabela 3 - Tempo de execução em CPU e GPU em microssegundos para a
+aplicação NOPSensorOneExecution .................................................................... 63
+Tabela 4 - Tempo de execução em CPU em microssegundos para a aplicação
+NOPSensorFw4 ...................................................................................................... 67
+
+LISTA DE QUADROS
+
+Quadro 1 - Conceitos do PON contemplados pelo Framework MBRIS 0.1 ....... 54
+Quadro 2 - Propriedades elementares do PON contempladas pelo MBRIS 0.1 54
+
+LISTA DE ABREVIATURAS E SIGLAS
+
+CPU
+
+Central Processing Unit
+
+Processador (Unidade de
+Processamento Central)
+
+COO
+
+Coordinate Format
+
+Formato Coordenado
+
+CSR
+
+Compressed Sparse Row
+
+Formato de Linha Esparsa
+Compactada
+
+FBE
+
+Fact Base Element
+
+Elemento da Base de Fatos
+
+GPU
+
+Graphics Processing Unit
+
+Placa de Vídeo (Unidade de
+Processamento Gráfico)
+
+OpenCL Open Computing Language
+
+Linguagem de Computação
+Aberta
+
+PD
+
+-
+
+Paradigma Declarativo
+
+PF
+
+-
+
+Paradigma Funcional
+
+PI
+
+-
+
+Paradigma Imperativo
+
+PL
+
+-
+
+Paradigma Lógico
+
+PP
+
+-
+
+Paradigma Procedimental
+
+MBRIS
+
+Matrix-Based Rule Inference System
+
+Sistema de Inferência de Regras
+Baseado em Matrizes
+
+MCPON -
+
+Método de Compilação para o
+Paradigma Orientado a
+Notificações
+
+NOPL
+
+Notification Oriented Programming
+Language
+
+Linguagem de Programação
+Orientada a Notificações
+
+PON
+
+-
+
+Paradigma Orientado a
+Notificações
+
+POO
+
+-
+
+Paradigma Orientado a Objetos
+
+SpMV.
+
+Sparse Matrix-Vector Multiplication
+
+Multiplicação de Matriz Esparsa
+por Vetor
+
+TCC
+
+-
+
+Trabalho de Conclusão de
+Curso
+
+UTFPR
+
+-
+
+Universidade Tecnológica
+Federal do Paraná
+
+SUMÁRIO
+
+1
+
+INTRODUÇÃO .......................................................................................13
+
+1.1
+
+Motivação ..............................................................................................13
+
+1.2
+
+Justificativa ...........................................................................................14
+
+1.3
+
+Objetivos ...............................................................................................15
+
+1.3.1
+
+Objetivo Geral.........................................................................................15
+
+1.3.2
+
+Objetivos Específicos .............................................................................15
+
+1.4
+
+Método de Desenvolvimento ...............................................................15
+
+2
+
+FUNDAMENTAÇÃO TEÓRICA .............................................................17
+
+2.1
+
+Paradigmas de Programação ..............................................................17
+
+2.2
+
+Paradigma Orientado a Notificações ..................................................19
+
+2.3
+
+Matrizes esparsas e SpMV ...................................................................23
+
+2.3.1
+
+Formato Coordenado ou Coordinate Format (COO) ..............................24
+
+2.3.2
+
+Formato de Linha Esparsa Compactada ou Compressed Sparse Row
+Format (CSR) .........................................................................................25
+
+2.3.3
+
+Considerações sobre matrizes esparsas e SpMV ..................................26
+
+2.4
+
+Arquitetura de placas de vídeo ...........................................................27
+
+2.5
+
+OpenCL .................................................................................................28
+
+2.5.1
+
+Arquitetura do OpenCL ...........................................................................29
+
+2.5.2
+
+Considerações sobre OpenCL, SpMV e PON ........................................30
+
+3
+
+INFERÊNCIA DO PON BASEADA EM MULTIPLICAÇÃO DE MATRIZES
+...............................................................................................................32
+
+3.1
+
+PON a partir de SpMV ..........................................................................32
+
+3.2
+
+Matriz de Ativadores ............................................................................37
+
+3.2.1
+
+Universo .................................................................................................37
+
+3.2.2
+
+Ativadores/Funções de ativação.............................................................38
+
+3.2.3
+
+Entradas e Saídas ..................................................................................40
+
+3.2.4
+
+Notificação ..............................................................................................40
+
+3.2.5
+
+Múltiplas matrizes ...................................................................................41
+
+3.2.5.1
+
+Compartilhamento de linhas ...................................................................41
+
+3.2.5.2
+
+Combinação de linhas ............................................................................42
+
+3.3
+
+Framework MBRIS 0.1 ..........................................................................44
+
+3.3.1
+
+Mecanismo de notificações com matrizes de ativadores ........................44
+
+3.3.2
+
+Interface de programação PON para o MBRIS ......................................47
+
+3.3.2.1
+
+Fact Base Element - FBE .......................................................................49
+
+3.3.2.2
+
+Attribute ..................................................................................................49
+
+3.3.2.3
+
+Premise ..................................................................................................50
+
+3.3.2.4
+
+Condition ................................................................................................51
+
+3.3.2.5
+
+Rule ........................................................................................................52
+
+3.3.3
+
+Limitações do Framework MBRIS 0.1 ....................................................53
+
+4
+
+TESTES E RESULTADOS ....................................................................56
+
+4.1
+
+Aplicação de sensores (NOPSensor) .................................................56
+
+4.1.1
+
+Implementação com a interface PON - NOPSensorFull .........................57
+
+4.1.2
+
+Implementação sem notificações desnecessárias - NOPSensorSimplified
+...............................................................................................................59
+
+4.1.3
+
+Implementação com execução única - NOPSensorOneExecution .........62
+
+4.1.4
+
+Comparação com o Framework PON C++ 4.0 .......................................65
+
+4.2
+
+Considerações sobre os resultados ...................................................68
+
+5
+
+CONCLUSÃO ........................................................................................70
+
+5.1
+
+Resultados em geral ............................................................................70
+
+5.2
+
+Resultados vis-à-vis objetivos ............................................................71
+
+5.3
+
+Considerações finais ...........................................................................72
+
+5.4
+
+Trabalhos futuros .................................................................................73
+REFERÊNCIAS ......................................................................................75
+APÊNDICE A - Exemplos de PON a partir de operações de SpMV ..78
+APÊNDICE B - Código completo da implementação em OpenCL ....87
+APÊNDICE C - Código completo das aplicações desenvolvidas .....91
+
+13
+
+1 INTRODUÇÃO
+Este primeiro capítulo visa trazer a motivação, justificativa, objetivos e
+método deste Trabalho de Conclusão de Curso (TCC). O foco deste TCC está tanto
+no estado da arte no tocante à formalização do Paradigma Orientado a Notificações
+(PON) quanto na proposição de uma nova abordagem inovadora para a
+implementação do fluxo de notificações a partir da multiplicação de matrizes.
+1.1 Motivação
+O Paradigma Orientado a Notificações (PON) é um novo paradigma de
+programação que visa resolver algumas redundâncias dos vigentes, em especial do
+Paradigma Imperativo (PI), composto principalmente pelo (sub) Paradigma
+Procedimental (PP) e pelo (sub) Paradigma Orientado a Objetos (POO), e do
+Paradigma Declarativo (PD), que pode ser dividido entre o (sub) Paradigma Lógico
+(PL) e o (sub) Paradigma Funcional (PF) (SIMÃO; STADZISZ, 2008). O PON traz
+uma inovação ao realizar computações pela colaboração de entidades mínimas
+notificantes das quais derivam propriedades como a não redundância causal (i.e.,
+evitamento de reavaliação desnecessária de expressões lógicas) e a não
+redundância estrutural (i.e., evitamento de repetição de código), o que resulta em
+bom desempenho de tempo de execução (SIMÃO; STADZISZ, 2009; NEVES 2020).
+Tradicionalmente e por herança da primeira grande materialização do PON
+em âmbito de software (BANASZEWSKI, 2009), o mecanismo de inferência do PON,
+isto é, o mecanismo de notificações do PON, é implementado em software através
+de chamadas de funções que partem das entidades notificantes para as entidades
+notificadas, conforme será exposto no próximo capítulo. Embora seja uma forma
+simples de implementar o ciclo de notificações em software e que já demonstrou
+resultados satisfatórios, tal implementação é inviável para a execução de código
+PON em plataformas que não sejam CPUs (Central Processing Unit), conforme
+também será exposto no próximo capítulo.
+Não obstante, mesmo que a teoria do PON preveja um paralelismo
+intrínseco ao paradigma, as arquiteturas vigentes de CPUs não são capazes de lidar
+com processamento altamente paralelo, impedindo que aplicações do PON em
+software alcancem o paralelismo almejado pelo paradigma. Em contrapartida, as
+arquiteturas de GPUs (Graphics Processing Unit) são pensadas para trabalhar com
+
+14
+
+um grande volume de pequenas tarefas paralelas. Existe, portanto, uma brecha para
+emergir um novo modelo de execução para o PON, que torne viável a execução de
+programas PON em GPU, a fim de alcançar, em software, o potencial de paralelismo
+do paradigma.
+Por fim, torna-se pertinente ressaltar que a formalização do modelo do PON
+poderia ajudar a melhor compreendê-lo, bem como daí intuir novas formas de
+inferência por notificação. Dito de outra maneira, tal formalização não determinaria
+como o mecanismo de notificações deve ser implementado em software, mas sim
+permitiria e ensejaria o surgimento de implementações alternativas do mecanismo
+para diferentes cenários.
+1.2 Justificativa
+A complexidade assintótica do mecanismo de notificações do PON no pior
+caso, mesmo que tal caso seja impraticável, é da ordem de 𝑂(𝑛3 ) (SIMÃO;
+STADZISZ 2008), sendo exatamente a mesma complexidade do algoritmo
+tradicional de multiplicação de matrizes, o que já indicaria uma certa equivalência
+entre o processamento lógico-causal do PON com a multiplicação de matrizes. Não
+obstante, ao entender que o pior caso do PON é uma situação em que todas as
+entidades do PON se notificam entre si e que isso raramente ocorre na prática,
+pode-se facilmente visualizar um grafo de interdependência das entidades de uma
+aplicação PON altamente esparso com um caso médio que seria O(n)
+(BANASZEWSKI 2009; RONSZCKA et al., 2015; RONSZCKA, 2019). Neste caso,
+naturalmente, o PON alcança um desempenho muito melhor do que o pior caso e
+muitas vezes superior aos paradigmas vigentes. Grafos esparsos podem ser
+representados como matrizes esparsas, e existem algoritmos de multiplicação de
+matrizes esparsas cuja complexidade assintótica é da ordem de 𝑂(𝑁𝑁𝑍), sendo
+𝑁𝑁𝑍 (Number of Non-Zeros) uma constante que indica o número de elementos nãonulos de uma matriz (GAO et al., 2024), corroborando com a ideia de traduzir o fluxo
+de notificações do PON em operações com matrizes.
+Nesse sentido, ao se traduzir o mecanismo de notificações do PON para
+operações com matrizes esparsas, é possível não apenas formalizar um modelo
+matemático do PON, como também mais facilmente paralelizar a execução do fluxo
+
+15
+
+de notificações, fazendo uso dos avanços recentes no hardware de placas de vídeo
+(GPUs), especializado em realizar operações com matrizes.
+1.3 Objetivos
+Esta seção destaca o objetivo geral, bem como os objetivos específicos
+derivados dele.
+1.3.1 Objetivo Geral
+Criar e avaliar um novo mecanismo de propagação de notificações do PON
+por meio de operações de Sparse Matrix-Vector Multiplication (SpMV).
+1.3.2 Objetivos Específicos
+Com base no objetivo geral, foram determinados os seguintes objetivos
+específicos:
+● Propor uma forma de traduzir expressões lógicas da forma se-então do PON
+em um cálculo aritmético da multiplicação de matrizes esparsas por um vetor
+denso (SpMV).
+● Formalizar teoricamente e matematicamente aquela forma proposta.
+● Implementar o mecanismo formalizado em um novo framework PON com C++
+e OpenCL para execução em GPU, sendo tal framework chamado de MatrixBased Rule Inference System (MBRIS).
+● Implementar
+
+ao
+
+menos
+
+uma
+
+aplicação
+
+PON
+
+usando
+
+o
+
+framework
+
+desenvolvido e comparar o desempenho com o Framework PON C++ 4.0,
+que é o estado da técnica em PON.
+1.4 Método de Desenvolvimento
+Este trabalho foi estruturado em cinco etapas principais: formalização do
+mecanismo, análise e estudo, desenvolvimento do framework, testes comparativos,
+e conclusão.
+Na primeira etapa, foi formalizado um mecanismo de inferência para o PON a
+partir da multiplicação de uma matriz por um vetor. Além disso, foram traduzidas as
+
+16
+
+entidades de PON para esse novo modelo, em especial a relação de notificação
+entre elas.
+Na etapa de análise e estudo, avaliou-se os diferentes formatos de
+armazenamento de matrizes esparsas, bem como seus respectivos algoritmos de
+SpMV, a fim de selecionar um deles para a posterior implementação do MBRIS.
+Cada formato/algoritmo foi avaliado quanto a viabilidade de suportar o dinamismo do
+PON sob o modelo de execução do OpenCL.
+A terceira etapa consistiu no desenvolvimento do novo framework MBRIS 0.1,
+sob a luz do design do PON, da formalização realizada e do formato/algoritmo de
+SpMV escolhido na etapa anterior.
+Durante a fase de testes comparativos, uma aplicação de prova de conceito
+foi desenvolvida para validar o framework proposto, explorando diferentes cenários
+de execução com diferentes quantidades de notificações simultâneas. A partir da
+aplicação desenvolvida, comparou-se o desempenho do MBRIS 0.1, tanto
+executando em GPU, quanto em CPU, com a mesma aplicação desenvolvida do
+Framework PON C++ 4.0, o qual é o principal estado da técnica do PON no
+momento (NEVES, 2021).
+Por fim, na quinta e última etapa, foi escrito o relatório final do trabalho e
+preparada a apresentação conclusiva do projeto.
+
+17
+
+2 FUNDAMENTAÇÃO TEÓRICA
+Neste capítulo, serão abordados cinco conceitos principais, que servirão
+como base para o desenvolvimento do projeto. A seção 2.1 trata sobre paradigmas
+de programação no geral. A seção 2.2 aborda o Paradigma Orientado a Notificações
+e suas principais materializações. O conceito de matrizes esparsas e diferentes
+algoritmos de SpMV são apresentados na seção 2.3. A seção 2.4 contextualiza o
+funcionamento da arquitetura de placas de vídeo. Por fim, a seção 2.5 aborda os
+conceitos e o funcionamento do OpenCL.
+2.1 Paradigmas de Programação
+Paradigmas de programação são arquétipos que definem formas de
+desenvolver soluções de software, no tocante ao desenvolvimento de programas,
+mais precisamente.
+
+Cada paradigma possui seu próprio conjunto de técnicas e
+
+conceitos fundamentais que os tornam únicos e (mais ou menos) adequados para
+solucionar determinados problemas cotidianos, matemáticos ou mesmo puramente
+computacionais, dentre outros (VAN ROY, 2004).
+Existem hoje quatro paradigmas ditos dominantes na indústria e academia: o
+Paradigma Procedimental (PP), o Paradigma Orientado a Objetos (POO), o
+Paradigma Lógico (PL) e o Paradigma Funcional (PF) (SCOTT, 2000; WATT, 2004;
+BROOKSHEAR, 2006). Para fins de simplificação, ainda que haja interseções, é
+possível enxergar duas grandes categorias de paradigmas que englobam os demais,
+ou dois paradigmas mais amplos compostos de sub-paradigmas: o Paradigma
+Imperativo (PI), o qual engloba o PP e o POO, e o Paradigma Declarativo (PD),
+composto pelos PL e PF (GABBRIELLI; MARTINI, 2010). Embora não seja perfeita,
+essa relação de organização hierárquica entre os paradigmas facilita comparações
+entre os mesmos, destacando as características comuns entre eles (RONSZCKA,
+2019).
+Embora muito poderosos e amplamente utilizados, os paradigmas do PI
+frequentemente
+
+apresentam
+
+redundâncias
+
+temporais
+
+(i.e.,
+
+reavaliação
+
+desnecessária de expressões lógicas) e estruturais (i.e., repetição de código),
+resultando em desperdício de recursos computacionais ao longo do tempo (SIMÃO,
+STADZISZ, 2009). O Código 1 ilustra um exemplo corriqueiro de redundâncias
+temporais e estruturais do PI evidentes.
+
+18
+
+Código 1 - Exemplo de código com redundâncias
+
+bool sensorA_ActiveAlarm = true;
+bool sensorB_ActiveAlarm = false;
+bool sensorB_PresenceDetected = true;
+// . . .
+while (true)
+{
+if (sensorA_ActiveAlarm == true)
+{
+sensorB_ActiveAlarm = true;
+}
+if ((sensorB_PresenceDetected == true) &amp;&amp;
+(sensorB_ActiveAlarm == false))
+{
+sensorB_ActiveAlarm = true;
+}
+// n code lines . . .
+if ((sensorB_PresenceDetected == true) &amp;&amp;
+(sensorB_ActiveAlarm == true) &amp;&amp;
+(sensorA_PresenceDetected == true))
+{
+sensorA_ActiveAlarm = true;
+}
+}
+Fonte: Adaptado de Oshiro (2021)
+
+O trecho destacado em vermelho é uma redundância temporal, pois é uma
+avaliação lógica que ocorre a cada ciclo do laço de repetição (loop),
+independentemente
+
+se
+
+houve
+
+alguma
+
+alteração
+
+no
+
+valor
+
+da
+
+variável
+
+“sensorA_ActivateAlarm”. Além disso, os trechos em laranja representam uma
+redundância estrutural, visto que exatamente a mesma condição aparece em
+momentos distintos do código dentro do mesmo escopo (PAN et al., 1998;
+BANASZEWSKI, 2009; RONSZCKA et al., 2015).
+Apesar deste ser um exemplo simples e que facilmente poderia ser corrigido
+ainda utilizando o PI, problemas similares acontecem facilmente em projetos maiores
+em que as redundâncias estão separadas por várias linhas de código e, muitas
+vezes, em arquivos de código diferentes, dificultando o processo de identificação e
+solução e/ou mitigação delas, mesmo para desenvolvedores mais experientes. Além
+disso, o acúmulo dessas redundâncias ao longo do código pode desperdiçar
+significativamente os recursos de processamento do hardware (PAN et al., 1998;
+BANASZEWSKI, 2009; RONSZCKA et al., 2015).
+
+19
+
+Este código seria um exemplo em PP do PI ou mesmo de parte de um código
+POO em PI. A grande diferença entre PP e POO é que este, de fato, apresenta
+maiores mecanismos de abstração, generalização e desacoplamento. Entretanto, as
+redundâncias postas seguem a mesma problemática, ainda que eventualmente
+atenuadas,
+
+mas
+
+não
+
+resolvidas,
+
+via
+
+considerável
+
+esforços
+
+de
+
+projeto
+
+e
+
+implementações, por modularidades e técnicas como a orientação a eventos
+(BANASZEWSKI, 2009; XAVIER, 2014).
+Adicionalmente, embora a programação do PD ocorra por um código com maior
+nível de abstração, os mecanismos internos de funcionamento dos seus subparadigmas são implementados sobre o PI, não estando, portanto, livre das
+redundâncias mencionadas acima. Enquanto o PF do PD tende a usar recursões de
+alto nível, mesclado ou não com máquinas de inferência, o PL do PD tende a usar
+máquinas de inferência (MI) mais efetivamente. Eis que recursões tendem a incorrer
+nas mesmas redundâncias já apontadas tendo, ademais, os custos inerentes da
+recursão ela mesma. Por sua vez, as MI até podem eliminar parte das redundâncias,
+em MI corretas como em RETE e HALL, mas isto se dá via estruturas dados (grafos)
+de custo computacional tal que não compensam as redundâncias do PI, o qual
+encontra maior lastro de uso industrial (BANASZEWSKI, 2009; RONSZCKA 2019).
+2.2 Paradigma Orientado a Notificações
+O Paradigma Orientado a Notificações (PON) é um paradigma de
+programação emergente que herda algumas características do PI e do PD, ao
+mesmo tempo que visa solucionar alguns dos problemas inerentes a esses
+paradigmas. No PON, há uma separação entre as entidades facto-execucionais (i.e.,
+estados dos elementos e as ações que alteram seus estados) e as entidades lógicocausais (i.e., regras de decisão sobre quais ações serão executadas com base nos
+relacionamentos entre entidades e seus estados) (RONSZCKA, 2019).
+O primeiro grupo é formado por Attributes (atributos) e Methods (métodos)
+agrupados em instâncias de Fact Base Elements (FBEs, elementos da base de
+fatos). Por sua vez, no segundo grupo há Rules (regras) definidas a partir de
+Conditions (condições) que agrupam Premises (premissas), bem como Actions
+(ações) que agrupam Instigations (instigações) (RONSZCKA, 2019; NEVES 2021). A
+Figura 1 exemplifica o agrupamento das entidades do PON e seus relacionamentos.
+
+20
+
+Figura 1 - Um exemplo de FBE, Rule e seus elementos
+
+Fonte: Neves (2021)
+
+O mecanismo de notificações do PON, ponto central de sua inovação,
+consiste em cada uma dessas entidades notificarem suas sucessoras no ciclo de
+notificações ao mudarem de estado. Os FBEs definem as entidades factuais de um
+programa, com o estado sendo definido por Attributes e o seu comportamento por
+Methods. Ao mudarem de valor, os Attributes notificam as Premises pertinentes que
+dependem deles. Uma Premise é uma comparação entre Attributes ou entre
+Attributes e constantes, assim, quando notificada, ela reavalia sua comparação e
+notifica as Conditions que dependem dela caso seu estado interno mude. Conditions
+são expressões lógicas entre Premises, notificando suas Rules associadas ao
+mudarem de estado. Rules, ao serem aprovadas pela Condition associada,
+executam sua Action, que por sua vez executam as suas Instigations. Finalmente,
+Instigations são agrupamentos de chamadas de Methods, os quais podem modificar
+Attributes, reiniciando o ciclo. Em tempo, naturalmente, as conexões de notificação
+são estabelecidas em tempo de construção das entidades do PON (SIMÃO;
+STADZISZ, 2009; RONSZCKA, 2019; NEVES 2021).
+No exemplo da Figura 1, uma Rule tem sua Condition formada por duas
+Premises que dependem dos Attributes do FBE Sensor e, quando mudanças nos
+estados dos Attributes do FBE Sensor causarem notificações que aprovem as
+Premises e, por sua vez, a Condition da Rule, esta irá notificar sua Action, composta
+por uma Instigation que executa o Method mtProcess do FBE Sensor. O
+comportamento do ciclo de notificações é ilustrado pela Figura 2.
+
+21
+
+Figura 2 - Ilustração do ciclo de notificações do PON
+
+Fonte: Linhares (2015)
+
+As materializações vigentes do PON podem ser divididas entre o estado da
+arte (i.e., prototipais) e o estado da técnica (i.e., estáveis). O estado da arte do PON
+é a Tecnologia LingPON, atualmente em sua versão 3.0, a qual é composta por uma
+linguagem de programação em alto nível específica para o PON, a NOPL 3.0
+(Notification Oriented Programming Language), o Grafo PON Modular como
+representação intermediária, o método de compilação para o PON (MCPON)
+(RONSZCKA, 2019) e diferentes alvos de compilação (CHIERICI; SKORA; SIMÃO,
+2022). Em particular, o Grafo PON permite que diferentes linguagens de
+programação do PON sejam compiladas para diferentes alvos de compilação de
+maneira transparente e desacoplada (RONSZCKA, 2019).
+Apesar de ainda não ser aplicável industrialmente, a Tecnologia LingPON
+3.0 já se mostrou mais flexível e poderosa do que a anterior, tendo como ponto
+central de inovação um Grafo PON Modular. Este Grafo PON Modular permite que
+alvos de compilação e/ou linguagens específicas utilizem recursos do Grafo PON
+desenvolvido exclusivamente para eles e elas sem impactar com outros alvos e
+linguagens, através da modularidade. Além disso, a NOPL 3.0, diferentemente da
+versão 2.0, foi demonstrada ser Turing-completa (i.e., é teoricamente capaz de
+resolver qualquer problema computacional) (CHIERICI; SKORA; SIMÃO, 2022;
+CHIERICI, 2022).
+
+22
+
+O estado da técnica do PON, por sua vez, é composto por diferentes
+frameworks PON desenvolvidos em linguagens de programação já consolidadas na
+indústria, entre eles citam-se os recentes frameworks PON C++ 4.0 (NEVES, 2021),
+PON C++ 4.5 (LEDESMA; SIMÃO, 2022) e PON C++ 4.0 IoT (FIGUEIREDO, 2022),
+o Framework PON Erlang/Elixir (NEGRINI et al., 2019), o Framework PON C# IoT
+(OLIVEIRA, 2019) e o Framework PON MicroPython 1.0 (LEDESMA, 2025), cada
+qual com suas vantagens e limitações, mas sendo o Framework PON C++ 4.0 até
+hoje a materialização com melhor desempenho geral e mais estável do PON
+(NEVES, 2021; LEDESMA; SIMÃO, 2022).
+Embora os frameworks PON tenham avançado significativamente em
+questões de qualidade de código, desempenho, distribuição, paralelismo e
+programação em alto nível ao longo dos anos, eles ainda seguem o mesmo princípio
+de implementação do fluxo de notificações (quando não estão distribuídas em rede)
+do PON proposto pelo primeiro grande framework PON, o Framework PON C++ 1.0,
+derivado do Framework PON C++ prototipal elaborado por J. M. Simão
+(BANASZEWSKI, 2009). Tanto o Framework PON C++ 1.0 quanto o Framework
+PON C++ prototipal são baseados em chamadas de função das entidades
+notificadas pelas entidades notificantes. Apesar de ser um modelo de fácil
+implementação e que funciona para demonstrar as qualidades do PON, a teoria do
+PON não exige que o fluxo de notificações do PON seja implementado dessa
+maneira, e tal modelo de execução seria impróprio para execução de código PON
+em plataformas que não sejam CPUs, conforme explicado a seguir.
+Quando se fala em paralelismo, GPUs tendem a alcançar um desempenho
+superior a CPUs em tarefas simples, mas desde que elas sejam altamente
+paralelizáveis. Isto assim se dá porque enquanto CPUs são compostas por poucos
+núcleos de processamento, mas de alto desempenho, GPUs são compostas por
+muito núcleos de processamento de baixo desempenho. Tal característica faz com
+que GPUs sejam ideais para cenários com um volume elevado de operações
+simples e independentes entre si, enquanto CPUs sejam ideais para tarefas mais
+complexas, porém sequenciais.
+Assim, existe hoje uma brecha para emergir um novo estado da arte em
+PON que explore a execução do ciclo de notificações em GPU. Embora um modelo
+que traduza o cálculo lógico-causal do PON para operações viáveis de serem
+executadas em GPU possa causar uma latência maior para uma notificação isolada,
+
+23
+
+o mesmo seria capaz de processar um volume muito elevado de notificações
+simultaneamente, o que pode ser desejável em algumas aplicações.
+2.3 Matrizes esparsas e SpMV
+Uma matriz esparsa é um caso especial de matriz em que a maioria dos
+seus elementos são nulos (zero), conforme exemplificado pela Figura 3.
+Figura 3 – Exemplo de matriz esparsa
+
+Fonte: Autoria própria
+
+Matrizes esparsas são interessantes para a computação por apresentarem
+propriedades diferentes ao serem processadas em um programa dependendo da
+forma de representação interna delas nesse programa. Matrizes esparsas podem
+ser aplicadas para ajudar na solução de problemas numéricos diversos de
+engenharia (e.g., otimização de topologias) computação científica (e.g., simulação e
+modelagem de fenômenos físicos/químicos) e economia (e.g., análise otimizada de
+transações financeiras) (SMAILBEGOVIC; GAYDADJIEV; VASSILIADIS, 2005).
+Existem diferentes formas para representar computacionalmente uma matriz
+esparsa,
+
+chamadas
+
+de
+
+formatos
+
+de
+
+armazenamento.
+
+Cada
+
+formato
+
+de
+
+armazenamento possui características diferentes que podem ser vantajosas para
+determinadas aplicações, mas desvantajosas para a outras, pois impactam
+diretamente o espaço necessário para armazenar a matriz e a forma como seus
+elementos não-nulos serão acessados, causando diferenças significativas de
+desempenho entre um formato e outro a depender do hardware utilizado pela
+aplicação (SMAILBEGOVIC; GAYDADJIEV; VASSILIADIS, 2005).
+Dentre os diversos algoritmos para se trabalhar com matrizes esparsas,
+destaca-se o algoritmo Sparse Matrix-Vector Multiplication (SpMV). O SpMV é um
+dos compute kernels (kernels de computação, i.e., uma rotina para processamento
+
+24
+
+altamente paralelo1) mais cruciais da computação (GAO et al., 2024). A operação de
+SpMV consiste em multiplicar uma matriz esparsa 𝐴𝑚 ⨉ 𝑛 por um vetor denso 𝑥⃗ (de
+cardinalidade 𝑛), resultando no vetor de saída 𝑦⃗ (de cardinalidade 𝑚). Tal operação
+é denotada na equação (1). Exemplos de algoritmos de SpMV serão fornecidos nas
+subseções 2.3.1 e 2.3.2.
+⃗⃗⃗⃗ = 𝐴𝑚 ⨉ 𝑛 𝑥⃗
+𝑦
+
+(1)
+
+Naturalmente, cada formato de matriz esparsa exige um algoritmo de SpMV
+ligeiramente diferente, visto que a forma de acessar os elementos não-nulos da
+matriz é diferente para cada formato. As próximas subseções abordam dois dos
+principais formatos de matrizes esparsas existentes, além de seus respectivos
+algoritmos de SpMV.
+2.3.1 Formato Coordenado ou Coordinate Format (COO)
+O Coordinate Format (COO) é o formato de armazenamento mais trivial para
+uma matriz esparsa, pois ele consiste em representar a matriz por três vetores de
+tamanho 𝑁𝑁𝑍, sendo 𝑁𝑁𝑍 o número de elementos não-nulos da matriz: um vetor
+para os elementos não-nulos, um para a linha de cada elemento não-nulo e um para
+a coluna de cada elemento não-nulo (GAO et al., 2024). A Figura 4 ilustra uma
+matriz esparsa sendo representada em COO.
+Figura 4 - Exemplo de representação de uma matriz esparsa usando o formato COO
+
+Fonte: Autoria própria
+
+Em termos de espaço necessário para armazenar a matriz, nota-se que o
+COO exige uma complexidade de espaço da ordem de 𝑂(3𝑁𝑁𝑍), o que pode não
+ser vantajoso para matrizes pequenas ou matrizes com muitos elementos não-nulos,
+O termo “kernel”, neste contexto, é o jargão da área (GAO et al., 2024; SMAILBEGOVIC;
+GAYDADJIEV; VASSILIADIS, 2005) e não está relacionado ao uso comum da mesma palavra na
+computação, que remete ao núcleo de um sistema operacional.
+1
+
+25
+
+mas é consideravelmente melhor do que a representação comum de uma matriz
+(com complexidade de espaço da ordem de 𝑂(𝑚𝑛)) quanto maior e mais esparsa é
+a matriz.
+Algoritmos de SpMV normalmente possuem complexidade temporal na ordem
+de 𝑂(𝑁𝑁𝑍) e este é o caso para o COO. O Código 2 apresenta o algoritmo de SpMV
+tradicional para o formato COO.
+Código 2 - Algoritmo de SpMV para o COO
+
+for (int i = 0; i &lt; NNZ; ++i) {
+y[rowIdx[i]] += value[i] * x[colIdx[i]];
+}
+Fonte: Autoria própria
+
+2.3.2 Formato de Linha Esparsa Compactada ou Compressed Sparse Row Format
+(CSR)
+O Compressed Sparse Row (CSR) ou Compressed Row Storage é um dos
+formatos clássicos de armazenamento para matrizes esparsas mais relevantes,
+tendo servido de inspiração para diversos outros formatos de uso mais específico
+(GAO et al., 2024).
+Figura 5 - Exemplo de representação de uma matriz esparsa usando o formato CSR
+
+Fonte: Autoria própria
+
+Conforme exemplificado na Figura 5, o CSR também é composto por três
+vetores, sendo o primeiro para os elementos não-nulos da matriz e o segundo para
+as colunas de cada elemento não-nulo, similar ao COO. O terceiro vetor,
+apresentado como “rowPtr” na Figura 5, contém os índices de “colIdx” e de “value”
+nos quais se inicia o conjunto de valores não nulos de cada linha, finalizando com o
+valor 𝑁𝑁𝑍.
+
+26
+
+Por possuir um terceiro vetor menor, o CSR exige menos espaço de
+armazenamento do que o COO, mesmo que ambos possam ser considerados da
+mesma ordem de complexidade de espaço. Em termos de desempenho do algoritmo
+de SpMV para o formato CSR, ele também possui complexidade temporal da ordem
+de 𝑂(𝑁𝑁𝑍), mas tende a alcançar um desempenho prático geral superior a outros
+formatos por ser menos sensível à distribuição dos elementos não-nulos na matriz e
+ser mais amigável ao hardware utilizado em aplicações de SpMV (GAO et al., 2024).
+O algoritmo de SpMV para o CSR é apresentado no Código 3.
+Código 3 - Algoritmo de SpMV para o CSR
+
+// R sendo o número de linhas da matriz
+for (int i = 0; i &lt; R; ++i) {
+for (int j = rowPtr[i]; j &lt; rowPtr[j+1]; ++j) {
+y[i] += value[j] * x[colIdx[j]];
+}
+}
+Fonte: Autoria própria
+
+2.3.3 Considerações sobre matrizes esparsas e SpMV
+Matrizes esparsas são, por si só, uma ferramenta para modelar problemas a
+partir de álgebra linear, da mesma forma que grafos são uma ferramenta para
+modelar problemas sob uma ótica computacional. Muito embora a mera
+representação das informações em matrizes esparsas não represente um ganho
+além da otimização de armazenamento, a utilização de algoritmos como o SpMV
+permite que a estrutura e as características de diferentes formatos de
+armazenamento de matrizes esparsas sejam exploradas para resolver problemas de
+diversas áreas de forma paralela e eficiente (GAO et al., 2024).
+Nesse sentido, ao traduzir as relações de notificação entre entidades do ciclo
+lógico-causal do PON para matrizes esparsas e operações de SpMV, torna-se
+possível a execução de programas PON de maneira extraordinária por meio da
+multiplicação de matrizes esparsas por um vetor. Ainda, esta tradução traria um
+modelo matemático para o fluxo de notificações lógico-causal do PON, fazendo uso
+de álgebra linear para tal.
+
+27
+
+2.4 Arquitetura de placas de vídeo
+Uma placa de vídeo (GPU) é um tipo especial de processador projetado para
+processamento gráfico e tarefas com processamento altamente paralelo (NVIDIA,
+2025). Em contrapartida, uma CPU, considerando as arquiteturas tradicionais
+inspiradas em von Neumann (LINHARES, 2015), é um processador projetado para
+executar tarefas majoritariamente sequenciais o mais rápido possível (NVIDIA,
+2025). Em termos de divisão dos recursos de hardware, considerando que fossem
+utilizados a mesma quantidade de transistores para criar uma CPU e uma GPU,
+enquanto a CPU possuiria poucos núcleos de alto desempenho, a GPU seria
+formada por centenas ou milhares de núcleos de baixo desempenho. A Figura 6
+ilustra a divisão dos recursos de um chip para CPUs e GPUs.
+Figura 6 - Comparação de como CPUs e GPUs dividem os recursos de um chip
+
+Fonte: NVIDIA (2025)
+
+Nota-se, pela Figura 6, que enquanto cada núcleo (core, em verde) de uma
+CPU possui sua própria unidade de controle (control, em amarelo) e sua própria
+memória cache L1 (em roxo), cada unidade de controle e cada memória cache L1 é
+compartilhada por vários núcleos numa GPU. Além disso, cada núcleo, unidade de
+controle e memória cache L1 numa CPU é muito maior do que os mesmos
+elementos numa GPU, implementando operações e pipelines mais complexas em
+relação à GPU, além de, normalmente, possuírem uma frequência de clock maior.
+Tais características fazem com que um núcleo de CPU execute um número muito
+maior de instruções do que um núcleo de GPU em um mesmo intervalo de tempo.
+
+28
+
+No entanto, por possuir uma quantidade muito maior de núcleos, uma GPU é capaz
+de executar muito mais tarefas paralelamente do que CPUs.
+Em termos de modelos de execução, dizemos que GPUs seguem o modelo
+Single Instruction, Multiple Data (SIMD), isto é, uma mesma operação é executada
+sobre diferentes dados (BERG; SIEGEL, 1991). Por outro lado, CPUs, quando
+compostas por múltiplos núcleos (i.e., CPUs multicore), seguem o modelo Multiple
+Instruction, Multiple Data (MIMD), ou seja, diferentes operações são executadas
+para diferentes dados (BERG; SIEGEL, 1991). Em suma, embora seja menos
+flexível do que o modelo MIMD, o modelo SIMD, aliado à grande quantidade de
+núcleos de GPUs, permite que GPUs possam realizar operações simples sobre um
+grande volume de dados de maneira rápida e altamente paralela. Um exemplo é
+justamente a operação SpMV, na qual, para o formato CSR visto anteriormente,
+cada linha da matriz pode ser multiplicada pelo vetor em um núcleo diferente da
+GPU.
+Dada a baixa flexibilidade do modelo SIMD, GPUs normalmente não são
+utilizadas para executar aplicações inteiras, mas sim apenas uma parte delas, isto é,
+a parte que se beneficiaria do paralelismo massivo de uma GPU, com o restante da
+aplicação executando em CPU. Esta colaboração entre CPU e GPU forma um
+sistema heterogêneo CPU-GPU, no qual o fluxo principal de uma aplicação é
+executada em CPU, como partes pontuais dela executando em GPU, sob a forma de
+compute kernels. É pertinente ressaltar que, dependendo da aplicação, pode ser
+necessário transferir dados entre CPU e GPU, adicionando um overhead no tempo
+de execução da aplicação que depende diretamente do hardware utilizado. Assim,
+ao projetar uma aplicação para um sistema heterogêneo CPU-GPU, é importante
+levar em conta o overhead de uma transferência de dados entre CPU e GPU e
+buscar minimizar o número de transferências, caso contrário, o desempenho geral
+da aplicação no sistema CPU-GPU pode ser pior do que se ela fosse executada
+somente em CPU, mesmo com o elevado grau de paralelismo de uma GPU.
+2.5 OpenCL
+OpenCL (Open Computing Language) é um padrão aberto e multiplataforma
+para programação paralela em sistemas heterogêneos, como CPUs, GPUs, DSPs
+(Digital Signal Processors) e FPGAs (Field-Programmable Gate Array). Desenvolvido
+inicialmente pela Apple e mantido pelo Khronos Group, o OpenCL permite que
+
+29
+
+aplicações aproveitem o potencial de processamento paralelo de múltiplos
+dispositivos, otimizando o desempenho em tarefas intensivas, como processamento
+de imagens, simulações científicas e aprendizado de máquina (KHRONOS, 2025).
+Sua flexibilidade reside na capacidade de abstrair diferenças arquiteturais,
+oferecendo uma interface unificada para gerenciamento de memória, execução de
+kernels (funções paralelas) e sincronização.
+2.5.1 Arquitetura do OpenCL
+A especificação do OpenCL define quatro modelos abstratos para
+organização do hardware e execução de programas: modelo de plataforma, modelo
+de execução, modelo de memória e modelo de programação. A Figura 7 ilustra o
+modelo de plataforma do OpenCL.
+Figura 7 - Modelo de plataforma do OpenCL
+
+Fonte: (KHRONOS, 2025)
+
+Conforme a Figura 7, o modelo de plataforma do OpenCL é composto por um
+host
+
+(geralmente
+
+uma
+
+CPU)
+
+que
+
+coordena
+
+um
+
+ou
+
+mais
+
+devices
+
+(dispositivos/aceleradores) que executam compute kernels. Cada dispositivo contém
+uma ou mais unidades de computação (CUs), as quais são divididas em um ou mais
+elementos de processamento (PEs). Assim, o modelo de plataforma é uma
+abstração de como o OpenCL enxerga o hardware (KHRONOS, 2025).
+O modelo de execução se baseia na criação de um contexto OpenCL no host
+para gerenciar recursos e comandar a execução de tarefas nos dispositivos. Com
+um contexto, o host é capaz de transferir dados, sincronizar a execução e executar
+compute kernels nos dispositivos, utilizando uma fila de comandos para cada
+dispositivo. Os Kernels operam sobre um espaço de estados 𝑁-dimensional,
+chamado de NDRange, o qual é dividido em work-items (unidades básicas de
+
+30
+
+paralelismo), organizados em work-groups (grupos de work-items). Cada work-item
+irá executar o código do compute kernel, acessando a memória previamente alocada
+pelo host para aquele compute kernel.
+O OpenCL divide a memória em uma hierarquia de quatro níveis. No primeiro
+nível, a memória global, compartilhada por todos os work-items e com alta latência.
+No segundo, a memória constante, também acessível por todos os work-items, mas
+sendo restrita apenas a operações de leitura (readonly). O terceiro nível é formado
+pela memória local, acessível apenas dentro de um mesmo work-group. Por fim, o
+último nível consiste na memória privada, exclusiva para cada work-item e, portanto,
+com a menor latência entre as demais. Ainda, é pertinente ressaltar que transferir
+dados entre diferentes níveis da hierarquia de memória, ou ainda transferir dados
+entre o host e os dispositivos, adiciona um overhead durante a execução do
+programa, sendo que tal overhead depende diretamente do hardware utilizado,
+conforme o que foi exposto na seção anterior.
+Finalmente, o modelo de programação do OpenCL consiste numa linguagem
+de programação baseada no C99 (OpenCL C), utilizada para o desenvolvimento de
+kernels que serão executados nos dispositivos, e em uma API para o host escrita em
+C ou C++. A combinação destas ferramentas permite que desenvolvedores utilizem
+um host e um ou mais dispositivos como um sistema unificado de computação
+paralela (KHRONOS, 2025).
+2.5.2 Considerações sobre OpenCL, SpMV e PON
+O OpenCL se mostra como uma ferramenta facilitadora para programação
+paralela em hardwares aceleradores (KHRONOS, 2025), sendo agnóstica em
+termos de paradigmas de programação, o que permite que seu uso seja combinado
+com o uso do PON, bastando, para isso, a existência de uma materialização do PON
+implementada a partir do OpenCL. Tal materialização possibilitaria a execução de
+programas PON em hardwares com execução altamente paralela.
+Um código em OpenCL é um compute kernel a ser executado pelo dispositivo
+escolhido, sendo que uma operação de SpMV é um compute kernel, o que a torna
+ideal para o modelo de execução do OpenCL. Dessa forma, traduzir o mecanismo
+de notificações do PON para operações de SpMV é uma forma de viabilizar o
+desenvolvimento de uma materialização do PON a partir do OpenCL. Esta nova
+materialização executaria o fluxo de notificações de forma extraordinária e não
+
+31
+
+usual, por meio da multiplicação de matrizes esparsas por um vetor, e graças ao
+OpenCL, tal execução poderia ser executada em GPU de maneira altamente
+paralela, alcançando o paralelismo almejado pelo paradigma.
+
+32
+
+3 INFERÊNCIA DO PON BASEADA EM MULTIPLICAÇÃO DE MATRIZES
+Nesta seção é apresentada a formalização do mecanismo de inferência para
+o PON baseado na multiplicação de matrizes esparsas por um vetor, denominado
+matriz de ativadores, e a implementação do framework MBRIS 0.1 proposto, à luz da
+formalização da matriz de ativadores. Entretanto, antes de explorar a formalização
+da matriz de ativadores, é necessário primeiro compreender como seria possível
+executar o ciclo de notificações do PON a partir de operações de SpMV.
+3.1 PON a partir de SpMV
+Esta seção explica como se executa o ciclo de notificações do PON a partir
+de operações de SpMV, apresentando um exemplo para tal.
+Inicialmente, foca-se na parte lógico-causal do paradigma, cujo fluxo de
+notificações começa na mudança de estado de um dado Attribute, evolui para um
+conjunto de Premises, evolui ainda para um conjunto de Conditions e termina na
+possível aprovação de um conjunto de Rule. Com isto em mente, mapeia-se dois
+vetores de uma operação de SpMV para os pontos de entrada e saída do fluxo
+lógico-causal do PON: um vetor de Attributes e um vetor de resultado da aprovação
+das Rules. Além disso, a matriz da operação de SpMV representaria as demais
+entidades lógico-causais do PON (i.e., Premises, Conditions e Rules elas mesma).
+Neste quadro, o fluxo de notificações do PON ocorre por meio da multiplicação do
+vetor de Attributes pela matriz de entidades do PON, resultando no vetor das
+aprovações das Rules, o que será explicado abaixo.
+De antemão, certamente não existe apenas uma forma de converter
+Premises, Conditions e Rules em uma matriz esparsa. Apenas representando
+computacionalmente o grafo de interdependências das entidades em uma aplicação
+PON como uma matriz já seria, por si só, uma matriz esparsa, e assim o algoritmo
+de SpMV ditaria a forma de navegar neste grafo. Entretanto, este trabalho buscou
+uma forma de representação que permitisse, de fato, realizar operações
+matemáticas sobre a matriz que equivaleriam as notificações, conforme a
+formalização da próxima seção.
+Isto tudo dito, a acima chamada matriz da operação de SpMV dos operadores
+lógico-causais é aqui definida como um conjunto de matrizes, dado que uma matriz
+pode ser decomposta como a multiplicação de outras matrizes. Assim, pode-se
+
+33
+
+definir uma matriz para Premises, em que seus elementos são definidos em termos
+dos Attributes relacionados a cada Premise, bem como uma matriz para as
+Conditions, definida em termos das Premises relacionadas a cada Condition. A
+multiplicação dessas duas matrizes resulta em uma matriz de Rules, definida em
+termos da relação entre cada Rule com cada Attribute, o que é explicado nesta
+presente seção. Assim sendo, para começar tal explicação, retoma-se o exemplo
+advindo da Figura 1. Tal exemplo é refeito no Código 4, que segue logo abaixo. Tal
+código está em uma linguagem prototipal do PON, chamada de LingPON 3.0
+(CHIERICI; SKORA; SIMÃO, 2022).
+Código 4 - Exemplo do FBE Sensor em LingPON 3.0
+
+fbe Sensor:
+attribute atIsRead: bool = false
+attribute atIsActivated: bool = false
+method Read():
+atIsRead = true
+end
+method Deactivate():
+atIsActivated = false
+end
+
+end
+
+rule SensorRule: atIsActivated == true and
+atIsRead == false
+then
+Read()
+Deactivate()
+end
+Fonte: Autoria própria
+
+À luz do exemplo dado no Código 4, a Figura 8 ilustra essa tradução
+simplificada da relação de notificações entre o FBE “Sensor” e Rule “SensorRule”
+como a multiplicação de matrizes esparsas por um vetor denso. Neste modelo, cada
+linha das matrizes de Premises, Conditions e Rules representam, respectivamente,
+uma Premise, Condition e Rule do programa PON. É justamente o percorrimento
+destas matrizes de maneira relacionada, como se as multiplicam para fins
+aritméticos, mas agora para fins de cálculos booleanos, que permite incorrer neste
+processo de notificação dito matricial.
+
+34
+
+Figura 8 - Relação de notificações entre o FBE “Sensor” e a Rule “SensorRule” como
+operações de SpMV
+
+Fonte: Autoria própria
+
+Muito embora a Figura 8 seja uma simplificação do modelo e, portanto, não
+possua elementos matemático-aritméticos propriamente dito, ao percorrer as
+matrizes tal qual a uma multiplicação usual de matrizes por um vetor, pode-se
+também alcançar cálculos para fins booleanos. Neste contexto, com o intuito de préformalizar a questão, nota-se que a expressão matemática resultante da relação
+multiplicadora no exemplo dado representa perfeitamente a Rule “SensorRule” da
+Figura 1, conforme segue:
+𝑦 = 𝑎𝑡𝐼𝑠𝑅𝑒𝑎𝑑 × 𝑖𝑠𝐹𝑎𝑙𝑠𝑒 × 𝑐𝑜𝑛𝑗𝑢𝑛𝑐𝑡𝑖𝑜𝑛 + 𝑎𝑡𝐼𝑠𝐴𝑐𝑡𝑖𝑣𝑎𝑡𝑒𝑑 × 𝑖𝑠𝑇𝑟𝑢𝑒 × 𝑐𝑜𝑛𝑗𝑢𝑛𝑐𝑡𝑖𝑜𝑛
+𝑦 = 𝑐𝑜𝑛𝑗𝑢𝑛𝑐𝑡𝑖𝑜𝑛 × (𝑎𝑡𝐼𝑠𝑅𝑒𝑎𝑑 × 𝑖𝑠𝐹𝑎𝑙𝑠𝑒 + 𝑎𝑡𝐼𝑠𝐴𝑐𝑡𝑖𝑣𝑎𝑡𝑒𝑑 × 𝑖𝑠𝑇𝑟𝑢𝑒).
+No caso da Figura 8, por exemplo, a primeira linha da matriz de Premises
+multiplicada pela primeira linha do vetor de Attributes resulta na expressão lógica
+𝑎𝑡𝐼𝑠𝑅𝑒𝑎𝑑 = 𝑓𝑎𝑙𝑠𝑒. Eis que a primeira linha da matriz de Premises possui como
+elementos os coeficientes/valores 𝑖𝑠𝐹𝑎𝑙𝑠𝑒 e nulo, respectivamente, pois a Premise
+relacionada depende única e exclusivamente do Attribute “atIsRead”, o qual se
+encontra no primeiro elemento do vetor Attributes.
+Ampliando o exemplo anterior, a fim de ilustrar uma operação mais complexa,
+seguem o Código 5 em LingPON 3.0, com uma Rule que representa uma expressão
+genérica, e a Figura 9, que combina os dois exemplos na mesma operação de
+multiplicação de matrizes por um vetor.
+
+35
+
+Código 5 - Exemplo de FBE com Rule genérica em LingPON 3.0
+
+fbe Generic:
+attribute atX: int = 15
+attribute atY: int = 2
+attribute atZ: int = 5
+method mtChangeX():
+atX = 3
+end
+
+end
+
+rule GenericRule: atX &gt; atY + 10 and atZ != 3 then
+mtChangeX()
+end
+Fonte: Autoria própria
+
+Figura 9 - Relação de notificações entre as entidades dos Códigos 4 e 5 como operações de
+SpMV
+
+Fonte: Autoria própria
+
+Nota-se que a esparsidade das matrizes tende a aumentar à medida que se
+aumenta a quantidade de Premises e Conditions, isto pois cada Premise depende
+de apenas um subconjunto do conjunto de todos os Attributes, e cada Condition
+depende de apenas um subconjunto do conjunto de todas as Premises. Dessa
+forma, a maioria dos elementos das matrizes serão nulos e somente aqueles que
+representem uma dependência entre entidades do PON terão algum valor válido.
+De maneira mais genérica, cada linha de uma matriz representa uma
+entidade lógica do PON definida em termos das entidades da matriz ou vetor
+subsequente. Assim, o 𝑗-ésimo elemento de uma linha da matriz é um coeficiente
+que representa a relação (ou dependência) causal daquela linha (entidade) com a 𝑗ésima linha (entidade) da matriz ou vetor subsequente. A Figura 10 ilustra o modelo
+de forma genérica, em que 𝑐𝑟𝑖 𝑎𝑗 é o coeficiente de dependência da 𝑖-ésima Rule pelo
+𝑗-ésimo Attribute. Além disso, o Apêndice A possui mais exemplos de como o
+
+36
+
+modelo proposto representa as relações de dependência entre as entidades do
+PON.
+Figura 10 - Representação da dependência entre Rules e Attributes como uma operação de
+SpMV
+
+Fonte: Autoria própria
+
+Expressões lógicas são, naturalmente, expressões não lineares, enquanto a
+multiplicação de matrizes é uma operação linear. Assim, para que esse modelo
+possa traduzir expressões lógicas mais complexas, como a da Rule do Código 5, é
+necessário fazer com que os coeficientes de dependências das entidades das
+matrizes não sejam apenas números, mas sim um tipo especial de coeficiente que
+se comporte de maneira linear ao mesmo tempo que, ao final da operação, aplique
+uma função sobre si mesmo para saber se a expressão lógica original é verdadeira
+ou falsa. No exemplo da Figura 9, cada um dos elementos não-nulos que aparecem
+nas matrizes de Premises e Conditions (e.g., 𝑔𝑟𝑒𝑎𝑡𝑒𝑟𝑃𝑙𝑢𝑠10) representam
+operações não lineares e, portanto, precisam ser definidos com base nesse
+coeficiente especial. Tal tipo de coeficiente especial será explicado na próxima
+seção, sob o nome de indicador de função de ativação.
+Pertinente ainda ressaltar que o modelo proposto para traduzir o fluxo lógicocausal de notificações do PON em operações de SpMV é bastante flexível, visto que
+ele permite generalizar uma Rule PON para quantas sub-entidades se queira,
+permitindo o compartilhamento das mesmas entre múltiplas Rules diferentes. Além
+disso, ele também permite reduzir todas as matrizes em uma única matriz,
+economizando notificações desnecessárias quando não houver a necessidade de
+compartilhar entidades.
+Diferentemente da implementação usual dos frameworks PON, uma
+notificação nesse modelo não é direta, isto é, alterar o estado interno de um Attribute
+não faz com que o mesmo notifique diretamente uma Premise/Condition/Rule. No
+modelo proposto, alterar o estado de um Attribute apenas registra a necessidade de
+ocorrer uma notificação, mas esta só ocorrerá de fato quando a operação de SpMV
+
+37
+
+for executada, conforme o que será exposto na seção 3.3. Assim, considerando uma
+materialização do PON que implemente esse mecanismo de notificações por meio
+de operações de SpMV: (a) ou a execução do ciclo de notificações deve ser
+solicitada explicitamente pelo programador; (b) ou a materialização possui ao menos
+duas threads, nomeadamente a thread que executa a aplicação em si e a thread que
+executa o fluxo de notificações por SpMV periodicamente.
+3.2 Matriz de Ativadores
+Conforme mencionado na seção anterior, na solução proposta neste
+trabalho existe um elemento chamado indicador de função de ativação. O indicador
+de função de ativação é o que permite que os coeficientes de dependências das
+entidades das matrizes se comportem de maneira linear ao mesmo tempo que, ao
+final da operação pertinente, aplique um cálculo lógico sobre si mesmo para saber
+se a expressão lógica original é verdadeira ou falsa. Eis que os indicadores de
+função de ativação são os elementos fundamentais que constituem a chamada
+Matriz de Ativadores. Isto posto, seja 𝐴𝑚×𝑛 uma matriz de ativadores, isto é, uma
+matriz cujos elementos pertencem ao universo 𝑈, segue-se a formalização
+matemática da solução proposta nas subseções a seguir. Ainda, para facilitar a
+compreensão de cada parte da formalização, a Figura 11 ilustra a operação
+presente na Figura 9, mas agora utilizando matrizes de ativadores propriamente
+ditas.
+Figura 11 - Operação da Figura 9 definida com os conceitos da matriz de ativadores
+
+Fonte: Autoria própria
+
+3.2.1 Universo
+O Universo 𝑈 de valores possíveis em uma matriz de ativadores é um
+conjunto definido a partir do valor especial nulo 𝜀, de um conjunto 𝑣𝑎𝑙𝑜𝑟𝑒𝑠 dos
+valores permitidos para uma entrada do vetor denso, de um conjunto 𝑐𝑜𝑒𝑓𝑖𝑐𝑖𝑒𝑛𝑡𝑒𝑠
+dos coeficientes permitidos em um elemento da matriz e um conjunto 𝑎𝑡𝑖𝑣𝑎𝑑𝑜𝑟𝑒𝑠
+dos indicadores de ativadores definidos da seguinte forma:
+
+38
+
+Focando no conjunto 𝑣𝑎𝑙𝑜𝑟𝑒𝑠, para o exemplo da Figura 11, como o valor de
+todos os Attributes podem ser representados como números reais (inclusive true e
+false como 1 e 0, respectivamente), 𝑣𝑎𝑙𝑜𝑟𝑒𝑠 = ℝ. Além disso, como todos os
+coeficientes não-nulos das matrizes da Figura 11 também são números reais, o
+conjunto 𝑐𝑜𝑒𝑓𝑖𝑐𝑖𝑒𝑛𝑡𝑒𝑠 = ℝ. O conjunto 𝑎𝑡𝑖𝑣𝑎𝑑𝑜𝑟𝑒𝑠 será definido a seguir.
+3.2.2 Ativadores/Funções de ativação
+Para uma notificação por matrizes de ativadores, postulam-se três valores
+finais de aprovação: 0 indica que a expressão lógica original foi aprovada, 1 (ou
+qualquer outro valor diferente de 0) indica que a expressão foi desaprovada e 𝜀
+indica que a notificação deve ser interrompida a partir daquele ponto. Apesar desta
+definição ser contraintuitiva, dado que, na computação, 0 significa false e 1 significa
+true, ela é dessa forma para poder dizer se dois valores são iguais apenas
+subtraindo um do outro: se o resultado for 0, então os valores são iguais, se for
+diferente de 0, então são diferentes2.
+Assim sendo, para verificar a igualdade entre dois Attributes, pode-se
+multiplicar qualquer um deles por -1 e então somá-los, sem a necessidade de
+qualquer artifício adicional. No entanto, para outros tipos de comparações que não
+igualdade (e.g., maior, menor etc.), é necessária uma ferramenta matemática (e.g.,
+uma operação matemática) adicional que se comporte de maneira linear para poder
+compor a matriz de ativadores.
+Nesse sentido, um ativador é uma função de ativação do tipo 𝑓: 𝑈 → {0, 1, 𝜀},
+sendo que o valor 0 indica uma aprovação, 1 indica que não foi aprovado e 𝜀 indica
+que a notificação deve ser interrompida. Os dois ativadores mais básicos são:
+
+2 É pertinente ressaltar que esta inversão da lógica usual dos valores 0 e 1 na computação se aplica
+
+somente ao contexto das funções de ativação e, justamente, são chamados de “valores finais de
+aprovação” e não “valores-verdade” ou algo do tipo. Para os demais contextos, vale a lógica usual de
+que 0 significa false e 1 significa true.
+
+39
+
+Assim, um indicador de ativador (ou indicador de função de ativação) é uma
+tripla 𝛼 = (𝑎𝑡𝑖𝑣𝑎𝑑𝑜𝑟, 𝑐𝑜𝑒𝑓𝑖𝑐𝑖𝑒𝑛𝑡𝑒, 𝑟ó𝑡𝑢𝑙𝑜) que indica que, ao final da notificação, o
+𝑐𝑜𝑒𝑓𝑖𝑐𝑖𝑒𝑛𝑡𝑒 deverá ser aplicado ao 𝑎𝑡𝑖𝑣𝑎𝑑𝑜𝑟 para saber o resultado da operação.
+Quando o 𝑎𝑡𝑖𝑣𝑎𝑑𝑜𝑟 de um indicador é aplicado, diz-se então que o indicador foi
+ativado. Indicadores com o mesmo 𝑟ó𝑡𝑢𝑙𝑜 devem, obrigatoriamente, possuir o
+mesmo 𝑎𝑡𝑖𝑣𝑎𝑑𝑜𝑟. Antes de ativá-los, indicadores com o mesmo 𝑟ó𝑡𝑢𝑙𝑜 devem ser
+simplificados segundo as seguintes relações aritméticas:
+
+Como as funções de ativação não são necessariamente lineares, um
+indicador só pode ser ativado quando seu 𝑟ó𝑡𝑢𝑙𝑜 for único, dado que, por exemplo,
+aplicar o ativador na expressão
+
+antes de
+
+simplificar os indicadores de rótulo 𝑟 resultaria num resultado diferente de aplicar o
+ativador após a simplificação. Além disso, se o 𝑐𝑜𝑒𝑓𝑖𝑐𝑖𝑒𝑛𝑡𝑒 aplicado ao 𝑎𝑡𝑖𝑣𝑎𝑑𝑜𝑟 for
+um indicador, o indicador interno deve ser ativado primeiro, valendo as seguintes
+relações para composição de indicadores:
+
+Pode-se também multiplicar um indicador por um valor qualquer 𝑣 ∈
+𝑣𝑎𝑙𝑜𝑟𝑒𝑠 ∪ 𝜀 pelas relações:
+
+Pode-se ainda simplificar a escrita de um indicador 𝛼 = (𝑎, 𝑐, 𝑟) como 𝛼𝑎,𝑐,𝑟 ou
+a partir de seu rótulo como 𝑟𝑎,𝑐
+
+e pode-se também simplificar a escrita de uma
+
+40
+
+composição de indicadores 𝛼 = (𝑎𝑒𝑥𝑡 , (𝑎𝑖𝑛𝑡 , 𝑐𝑖𝑛𝑡 , 𝑟𝑖𝑛𝑡 ), 𝑟𝑒𝑥𝑡 ) como a multiplicação deles
+𝛼𝑎𝑒𝑥𝑡 ,𝑟𝑒𝑥𝑡 ⋅ 𝛼𝑎𝑖𝑛𝑡 ,𝑐𝑖𝑛𝑡,𝑟𝑖𝑛𝑡 ou 𝑟𝑒𝑥𝑡 𝑎
+
+𝑖𝑛𝑡
+
+⋅ 𝑟𝑖𝑛𝑡 𝑎
+
+𝑖𝑛𝑡 ,𝑐𝑖𝑛𝑡
+
+. Por fim, na escrita pelo rótulo, pode-se
+
+omitir o 𝑎𝑡𝑖𝑣𝑎𝑑𝑜𝑟 e colocar o 𝑐𝑜𝑒𝑓𝑖𝑐𝑖𝑒𝑛𝑡𝑒 multiplicando o rótulo como 𝑟𝑎,𝑐 = 𝑟𝑐 ou 𝑐𝑟.
+Assim, o conjunto 𝑎𝑡𝑖𝑣𝑎𝑑𝑜𝑟𝑒𝑠 é o conjunto de todos os indicadores de ativadores.
+A partir dessas propriedades, é possível definir o ativador greater da Figura
+11 da seguinte forma:
+
+Assim, ao realizar a multiplicação, por exemplo, da terceira linha da matriz
+central da Figura 11 pelo vetor de Attributes, obtém-se a seguinte expressão:
+−10 × 𝑔𝑟𝑒𝑎𝑡𝑒𝑟 + 𝑎𝑡𝑋 × 𝑔𝑟𝑒𝑎𝑡𝑒𝑟 − 𝑎𝑡𝑌 × 𝑔𝑟𝑒𝑎𝑡𝑒𝑟.
+Utilizando as relações acima descritas, pode-se simplificar a expressão:
+(−10 + 𝑎𝑡𝑋 − 𝑎𝑡𝑌) × 𝑔𝑟𝑒𝑎𝑡𝑒𝑟.
+Por fim, considerando, para fins de exemplificação, que 𝑎𝑡𝑋 = 15 e 𝑎𝑡𝑌 = 2,
+(−10 + 15 − 2) × 𝑔𝑟𝑒𝑎𝑡𝑒𝑟 = 3 × 𝑔𝑟𝑒𝑎𝑡𝑒𝑟. Dessa forma, como o indicador já está
+simplificado, pode-se ativá-lo, resultando em 𝑔𝑟𝑒𝑎𝑡𝑒𝑟(3) = 0, ou seja, a expressão
+𝑎𝑡𝑋 &gt; (𝑎𝑡𝑌 + 10) é verdadeira.
+3.2.3 Entradas e Saídas
+O vetor de entradas 𝑥⃗ é um vetor de 𝑛 elementos, em que cada elemento
+𝑥𝑖 , 1 ≤ 𝑖 ≤ 𝑛, 𝑥𝑖 ∈ 𝑣𝑎𝑙𝑜𝑟𝑒𝑠.
+O vetor de saídas 𝑦⃗ é um vetor de 𝑚 elementos, em que cada elemento
+𝑦𝑗 , 1 ≤ 𝑗 ≤ 𝑚, 𝑦𝑗 ∈ {0,1, 𝜀} . Os elementos com valor 𝜀 podem ser omitidos.
+3.2.4 Notificação
+Uma notificação é uma multiplicação de um dado elemento do vetor de
+entradas 𝑥⃗ pela matriz de ativadores 𝐴 isoladamente, ou seja, é a multiplicação
+booleana de matriz por vetor 𝐴 𝑥⃗, sendo que todos os elementos de 𝑥⃗ são o valor
+especial nulo 𝜀, com exceção do 𝑖-ésimo elemento, com 1 ≤ 𝑖 ≤ 𝑛, cujo valor é 𝑥𝑖 .
+Assim, denota-se a operação de notificação como a multiplicação 𝑦
+⃗⃗⃗⃗⃗⃗⃗⃗⃗
+𝑖𝑛𝑡 =
+𝐴𝑚 ⨉ 𝑛 𝑥⃗ , com cada elemento do vetor de saídas intermediário 𝑦
+⃗⃗⃗⃗⃗⃗⃗⃗
+𝑖𝑛𝑡 sendo o estado
+parcial de aprovação de uma dada linha da matriz de ativadores 𝐴 para o elemento
+𝑥𝑖 , e quando todos os elementos de 𝑥⃗ relacionados a uma dada linha de 𝐴 notificam
+
+41
+
+seus valores, diz-se que o valor relacionado à linha no vetor 𝑦
+⃗⃗⃗⃗⃗⃗⃗⃗
+𝑖𝑛𝑡 é o estado final de
+aprovação da linha naquele ciclo. Se algum dos elementos 𝑦𝑗 , 1 ≤ 𝑗 ≤ 𝑚 for 0, dizse que a 𝑗-ésima linha foi aprovada. Quando todos os elementos do vetor de saídas
+intermediário 𝑦
+⃗⃗⃗⃗⃗⃗⃗⃗
+𝑖𝑛𝑡 forem estados finais, isto é, ∀𝑦𝑖𝑛𝑡𝑗 , 1 ≤ 𝑗 ≤ 𝑚, 𝑦𝑖𝑛𝑡𝑗 ∈ {0,1, 𝜀},
+obtém-se o vetor de saídas 𝑦⃗ = 𝐴𝑚×𝑛 𝑥⃗.
+Ainda, pela natureza da multiplicação de matrizes, múltiplas notificações
+podem ser executadas no mesmo ciclo, permitindo o processamento paralelo das
+notificações por um algoritmo paralelo de multiplicação de uma matriz por um vetor.
+Não obstante, ao representar computacionalmente uma matriz de ativadores como
+uma matriz esparsa, apenas as notificações (multiplicações) necessárias serão
+executadas, conforme o que foi visto anteriormente no Capítulo 2.
+3.2.5 Múltiplas matrizes
+Em alguns casos, em vez de utilizar-se uma única matriz de ativadores para
+alcançar o vetor de saídas, pode-se utilizar 𝑙 matrizes de ativadores intermediárias
+𝐴(𝑘) , com 𝑙 &gt; 1 e 1 ≤ 𝑘 ≤ 𝑙, de modo que:
+𝑙
+
+∏ 𝐴(𝑘) = 𝐴.
+𝑘=1
+
+Assim, obtém-se o vetor de saídas 𝑦⃗ pela multiplicação:
+𝑙
+
+⃗⃗⃗⃗ = (∏ 𝐴(𝑘) ) ⃗𝑥.
+𝑦
+⃗⃗
+𝑘=1
+
+Nota-se que exemplo da Figura 11 já é, por si só, um caso de múltiplas
+matrizes de ativadores. A partir do uso de múltiplas matrizes de ativadores, pode-se
+derivar duas propriedades: compartilhamento e combinação de linhas, descritas a
+seguir.
+
+3.2.5.1Compartilhamento de linhas
+
+42
+
+Tome-se a seguinte matriz de ativadores 𝐵5×5 da Figura 12 como exemplo.
+Figura 12 - Matriz de ativadores B de exemplo
+
+Fonte: Autoria própria
+
+Percebe-se que as linhas 1 e 3 são iguais, bem como as linhas 2 e 5, o que
+acarretaria na duplicação das operações dessas linhas durante um ciclo de
+notificações. Para evitar isso, pode-se fazer o uso de uma segunda matriz de
+ativadores 𝐶 e alterar a matriz 𝐵 para obter a matriz 𝐵′ de forma que 𝐶 ⋅ 𝐵′ = 𝐵,
+conforme ilustrado na Figura 13.
+Figura 13 - Matrizes de ativadores C e B’ de exemplo
+
+Fonte: Autoria própria
+
+Em resumo, pode-se compartilhar linhas repetidas de uma matriz de
+ativadores 𝐴, dividindo-a em duas matrizes de ativadores intermediárias 𝐴(1) e 𝐴(2) ,
+tal que 𝐴(2) ⋅ 𝐴(1) = 𝐴 (não necessariamente da mesma maneira que foi feito com a
+matriz 𝐵 da Figura 12). Embora a princípio não pareça muito vantajoso, dado que
+dividir uma matriz em duas aumenta o número final de notificações (multiplicações),
+esse compartilhamento é o que permite o compartilhamento de entidades lógicocausais do PON, por exemplo, evitando redundâncias de processamento lógicocausal.
+3.2.5.2Combinação de linhas
+Tomem-se as matrizes de ativadores 𝐷5×5 e 𝐸4×5 da Figura 14 como exemplo,
+tal que 𝐸 ⋅ 𝐷 = 𝐴.
+
+43
+
+Figura 14 - Matrizes de ativadores D e E de exemplo
+
+Fonte: Autoria própria
+
+Nota-se que a primeira linha da matriz 𝐷 não só é utilizada somente pela
+segunda linha da matriz 𝐸, como também é sua única dependência. A mesma
+relação pode ser observada entre as linhas 𝐷5 e 𝐸4, no entanto, uma notificação a
+mais seria necessária para processar as linhas 2 e 4 da matriz 𝐸. Dize-se que então
+que as matrizes 𝐸 e 𝐷 são combináveis em 𝐷1|𝐶2 e 𝐷5|𝐶4. Dessa forma, pode-se
+combinar essas linhas previamente, obtendo as matrizes 𝐸′ e 𝐷′, tal que 𝐸′ ⋅ 𝐷′ = 𝐴,
+conforme ilustrado na figura na Figura 15.
+Figura 15 - Matrizes de ativadores D e E de exemplo
+
+Fonte: Autoria própria
+
+Assim, todo o processamento necessário para calcular as linhas 2 e 4 da
+matriz 𝐸 seria feito com uma única notificação à matriz 𝐷′.
+Em resumo, pode-se combinar linhas entre duas matrizes intermediárias 𝐴(2)
+e 𝐴(1) quando forem elas combináveis em 𝐴(1) 𝑋|𝐴(2) 𝑌, isto é, quando a linha 𝑋 de
+𝐴(1) só for utilizada pela linha 𝑌 de 𝐴(2) e a linha 𝑌 de 𝐴(2) depender somente da linha
+𝑋 de 𝐴(1) , de forma que o processamento da linha 𝐴(2) 𝑌 passe a ser feito na linha
+𝐴(1) 𝑋.
+Se todas as linhas de 𝐴(2) forem combináveis com 𝐴(1) , dize-se que as
+matrizes 𝐴(1) e 𝐴(2) são combináveis (ou totalmente combináveis), denotando como
+𝐴(1) |𝐴(2) , e assim, ao combinar as duas matrizes, eliminamos um nível intermediário
+do ciclo de notificações. No caso do exemplo da Figura 11, é possível verificar que
+as suas matrizes são totalmente combináveis, resultando na matriz da Figura 16.
+
+44
+
+Figura 16 - Matrizes da Figura 11 combinadas numa só matriz
+
+Fonte: Autoria própria
+
+3.3 Framework MBRIS 0.1
+A fim de pôr em prova a formalização definida na seção anterior, foi
+desenvolvido um framework de prova de conceito, denominado MBRIS (MatrixBased Rule Inference System) 0.13. A razão da versão dada ser 0.1 e não 1.0 como
+nos demais frameworks do PON é, em primeiro lugar, para evidenciar o caráter
+prototipal do framework, não sendo adequado para aplicações comerciais inclusive
+e, em segundo lugar, pois existe a intenção de dar continuidade ao desenvolvimento
+dele como um trabalho futuro deste TCC.
+O framework foi projetado para executar tanto inteiramente em CPU, quanto
+parcialmente em CPU para a parte facto-execucional do PON e em GPU para o
+fluxo de notificações da parte lógico-causal do PON. Foram utilizadas as linguagens
+de programação C++, para o código executado em CPU, e OpenCL, para o código
+executado em GPU. Apesar de existirem hoje tecnologias de execução de código
+em GPU mais avançadas do que o OpenCL, ele foi escolhido pela maior
+simplicidade de uso, desempenho satisfatório e por ser amplamente suportado por
+diferentes hardwares no mercado.
+O framework MBRIS 0.1 é dividido em duas partes principais: o mecanismo
+de inferência por notificações, implementado à luz do conceito de matriz de
+ativadores exposto na seção anterior, e a interface PON, a qual permite a
+construção de aplicações PON com o framework.
+3.3.1 Mecanismo de notificações com matrizes de ativadores
+Para materializar a matriz de ativadores e o fluxo lógico-causal de notificações
+a partir de SpMV, foram desenvolvidas classes específicas em C++ para cada uma
+das entidades da matriz de ativadores, conforme o diagrama de classes da Figura
+17
+3O código-fonte do Framework MBRIS 0.1, bem como os códigos-fonte das aplicações de teste
+
+descritas no Capítulo 4, se encontram no servidor privado do PON, no endereço
+https://nop.dainf.ct.utfpr.edu.br/nop-implementations/frameworks/nop-framework-mbris/nopframework-mbris-kernel, sendo que o acesso a ele pode ser fornecido via orientador, enquanto o
+mesmo não for disponibilizado publicamente.
+
+45
+
+Figura 17 - Diagrama de classes dos componentes base do framework
+
+Fonte: Autoria própria
+
+Como evidenciado pelo diagrama de classes, a classe central do MBRIS é a
+classe Executor, um singleton (i.e., uma classe com somente uma instância durante
+toda a execução do programa, cf. preconiza Gamma et al. (1994)). A instância desta
+classe é responsável por gerenciar o fluxo de notificações entre as instâncias da
+classe AttributeMtx e da classe RuleMtx. Para isso, quando uma instância de
+AttributeMtx tem seu estado alterado, esta solicita alocação ao Executor para o
+próximo ciclo de notificações, e avisa as instâncias de RuleMtx que dependem dela
+para fazerem o mesmo. Então, as instâncias de Rule dependentes não só solicitam
+ao Executor a alocação no próximo ciclo, como também solicitam a alocação das
+suas demais dependências, caso elas ainda não estejam alocadas. A cada
+solicitação
+
+de
+
+alocação,
+
+a
+
+instância
+
+única
+
+da
+
+classe
+
+Executor
+
+constrói
+
+dinamicamente o vetor de entradas (seu atributo interno m_vec) e a matriz de
+ativadores (seu atributo interno m_matrix). Retomando ao exemplo do FBE Sensor,
+a sequência de operações causada pela alteração do estado do Attribute
+“atIsActivated” é ilustrada no diagrama da Figura 18. Nela, os Attributes
+“atIsActivated” e “atIsRead” são mostrados como instâncias de AttributeMtx, e a Rule
+“sensorRule” é exposta como uma instância de RuleMtx.
+
+46
+
+Figura 18 - Diagrama de sequência das operações entre instâncias de AttributeMtx, RuleMtx e
+do singleton Executor ao ocorrer uma alteração de estado interno
+
+Fonte: Autoria própria
+
+Por fim, o singleton Executor, periodicamente, realiza a multiplicação do vetor
+de entradas pela matriz de ativadores, por meio do método multiply da classe
+csr_matrix, e executa o método approved de cada uma das instâncias de Rule
+aprovadas pela multiplicação. É pertinente destacar que as classes Attribute, Rule e
+Executor foram implementadas somente em C++, ou seja, executam somente em
+CPU. As classes csr_matrix e Activator, no entanto, por serem cruciais para a
+execução do algoritmo de SpMV com a matriz de ativadores, foram também
+programadas em OpenCL, mas tal implementação exigiu alguns ajustes em relação
+à versão em C++.
+A classe Executor foi implementada de modo a executar o ciclo de
+notificações periodicamente em uma thread à parte, isto para evitar a necessidade
+de chamar seu método execute explicitamente por parte programador que utilizar o
+
+47
+
+framework MBRIS 0.1. Assim, tal implementação exigiu o uso de um mutex interno
+para garantir a integridade dos dados durante a execução de um programa. Caso
+haja a necessidade de esperar pela conclusão das notificações antes de prosseguir
+com a execução do programa, o método waitExecution da classe Executor bloqueia
+a thread principal enquanto houver notificações a serem executadas.
+Dentre os formatos de armazenamento de matrizes esparsas discutidos
+previamente, foi escolhido o formato CSR para a implementação do MBRIS 0.1,
+dada a sua simplicidade de implementação, desempenho satisfatório e, em especial,
+menor espaço necessário para representar a matriz esparsa. Tal característica é
+essencial para reduzir a quantidade de transferências de dados necessárias entre
+CPU e GPU para a versão do mecanismo de notificações implementada em
+OpenCL, tendo em vista que tais transferências tendem a ser custosas e impactam
+negativamente no desempenho da aplicação.
+A classe Activator traduz, programaticamente, os conceitos de funções de
+ativação e indicadores de função de ativação, expostos na subseção 3.2.2. Embora
+implementar ela em C++ tenha sido relativamente simples, graças ao dinamismo da
+linguagem e aos elementos da biblioteca padrão, a implementação desses conceitos
+em OpenCL exigiu algumas adaptações, dada a natureza estática da linguagem e
+sintaxe baseada na linguagem de programação C pura. Entre eles, uma instância
+Activator em OpenCL é composta apenas por um label, o qual representa sua
+função de ativação, e o coeficiente, que pode ser um valor do tipo double ou um
+contador, que indica quantos ativadores diferentes estão compostos dentro do
+ativador principal. A implementação da classe Activator em OpenCL se encontra no
+Apêndice B deste documento.
+3.3.2 Interface de programação PON para o MBRIS
+A maioria das implementações do PON por meio de frameworks em
+linguagens de programação implementam as diferentes entidades lógico-causais do
+PON como classes específicas para cada entidade. Entretanto, no framework
+MBRIS 0.1 estas entidades foram resumidas numa única classe auxiliar, chamada
+de MixedEntityMtx, a qual deriva simultaneamente das classes AttributeMtx e
+RuleMtx do MBRIS e define a sua action (herdada da classe RuleMtx) como uma
+chamada do seu método setValue (herdado da classe AttributeMtx), o qual é o ponto
+de partida para um novo fluxo de notificações. A definição da classe MixedEntityMtx
+
+48
+
+é mostrada no Código 6. Pertinente ressaltar que o estado interno de uma
+MixedEntityMtx é gerido internamente conforme definido na classe, assumindo
+apenas os valores 0 e 1.
+Código 6 - Definição da classe MixedEntityMtx no MBRIS 0.1
+
+using NOPFlag = mbris::MBRISFlag;
+struct MixedEntityMtx:
+public mbris::AttributeMtx, public mbris::RuleMtx
+{
+MixedEntityMtx(mbris::activation_function_t func):
+mbris::AttributeMtx{0},
+mbris::RuleMtx{
+func,
+std::to_string(m_internal_universal_label++)}
+{
+this-&gt;setAction([&amp;](NOPFlag flag=mbris::Default,
+double approval_val=1.0) {
+if(0 &lt; (ReNotify &amp; flag))
+{
+this-&gt;setValue&lt;mbris::ReNotify&gt;(
+approval_val);
+}
+else
+{
+this-&gt;setValue(approval_val);
+}
+});
+}
+private:
+inline static size_t m_internal_universal_label{0};
+};
+Fonte: Autoria própria
+
+A herança múltipla da classe MixedEntityMtx, evidenciada no Código 6,
+ocorre pelo fato de que Premises e Conditions precisam se comportar tanto como
+instâncias de AttributeMtx, pois são dependências das entidades acima delas na
+hierarquia do PON, quanto como instâncias de RuleMtx, pois dependem de
+entidades abaixo delas na hierarquia do PON.
+Assim, a partir desta classe genérica, foi construída uma interface para
+simplificar a construção das entidades lógico-causais do PON no MBRIS. Ainda em
+tempo, visando facilitar a tradução das aplicações PON desenvolvidas com o
+Framework PON C++ 4.0 para o Framework MBRIS 0.1, tal interface foi
+implementada seguindo o padrão Builder, similar ao que foi feito por Neves (2021)
+
+49
+
+na implementação do Framework PON C++ 4.0. A seguir, serão destacados como
+cada entidade do PON foi implementada no MBRIS a partir da interface PON e suas
+respectivas funções Builder.
+3.3.2.1 Fact Base Element - FBE
+Um FBE no MBRIS é uma classe usual do C++, a qual pode conter seu
+próprio conjunto de outras entidades do PON, para fins de encapsulamento e
+modularidade, conforme os princípios do PON. Embora seja possível desenvolver
+programas no framework sem o uso de FBEs, é altamente recomendável que se
+faça o uso de FBEs, pois esta abordagem permite organizar o código de forma mais
+clara e coesa, melhorando a qualidade do código em termos de compreensão e
+facilidade de manutenção. O Código 7 exemplifica a definição do FBE Generic,
+apresentado inicialmente no Código 5, mas agora em MBRIS.
+Código 7 - Definição do FBE Generic em MBRIS
+
+struct Generic
+{
+mbris::NOP::SharedAttribute atX{
+mbris::NOP::BuildAttribute(15)};
+mbris::NOP::SharedAttribute atY{
+mbris::NOP::BuildAttribue(2)};
+mbris::NOP::SharedAttribute atZ{
+mbris::NOP::BuildAttribue(5)};
+void mtChangeX()
+{
+atX-&gt;setValue(3);
+}
+
+};
+
+mbris::NOP::SharedRule GenericRule{
+/* código de inicialização da Rule*/
+};
+Fonte: Autoria própria
+
+3.3.2.2 Attribute
+Um Attribute PON no MBRIS nada mais é do que a classe AttributeMtx base
+do framework. Um Attribute no MBRIS 0.1 armazena um valor do tipo double como
+seu estado interno e possui uma lista de dependentes, isto é, uma lista das Rules
+
+50
+
+que dependem do seu estado e que devem ser notificadas quando o estado interno
+do Attribute mudar.
+Para alterar o estado de um Attribute, faz-se o uso do método setValue, o
+qual recebe como parâmetro o novo valor do Attribute e uma flag, via parâmetro de
+template, indicando se aquela atribuição de valor deve causar uma notificação
+padrão, uma renotificação ou se não deve notificar em nenhuma hipótese. Ainda, por
+comodidade, foi sobrecarregado o operador de atribuição (=) da classe Attribute,
+para que o mesmo chamasse o método setValue implicitamente. O valor de um
+Attribute é acessado por meio do método getValue.
+Uma RuleMtx pode ser adicionada como dependente do Attribute com o uso
+do
+
+método
+
+addDependent.
+
+Entretanto,
+
+o
+
+uso
+
+explícito
+
+deste
+
+método
+
+é
+
+desencorajado, pois diminui a legibilidade do código e pelo fato de que as funções
+Builder auxiliares já fazem o gerenciamento das dependências entre Attributes e
+Rules automaticamente, permitindo uma programação de mais alto nível.
+Para criar um Attribute novo, é recomendável o uso do tipo especializado
+SharedAttribute (i.e., um Attribute encapsulado em um shared_ptr do C++) e da
+função BuildAttribute, ambos presentes dentro do namespace NOP do framework. O
+Código 8 exemplifica o uso de Attributes no framework.
+Código 8 - Exemplo de instanciação e uso de Attributes
+mbris::NOP::SharedAttribute atIsRead = mbris::NOP::BuildAttribute(0);
+mbris::NOP::SharedAttribute atIsActivated{
+mbris::NOP::BuildAttribute(0)};
+*atIsActivated = 1;
+atIsRead-&gt;setValue&lt;mbris::ReNotify&gt;(1);
+atIsActivated-&gt;setValue(0);
+std::cout &lt;&lt; atIsRead-&gt;getValue() &lt;&lt; std::endl;
+Fonte: Autoria própria
+
+3.3.2.3 Premise
+Diferentemente das implementações usuais do PON em frameworks, nas
+quais a entidade Premise é implementada como uma classe específica, o
+equivalente a uma Premise no MBRIS não foi implementado como uma classe
+própria, mas sim como uma forma específica de criar uma instância da classe
+MixedEntityMtx. Esta instância de MixedEntityMtx possui duas dependências (dois
+Attributes ou um Attribute e uma constante), e a sua action é uma função de
+
+51
+
+ativação que representa uma comparação aritmética entre dois valores. Por
+comodidade, a interface PON do framework já implementa as principais
+comparações aritméticas (e.g., igualdade, maior que, menor que, maior ou igual etc.)
+na forma de funções de ativação. O Código 9 ilustra como utilizar a função
+BuildPremise para construir uma Premise.
+Código 9 - Exemplo de instanciação de Premises
+mbris::NOP::SharedAttribute at1 = mbris::NOP::BuildAttribute(8);
+mbris::NOP::SharedAttribute at2{mbris::NOP::BuildAttribute(6)};
+// at1 == at2
+mbris::NOP::SharedPremise prAt1EqAt2{
+mbris::NOP::BuildPremise(at1, at2, mbris::NOP::Equal)};
+// at2 &gt; 7
+auto prAt2GreaterThan7 = mbris::NOP::BuildPremise(
+at2, 7.0, mbris::NOP::Greater);
+// vai notificar e aprovar as duas premises
+*at2 = 8;
+Fonte: Autoria própria
+
+3.3.2.4 Condition
+Assim como as Premises, o equivalente a Condition em MBRIS foi
+implementada como uma forma específica de criar uma instância da classe
+MixedEntityMtx, em detrimento da implementação usual de frameworks PON ao
+implementar a entidade Condition como uma classe específica. O equivalente a uma
+Condition no MBRIS é uma MixedEntityMtx composta por uma ou mais instâncias de
+MixedEntityMtx como dependências, sendo que a sua RuleMtx interna é
+customizada para ser aprovada ou desaprovada conforme o tipo da Condition
+(conjunção ou disjunção) e a quantidade de dependências. No entanto, tudo isso é
+abstraído do programador, por meio da função BuildCondition, exemplificada no
+Código 10.
+
+52
+
+Código 10 - Exemplo de instanciação de Conditions
+auto pr1 = mbris::NOP::BuildPremise(...);
+auto pr2 = mbris::NOP::BuildPremise(...);
+auto pr3 = mbris::NOP::BuildPremise(...);
+auto pr4 = mbris::NOP::BuildPremise(...);
+// pr1 and pr2
+mbris::NOP::SharedCondition cdPr1AndPr2{
+mbris::NOP::BuildCondition&lt;
+mbris::NOP::EConditionType::Conjunction&gt;(pr1, pr1)};
+// pr3 or pr4
+auto cdPr3OrPr4 = mbris::NOP::BuildCondition&lt;
+mbris::NOP::EConditionType::Disjunction&gt;(pr1, pr1)};
+Fonte: Autoria própria
+
+3.3.2.5 Rule
+Assim como os Attributes, uma Rule PON no MBRIS é a classe RuleMtx base
+do framework. Uma Rule no MBRIS 0.1 é composta como por uma lista de
+dependências, que pode ser formada por AttributeMtxs ou valores do tipo double;
+uma lista de pesos, isto é, os coeficientes dos indicadores de funções de ativação
+para cada dependência, os quais serão alocados na matriz durante um ciclo de
+notificações; uma função de ativação e uma Action na forma de uma instância
+especializada do tipo std::function, presente na biblioteca padrão do C++.
+Embora seja possível instanciar uma Rule diretamente pelo construtor da
+classe RuleMtx e adicionar suas dependências e pesos manualmente, tal atitude é
+mais passível de erros de programação e dificulta a legibilidade do código. Portanto,
+é recomendável utilizar o tipo especializado SharedRule e a função BuildRule,
+fornecidos pela interface PON do framework. Tal interface possibilita ainda que uma
+Condition seja adicionada como dependência da Rule, em vez de Attributes
+diretamente, seguindo o modelo usual do PON e abstraindo detalhes de
+implementação. Em tempo, caso não exista a necessidade de compartilhar as
+Premises e/ou Conditions em outras Rules, as mesmas podem ser instanciadas
+diretamente durante a construção de uma Rule, sem acarretar perda de coesão e
+desacoplamento e permitindo uma programação mais alto nível. A instanciação da
+regra sensorRule, presente na Figura 1, é apresentada no Código 11.
+
+53
+
+Código 11 - Instanciação da regra sensorRule da Figura 1 utilizando a interface PON do MBRIS
+mbris::NOP::SharedAttribute atIsRead{mbris::NOP::BuildAttribute(0)};
+mbris::NOP::SharedAttribute
+atIsActivated{mbris::NOP::BuildAttribute(0)};
+// if atIsRead == 0 and atIsActivated == 1 then ...
+mbris::NOP::SharedRule sensorRule = mbris::NOP::BuildRule(
+&quot;sensorRule&quot;,
+mbris::NOP::BuildCondition&lt;
+mbris::NOP::EConditionType::Conjunction&gt;(
+mbris::NOP::BuildPremise(
+atIsRead, 0.0,mbris::NOP::Equal),
+mbris::NOP::BuildPremise(
+atIsActivated, 1.0 mbris::NOP::Equal)),
+ACTION({
+atIsRead-&gt;setValue(1);
+atIsActivated-&gt;setValue(0);
+})
+);
+Fonte: Autoria própria
+
+Em resumo, com essa interface PON no MBRIS, quando um Attribute tem seu
+estado alterado, este irá requisitar a alocação de notificações para as Premises que
+dependem dele ao Executor. Se as Premises mudarem de estado, elas farão o
+mesmo para as notificações com as Conditions, que posteriormente também irão
+alocar notificações para as Rules, completando o fluxo lógico-causal do PON.
+3.3.3 Limitações do Framework MBRIS 0.1
+Apesar de ser suficiente como prova de conceito da viabilidade de traduzir o
+PON para uma operação de multiplicação de uma matriz esparsa por um vetor
+denso, o Framework MBRIS 0.1 possui limitações tanto quanto ao PON em si, tanto
+quanto à formalização do conceito de matriz de ativadores. Algumas podem ser
+superadas em trabalhos futuros sobre o próprio framework, outras, no entanto,
+exigiriam mudanças na formalização ou ainda no modelo de tradução do PON para
+operações de SpMV.
+Em relação ao PON, o Quadro 1 ilustra os conceitos do PON contemplados
+pelo MBRIS 0.1, em comparação com alguns dos principais frameworks vigentes do
+PON. Além disso, o Quadro 2 resume as propriedades elementares do PON
+contempladas pelo MBRIS 0.1. Nota-se que o Framework MBRIS 0.1, embora ainda
+em caráter prototipal, contempla boa parte dos conceitos e propriedades
+
+54
+
+elementares do PON, não estando muito distante dos demais frameworks PON
+escritos em C++.
+É pertinente ressaltar ainda que, em questão de paralelismo, mesmo que
+outros frameworks PON também alcancem um certo grau de paralelismo, apenas o
+MBRIS 0.1 é capaz de realizar notificações massivamente paralelas, graças ao uso
+de OpenCL para executar as notificações em GPU em vez de CPU. Entretanto, o
+Framework MBRIS 0.1 não implementa por completo as entidades do fluxo factoexecucional do PON, cabendo ao desenvolvedor de uma aplicação no framework
+decidir como estruturar a Action de uma Rule.
+Quadro 1 - Conceitos do PON contemplados pelo Framework MBRIS 0.1
+em comparação com outros frameworks PON
+FW
+FW
+FW
+FW
+FW
+FW
+Framework
+C++
+FW
+C++
+C++
+Micro Java/C
+MBRIS
+Conceito
+4.0
+Elixir
+4.0
+4.5
+Python
+#
+0.1
+IoT
+Reatividade das Entidades
+✔
+✔
+✔
+✔
+✔
+✔
+✔
+Compartilhamento de entidades
+✔
+✔
+✔
+✔
+✔
+✔
+✔
+Renotificações
+✔
+✔
+✔
+✔
+Resolução de conflitos
+✔
+✔
+✔
+Master Rule
+✔
+✔
+✔
+✔4
+Impertinência estática
+✔
+Impertinência dinâmica
+FBE Rules
+
+✔
+
+✔
+
+✔
+
+✔
+
+✔
+
+FBE Agregador
+
+✔
+
+✔
+
+✔
+
+✔
+
+✔
+
+Formation Rules
+✔
+
+Keeper
+Condition flexível
+
+✔
+
+✔
+
+✔
+
+✔
+
+Fonte: Autoria Própria
+Quadro 2 - Propriedades elementares do PON contempladas pelo MBRIS 0.1
+FW
+FW
+FW
+FW
+FW
+Framework
+FW
+FW
+C++
+C++ C++ Micro
+MBRIS
+Propriedade
+Java/C# Elixir
+4.0 4.0 IoT 4.5 Python
+0.1
+Programação em alto nível
+Parcial
+Parcial
+✔
+✔
+✔
+✔
+✔
+Paralelismo via desacoplamento
+✔5
+✔6
+✔
+✔
+✔
+✔
+Distribuição via desacoplamento
+✔
+✔
+Código não redundante
+Parcial
+✔
+✔
+✔
+✔
+✔
+Fonte: Autoria Própria
+
+4 Possível por meio de uma instanciação específica da classe MixedEntityMtx para uma Rule notificar
+
+outra Rule.
+5 Potencialmente, segundo Ledesma (2025).
+6 Não validado.
+
+55
+
+Em relação à formalização da matriz de ativadores, o MBRIS 0.1 não
+implementa nenhum mecanismo automático para combinação ou compartilhamento
+de linhas, cabendo ao programador de uma aplicação no framework estruturar as
+instâncias de Rules de forma a não gerar redundâncias de notificações e/ou mais
+notificações do que o necessário. Tal mecanismo, no entanto, é viável de ser
+implementado no futuro.
+Por fim, o MBRIS 0.1 carece de maior flexibilidade de programação em
+relação aos tipos de dados dos Attributes. Isto porque, conforme evidenciado pelo
+diagrama de classes e códigos mostrados anteriormente, somente o tipo de dados
+double é permitido, enquanto o Framework PON C++ 4.0, por exemplo, permite
+Attributes de qualquer tipo de dados do C++, seja ele um tipo primitivo (e.g., int,
+double, char, bool etc.) ou um tipo customizado (NEVES, 2021). O MBRIS 0.1 foi
+implementado com essa limitação pela dificuldade de realizar operações aritméticas
+com tipos de dados não-numéricos em OpenCL, acarretando a necessidade de
+definir, por parte do programador de uma aplicação em MBRIS, exatamente como
+realizar as operações aritméticas para cada tipo de dados não-numérico utilizado na
+aplicação em código OpenCL. A escolha do tipo double então, em vez do tipo int ou
+alguma de suas variações, se deu para ao menos amenizar o problema, visto que o
+tipo double suporta tanto operações de ponto flutuante com maior precisão, como
+operações com números inteiros.
+
+56
+
+4 TESTES E RESULTADOS
+Esta seção apresenta os testes do framework proposto, Framework MBRIS
+0.1, focando em comprovar sua funcionalidade e em analisar o desempenho do
+framework em diferentes cenários. O objetivo é validar a formalização da matriz de
+ativadores e o modelo de execução do fluxo de notificações do PON por meio de
+operações de SpMV como uma forma possível de implementar o mecanismo de
+notificações do PON.
+Ainda, o desempenho do Framework MBRIS 0.1 foi comparado com o
+desempenho do Framework PON C++ 4.0, a fim de compreender como novo modelo
+proposto para o mecanismo de notificações do PON e sua primeira implementação
+se comparam ao modelo e implementação vigentes no tocante ao estado da técnica.
+Nesse sentido, foi desenvolvida uma aplicação de testes que simula a leitura
+de sensores de alarme, clássica da literatura do PON, sendo que ela foi explorada
+em diferentes cenários de execução. A seção 4.1 trata do desenvolvimento da
+aplicação e testes realizados, e a seção 4.2 traz as considerações gerais sobre os
+resultados obtidos.
+4.1 Aplicação de sensores (NOPSensor)
+A aplicação de sensores, denominada NOPSensor, consiste em simular a
+leitura de diversos sensores de alarme por meio do fluxo de notificações do PON.
+Ela foi desenvolvida com base no FBE e Rule da Figura 1 e Código 4, sendo uma
+aplicação amplamente utilizada como exemplo por diversos frameworks PON por
+sua simplicidade e por deixar explícitas as redundâncias estruturais e temporais
+quando implementada em outros paradigmas.
+Dada a flexibilidade do framework MBRIS 0.1 e do conceito da matriz de
+ativadores, a aplicação NOPSensor em MBRIS foi implementada em três versões:
+uma versão utilizando a interface de programação PON do framework, com
+Premises, Conditions e Rules; uma versão em que as Premises e Conditions foram
+combinadas com as Rules, visto que não há necessidade de compartilhar Premises
+e Conditions nesse caso7; e uma versão em que todas as notificações foram
+7 No cenário da aplicação NOPSensor, não existe compartilhamento de Premises ou Conditions,
+
+mas é importante ressaltar que isto ainda não implica em redundâncias temporais ou estruturais
+de processamento lógico causal, apenas em notificações desnecessárias, conforme será exposto
+mais à frente.
+
+57
+
+registradas no singleton Executor antes dele começar as executá-las. As subseções
+4.1.1, 4.1.2 e 4.1.3 tratam de cada versão respectivamente, e a subseção 4.1.4 as
+compara com a implementação da aplicação NOPSensor desenvolvida no
+Framework PON C++ 4.0 por Neves (2021).
+4.1.1 Implementação com a interface PON - NOPSensorFull
+A primeira versão da aplicação NOPSensor no Framework MBRIS 0.1,
+denominada NOPSensorFull, foi implementada com a interface de programação
+PON do MBRIS, semelhante ao Código 8, sendo que o código completo da
+aplicação se encontra no Apêndice C. Além disso, a Figura 19 pode ser usada para
+representar a operação completa de SpMV dessa versão da aplicação com dois
+sensores.
+Figura 19 - Operação de SpMV para a aplicação NOPSensorFull com dois sensores
+
+Fonte: Autoria própria
+
+Como a aplicação NOPSensor não possui compartilhamento de entidades, ou
+seja, cada Attribute notifica apenas uma Premise, e cada Premise notifica apenas
+uma Condition ligada a apenas uma Rule, tal forma de implementá-la no MBRIS
+apresenta notificações desnecessárias, pois a matriz de Conditions poderia ser
+combinada com a matriz de Premises sem causar redundância de processamento,
+conforme evidenciado pela Figura 19. No entanto, essa forma é a forma usual de
+implementação de uma aplicação PON e, inclusive, é a forma como a aplicação
+NOPSensor foi implementada no Framework PON C++ 4.0 por Neves (2021).
+A aplicação NOPSensorFull foi testada com a criação de cem mil instâncias
+da classe NOPSensorFull e com diferentes quantidades de Rules aprovadas. O
+Gráfico 1 apresenta tempo de execução da aplicação em relação à quantidade de
+Rules aprovadas, sem ainda compara com o Framework PON 4.0. Em tempo, a
+aplicação foi executada tanto utilizando o OpenCL, executando código de forma
+
+58
+
+mista entre CPU e GPU, de tal forma em que foram mensurados os tempos de
+execução em CPU e em GPU separadamente, quanto sem utilizar OpenCL no
+MBRIS, em que o código foi executado exclusivamente em CPU, medindo-se
+apenas o tempo de execução em CPU. As medidas exatas são apresentadas na
+Tabela 1.
+Gráfico 1 - Tempo de execução pelo número de Rules aprovadas da aplicação NOPSensorFull
+
+NOPSensorFull
+Com OpenCL - tempo do kernel (GPU)
+
+Com OpenCL - tempo de CPU
+
+Tempo de execução em microssegundos
+
+Sem OpenCL - tempo de CPU
+100000000
+10000000
+1000000
+100000
+10000
+1000
+100
+1
+
+10
+
+100
+
+1000
+
+10000
+
+100000
+
+Nº de Rules aprovadas
+Fonte: Autoria própria
+
+Tabela 1 – Tempo de execução em CPU e GPU em microssegundos para a aplicação
+NOPSensorFull
+Rules
+Com OpenCL
+Com OpenCL
+Sem OpenCL
+aprovadas
+Tempo do kernel (GPU)
+Tempo de CPU
+Tempo de CPU
+1
+198
+1777
+1880
+10
+244
+2165
+2111
+100
+413
+3217
+4452
+1000
+1325
+21484
+33717
+10000
+14440
+289062
+484375
+100000
+67402
+148281258
+4781250
+Fonte: Autoria própria
+
+Conforme evidenciado pelo gráfico, considerando o tempo de CPU para a
+comparação (i.e., linhas “Com OpenCL - tempo de CPU” e “Apenas CPU (sem
+
+8 Embora esse valor pareça não fazer sentido, por ser um aumento de cinquenta vezes no tempo
+
+de execução quando o número de Rules aprovadas aumentou apenas em dez vezes, esse foi o
+tempo medido no hardware utilizado durante os experimentos, sendo que esse cenário da
+aplicação NOPSensorFull se mostrou bastante instável. Posteriormente foi verificado que, em um
+hardware mais potente, o tempo de execução neste cenário foi dez vezes maior que o anterior,
+mas optou-se por manter aqui os valores obtidos no experimento original, dado que a aplicação
+no Framework PON C++ 4.0 não foi executada no hardware mais potente.
+
+59
+
+OpenCL)” do gráfico) o uso do OpenCL para execução de código em GPU não
+trouxe um ganho significativo de desempenho, apresentando, inclusive, um
+desempenho pior do que a execução puramente em CPU quando todas as cem mil
+Rules foram aprovadas. Isto ocorre pelo excesso de transferência de dados entre
+CPU e GPU, causando bloqueios e atrasos na execução do programa. O tempo de
+execução do compute kernel em GPU, no entanto, foi substancialmente menor, o
+que evidencia a vantagem do hardware de GPUs em operações de SpMV.
+É pertinente ressaltar que a linha “Com OpenCL - tempo do kernel” não foi
+considerada para a comparação de desempenho entre a execução com e sem
+OpenCL, visto que ela representa uma computação que acontece em paralelo ao
+fluxo principal do programa e, portanto, não aumenta o tempo total de execução do
+programa como um todo.
+4.1.2 Implementação sem notificações desnecessárias - NOPSensorSimplified
+Visando eliminar as notificações desnecessárias causadas pela ausência de
+compartilhamento de entidades na aplicação NOPSensor, foi implementada uma
+segunda versão para a aplicação no Framework MBRIS 0.1, denominada
+NOPSensorSimplified. Nesta versão, as Premises e Conditions foram combinadas
+com as Rules, tornando-as diretamente dependentes dos Attributes em vez de
+dependentes de Conditions (que, por sua vez, são dependentes de Premises). A
+Figura 20 ilustra esse cenário para dois sensores.
+Figura 20 - Operação de SpMV para a aplicação NOPSensorSimplified com dois sensores
+
+Fonte: Autoria própria
+
+Para implementar a NOPSensorSimplified, foi utilizada a interface e métodos
+internos comuns do MBRIS, criando a Rule “sensorRule” em termos da sua
+dependência com os Attributes “atIsRead” e “atIsActivated”. O Código 12 mostra a
+classe NOPSensorSimplified.
+
+60
+
+Código 12 - Classe NOPSensorSimplified
+struct NOPSensorSimplified
+{
+// inicialização dos Attributes
+mbris::NOP::SharedAttribute atIsRead{
+mbris::NOP::BuildAttribute(-1)};
+mbris::NOP::SharedAttribute atIsActivated{
+mbris::NOP::BuildAttribute(-1)};
+// if atIsActivated == 1 and atIsRead == 0
+// o “and” é implícito neste formato de criação de Rules
+mbris::SharedRule rlSen”sorSimplified{mbris::BuildRule(
+&quot;rlSensorSimplified&quot;,
+RULE_EXPR(
+atIsActivated, mbris::NOP::Equal, 1.0, &quot;prIsActivated&quot;),
+RULE_EXPR(
+atIsRead, mbris::NOP::Equal, 0.0, &quot;prIsNotRead&quot;)
+)};
+void Activate() const
+{
+atIsActivated-&gt;setValue(1.0);
+atIsRead-&gt;setValue(0.0);
+}
+void Read() const
+{
+atIsRead-&gt;setValue(1.0);
+}
+void Deactivate() const
+{
+atIsActivated-&gt;setValue(0.0);
+}
+NOPSensorSimplified()
+{
+rlSensorSimplified-&gt;setAction(
+[&amp;](mbris::NOP::NOPFlag Flag, double approval_val){
+this-&gt;Read();
+this-&gt;Deactivate();
+}
+);
+}
+};
+Fonte: Autoria própria
+
+A aplicação NOPSensorSimplified foi testada nas mesmas condições da
+aplicação NOPSensorFull, sendo que o Gráfico 2 apresenta o tempo de execução
+da aplicação NOPSensorSimplified em relação à quantidade de Rules aprovadas, e
+a Tabela 2 apresenta as medidas exatas de tempo.
+
+61
+
+Gráfico 2 - Tempo de execução pelo número de Rules aprovadas da aplicação
+NOPSensorSimplified
+
+NOPSensorSimplified
+Com OpenCL - tempo do kernel (GPU)
+
+Com OpenCL - tempo de CPU
+
+Tempo de execução em microssegundos
+
+Sem OpenCL - tempo de CPU
+10000000
+1000000
+100000
+10000
+1000
+100
+10
+1
+
+10
+
+100
+
+1000
+
+10000
+
+100000
+
+Nº de Rules aprovadas
+Fonte: Autoria própria
+Tabela 2 - Tempo de execução em CPU e GPU em microssegundos para a aplicação
+NOPSensorSimplified
+Rules
+Com OpenCL
+Com OpenCL
+Sem OpenCL
+aprovadas
+Tempo do kernel (GPU)
+Tempo de CPU
+Tempo de CPU
+1
+
+36,7
+
+1423
+
+2188
+
+10
+
+63
+
+1507
+
+2511
+
+100
+
+73,4
+
+1934
+
+5312
+
+1000
+
+75,4
+
+6878
+
+15625
+
+10000
+
+381
+
+103125
+
+291667
+
+100000
+
+3445
+
+1023438
+Fonte: Autoria própria
+
+2406250
+
+Nesta versão da aplicação NOPSensor, o uso do OpenCL para execução de
+código em GPU obteve um melhor desempenho que a execução exclusivamente em
+CPU em todos os cenários, sendo que a versão com OpenCL apresentou uma
+redução de 35 a 65% do tempo de CPU em relação à versão sem OpenCL,
+conforme a quantidade Rules aprovadas aumentou, como pode ser verificado ao
+comparar os dados das Tabelas 1 e 2. Além disso, a eliminação das notificações
+desnecessárias da aplicação reduziu a quantidade de transferências de dados entre
+CPU e GPU, como também reduziu o número de execuções do compute kernel em
+
+62
+
+GPU, reduzindo em até 97% o tempo de execução em GPU se comparado com a
+aplicação NOPSensorFull.
+4.1.3 Implementação com execução única - NOPSensorOneExecution
+A
+
+terceira
+
+e
+
+última
+
+versão
+
+da
+
+aplicação
+
+NOPSensor,
+
+denominada
+
+NOPSensorOneExecution, visou explorar um cenário em que a execução das
+notificações ocorre somente quando solicitado explicitamente, ou seja, todas as
+notificações necessárias são registradas para serem executadas em um único ciclo
+do singleton Executor, em vez de serem executadas em lotes, como ocorre
+normalmente no MBRIS9.
+Para isso, o Framework MBRIS 0.1 foi ligeiramente modificado para que o
+singleton Executor somente execute o fluxo de notificações quando o seu método
+waitExecution for chamado explicitamente no código. Em termos de implementação
+da
+
+aplicação
+
+em
+
+si,
+
+o
+
+código
+
+é
+
+exatamente
+
+o
+
+mesmo
+
+da
+
+versão
+
+NOPSensorSimplified. O Código 13 mostra a chamada do método waitExecution no
+contexto do experimento realizado.
+Código 13 - Exemplo do uso do método waitExecution no contexto da aplicação
+NOPSensorOneExecution
+std::vector&lt;NOPSensorSimplified&gt; simplified_sensors(100000);
+// Dispara as notificações paralelamente
+std::for_each(
+std::execution::par_unseq,
+simplified_sensors.begin(),
+simplified_sensors.begin() + NUM_APPROVALS,
+[](auto&amp; sensor) { sensor.Activate(); });
+// Solicita explicitamente a execução das notificações
+// e bloqueia a thread principal até o Executor terminar a operação
+mbris::Executor::instance().waitExecution();
+Fonte: Autoria própria.
+
+Assim como as versões anteriores, a aplicação NOPSensorOneExecution foi
+testada em cenários com diferentes quantidades de Rules aprovadas, sendo que o
+Gráfico 3 ilustra os resultados e a Tabela 3 apresenta as medidas exatas obtidas.
+9 Relembrando o Capítulo 3, o
+
+singleton Executor possui uma thread a parte para realizar as
+operações de SpMV periodicamente, conforme a thread principal do programa registra
+notificações para serem executadas. Para a aplicação NOPSensorOneExecution, essa thread foi
+modificada para ficar em espera até que a thread principal requisite a sua execução, por meio da
+chamada explícita do método Execution::waitExecution.
+
+63
+
+Gráfico 3 - Tempo de execução pelo número de Rules aprovadas da aplicação
+NOPSensorOneExecution
+
+NOPSensorOneExecution
+Com OpenCL - tempo do kernel (GPU)
+
+Com OpenCL - tempo de CPU
+
+Tempo de execução em microssegundos
+
+Sem OpenCL - tempo de CPU
+10000000
+1000000
+100000
+10000
+1000
+100
+10
+1
+
+10
+
+100
+
+1000
+
+10000
+
+100000
+
+Nº de Rules aprovadas
+Fonte: Autoria própria
+Tabela 3 - Tempo de execução em CPU e GPU em microssegundos para a aplicação
+NOPSensorOneExecution
+Rules
+Com OpenCL
+Com OpenCL
+Sem OpenCL
+aprovadas
+Tempo do kernel (GPU)
+Tempo de CPU
+Tempo de CPU
+1
+
+19,9
+
+991
+
+2637
+
+10
+
+38,6
+
+1562
+
+4270
+
+100
+
+45,2
+
+2274
+
+5469
+
+1000
+
+66,2
+
+7292
+
+29297
+
+10000
+
+306
+
+71429
+
+265625
+
+100000
+
+3098
+
+875000
+Fonte: Autoria própria
+
+4359375
+
+Conforme evidenciado pelo gráfico, a aplicação NOPSensorOneExecution
+também apresentou melhor desempenho ao utilizar o OpenCL para execução de
+código em GPU quando comparado com a execução exclusivamente em CPU.
+Visando comparar melhor as três aplicações entre si, o Gráfico 4 combina todos os
+resultados de tempo de CPU obtidos em um único gráfico, e o Gráfico 5 combina os
+resultados de tempo de GPU.
+
+64
+
+Gráfico 4 – Comparação do tempo de CPU entre as três versões da aplicação NOPSensor
+implementadas no Framework MBRIS 0.1
+
+Fonte: Autoria própria
+Gráfico 5 – Comparação do tempo de execução do compute kernel (GPU) entre as três versões
+da aplicação NOPSensor implementadas no Framework MBRIS 0.1
+
+Fonte: Autoria própria
+
+Analisando o Gráfico 5, nota-se que a aplicação NOPSensorOneExecution
+obteve o melhor desempenho em tempo de execução do compute kernel em GPU,
+com uma redução de até 45% (a partir da comparação entre as Tabelas 2 e 3) no
+tempo de GPU se comparada à aplicação NOPSensorSimplified, evidenciando o fato
+de que o OpenCL lida melhor com apenas uma requisição de execução do compute
+kernel, mesmo que com um maior volume de dados, do que várias requisições com
+um volume menor de dados.
+
+65
+
+Em relação ao tempo de CPU, comparando agora as medidas das Tabelas 1,
+2 e 3 e analisando o Gráfico 4, nota-se que as versões NOPSensorSimplified e
+NOPSensorOneExecution alcançaram desempenho similar quando foi utilizado o
+OpenCL, com uma variação percentual de -30% a +17% no tempo de CPU na
+aplicação NOPSensorOneExecution em relação à NOPSensorSimplified, a depender
+do caso, sendo que as pequenas diferenças podem ser explicadas por variações na
+execução das aplicações a nível de hardware. No entanto, para a versão sem
+OpenCL com execução exclusiva em CPU, a aplicação NOPSensorOneExecution
+teve um aumento de até 81% no tempo de CPU em comparação à
+NOPSensorSimplified. Comparando com a aplicação NOPSensorFull, com OpenCL,
+o tempo de CPU foi reduzido em até 93% pela aplicação NOPSensorSimplified e em
+até 94% pela NOPSensorOneExecution, e sem OpenCL, o tempo de CPU variou de
+-54% a +19% para a aplicação NOPSensorSimplified e -45% a +102% para a
+aplicação NOPSensorOneExecution.
+Em
+
+suma,
+
+a
+
+aplicação
+
+NOPSensorOneExecution
+
+obteve
+
+o
+
+melhor
+
+desempenho geral das três aplicações quando foi utilizado o OpenCL. Entretanto,
+utilizando o Framework MBRIS 0.1 sem OpenCL, isto é, com execução
+exclusivamente
+
+em
+
+CPU,
+
+o
+
+cenário
+
+se
+
+inverte
+
+e
+
+a
+
+aplicação
+
+NOPSensorOneExecution se torna a com pior desempenho em alguns casos, sendo
+que a aplicação NOPSensorSimplified obteve um melhor desempenho no geral. Isto
+ocorre porque a otimização realizada para a NOPSensorOneExecution só faz
+sentido dentro de um contexto em que existe a requisição de execução de código
+em GPU e a transferência de dados entre CPU e GPU, mas como isto não ocorre
+quando não há OpenCL, multiplicar uma única matriz de uma só vez em CPU se
+torna mais demorado, no geral, do que multiplicar várias matrizes menores aos
+poucos.
+4.1.4 Comparação com o Framework PON C++ 4.0
+A aplicação NOPSensor foi desenvolvida no Framework PON C++ 4.0 por
+Neves (2021)10, sendo que o Código 14 apresenta a classe NOPSensorFw4.
+10 O código completo da aplicação
+
+NOPSensor em Framework PON C++ 4.0 se encontra no
+servidor
+privado
+no
+PON:
+https://nop.dainf.ct.utfpr.edu.br/nop-public/nopimplementations/frameworks/nop-framework-cpp-4/nop-framework-cpp-4-kernel//tree/master/libnop_gbench/
+
+66
+
+Código 14 – Classe NOPSensorFw4
+struct NOPSensorFw4 : NOP::FBE
+{
+inline static std::atomic&lt;int&gt; counter{0};
+// Instanciação dos Attributes
+NOP::SharedAttribute&lt;bool&gt; atIsRead{NOP::BuildAttribute(false)};
+NOP::SharedAttribute&lt;bool&gt; atIsActivated{
+NOP::BuildAttribute(false)};
+// atIsActivated == true
+NOP::SharedPremise prIsActivated{
+NOP::BuildPremise(atIsActivated, true, NOP::Equal())};
+// atIsRead == false
+NOP::SharedPremise prIsNotRead{
+NOP::BuildPremise(atIsRead, false, NOP::Equal())};
+// if prIsActivated and prIsNotRead then ...
+NOP::SharedRule rlSensor{NOP::BuildRule(
+NOP::BuildCondition&lt;NOP::Conjunction&gt;(
+prIsActivated, prIsNotRead),
+NOP::BuildAction(NOP::BuildInstigation(
+[&amp;]()
+{
+this-&gt;Read(), this-&gt;Deactivate();
+++NOPSensor::counter;
+})))};
+void Activate() const
+{
+atIsActivated-&gt;SetValue(true);
+atIsRead-&gt;SetValue(false);
+}
+void Read() const { atIsRead-&gt;SetValue(false); }
+void Deactivate() const { atIsActivated-&gt;SetValue(false); }
+};
+Fonte: Adaptado de Neves (2021).
+
+A fim de comparar o desempenho do Framework MBRIS 0.1 com o do
+Framework PON C++ 4.0, o Gráfico 6 apresenta o tempo de execução pelo número
+de Rules aprovadas da aplicação NOPSensor nos dois frameworks, sendo que a
+Tabela 4 apresenta as medidas exatas de tempo obtidas na execução da aplicação
+NOPSensorFw4. No caso do Framework MBRIS 0.1, foi utilizada a versão
+NOPSensorOneExecution, por ter apresentado melhor desempenho geral do que as
+demais versões. Além disso, para o Framework PON C++ 4.0, considerou-se tanto a
+versão monoprocessada da aplicação NOPSensor, quanto a versão multithreaded
+
+67
+
+da aplicação, a qual faz uso das ferramentas de paralelismo do Framework PON
+C++ 4.0, ambas desenvolvidas por Neves (2021).
+Gráfico 6 - Comparação entre o Framework MBRIS 0.1 e o Framework PON C++ 4.0 para a
+aplicação NOPSensor
+
+Fonte: Autoria própria
+Tabela 4 - Tempo de execução em CPU em microssegundos para a aplicação NOPSensorFw4
+Rules aprovadas
+Fw4.0 monoprocessado
+Fw4.0 paralelo
+Tempo de CPU
+Tempo de CPU
+1
+
+0,134
+
+0,1
+
+10
+
+1,53
+
+0,297
+
+100
+
+9,52
+
+2,14
+
+1000
+
+90
+
+72,2
+
+10000
+
+3841
+
+2564
+
+100000
+
+38194
+Fonte: Autoria própria
+
+26714
+
+O Gráfico 6 evidencia que o Framework MBRIS 0.1 possui um desempenho
+substancialmente inferior do que o Framework PON C++ 4.0 para a aplicação
+NOPSensor. Apesar da inovação trazida pelo Framework MBRIS 0.1 que, por meio
+do OpenCL, consegue processar as notificações de maneira altamente paralela, o
+overhead em tempo de CPU, causado tanto pelas transferências de dados entre
+CPU e GPU, quanto pela necessidade de usar locks entre threads ao alocar as
+entidades a serem notificadas na matriz, causa uma perda considerável de
+
+68
+
+desempenho e o torna pior do que Framework PON C++ 4.0 mesmo em cenários
+com um grau elevado Rules aprovadas.
+4.2 Considerações sobre os resultados
+A partir dos resultados obtidos na seção anterior, o Framework MBRIS 0.1 se
+mostrou viável para o desenvolvimento de aplicações PON, mesmo se encontrando
+ainda em um estado prototipal. Sua interface de programação PON o aproxima
+bastante do Framework PON C++ 4.0, atualmente o estado da técnica do PON,
+facilitando a tradução de aplicações desenvolvidas Framework PON C++ 4.0 para o
+MBRIS. Além disso, inspirado na matriz de ativadores, o MBRIS permite uma
+representação simplificada das entidades lógico-causais do PON, combinando
+previamente Rules, Conditions e Premises em cenários em que não há necessidade
+de compartilhar entidades, eliminando notificações desnecessárias em troca de
+maior desempenho.
+Em relação ao desempenho, o Framework MBRIS 0.1 obteve um
+desempenho substancialmente inferior ao Framework PON C++ 4.0 para a aplicação
+NOPSensor. Mesmo com os esforços para otimizar a aplicação para o MBRIS e com
+a inovação de executar notificações por meio operações de SpMV, fazendo uso do
+OpenCL para que as notificações fossem executadas de maneira altamente paralela
+em GPU, o overhead causado pela implementação do MBRIS, muito dependente de
+locks entre as diferentes threads durante a alocação das entidades nas matrizes, e
+pela transferência de dados entre CPU e GPU, fez com que o tempo de CPU da
+aplicação NOPSensor em MBRIS com OpenCL fosse sete mil vezes maior do que a
+versão monoprocessada no Framework PON C++ 4.0 quando apenas uma Rule foi
+aprovada, e vinte vezes maior quando todas as cem mil Rules foram aprovadas,
+conforme pode ser verificado ao comparar os dados entre das Tabelas 3 e 4.
+Em termos do processamento das notificações em si, apenas considerando
+as variações do MBRIS, o tempo de execução do compute kernel em GPU pelo
+MBRIS com OpenCL aumentou consideravelmente menos do que o tempo de CPU
+ao aumentar a quantidade de Rules aprovadas, evidenciando a superioridade do
+OpenCL e do hardware de GPUs quando se trata de paralelismo. Nesse sentido,
+visando melhorar o desempenho do Framework MBRIS 0.1, torna-se necessário,
+num primeiro momento, otimizar o código do framework que roda em CPU,
+reduzindo o travamento entre threads. Além disso, na implementação atual do
+
+69
+
+framework, a lógica de ativação dos indicadores de função de ativação é executada
+apenas em CPU, sendo apenas o cálculo dos coeficientes realizado em GPU por
+meio de operações de SpMV. Transferir essa lógica para o código em OpenCL
+poderia reduzir o tempo de CPU do framework e, mesmo que não fosse suficiente
+para tornar o MBRIS mais rápido do que o Framework PON C++ 4.0, ao menos
+tornaria seu desempenho mais próximo.
+No entanto, é pertinente ressaltar que a aplicação NOPSensor é
+extremamente simples e que mesmo a sua versão multithreaded no Framework
+PON C++ 4.0 não apresenta ganhos significativos de desempenho comparada com
+a versão single-thread. Como o escopo deste trabalho se reduziu apenas a realizar
+uma prova de conceito, ela foi suficiente para compreender melhor o funcionamento
+do MBRIS e comprovar a viabilidade do conceito de matriz de ativadores para
+implementar o mecanismo de notificações do PON. Nesse sentido, um trabalho
+futuro seria o desenvolvimento de outras aplicações em MBRIS para explorar
+diferentes cenários, inclusive os que exigem paralelismo, visando compreender
+como o MBRIS se comporta em aplicações mais complexas e melhor identificar se
+ele poderia ser viável para uso em aplicações reais, sejam elas de caráter
+acadêmico e/ou industrial.
+
+70
+
+5 CONCLUSÃO
+As próximas seções trazem as conclusões gerais deste trabalho à luz dos
+objetivos expostos nas Seções 1.3.1 e 1.3.2, bem como possíveis trabalhos futuros.
+A Seção 5.1 trata dos resultados gerais obtidos com o desenvolvimento do trabalho.
+A Seção 5.2 retoma os objetivos deste trabalho para analisar se foram atingidos. As
+considerações finais são elaboradas na Seção 5.3, em especial no que tange à
+inovação aqui proposta e ao histórico dos trabalhos sobre o Paradigma Orientado a
+Notificações. Por fim, a Seção 5.4 apresenta possíveis trabalhos futuros, visando
+tanto explorar a inovação deste trabalho em diferentes contextos, quanto dar
+continuidade ao desenvolvimento do MBRIS.
+5.1 Resultados em geral
+O presente trabalho se propôs a formalizar e implementar um novo
+mecanismo de execução do fluxo lógico-causal de notificações do Paradigma
+Orientado a Notificações (PON). Tal mecanismo animaria as notificações de forma
+extraordinária, por meio de operações de multiplicação de matrizes esparsas por um
+vetor. Esse novo método para executar as notificações possibilitaria a execução
+altamente paralela de notificações em hardwares aceleradores, como placas de
+vídeo.
+O primeiro passo para o desenvolvimento do trabalho foi desenvolver tanto
+proposição quanto a formalização do mecanismo de inferência do PON baseado em
+multiplicação de matrizes esparsas. Eis que a proposição e formalização de tal
+solução tem como núcleo a chamada “matriz de ativadores”. Tal “matriz de
+ativadores” tem como objetivo poder traduzir expressões lógico-causais do tipo seentão, as quais servem como base para o modelo do PON, em operações de
+multiplicação de matrizes por um vetor. O cerne da formalização se encontra no
+conceito de indicadores de função de ativação, um tipo especial de coeficiente com
+propriedades lineares, mas que aplica uma função sobre si mesmo para dar o
+resultado de uma expressão lógica (i.e., verdadeiro ou falso).
+Com base na proposição e formalização da solução pretendida, foi
+desenvolvido um novo framework PON em C++ que implementa o conceito da matriz
+de ativadores para executar o fluxo lógico-causal de notificações do PON. Tal
+framework foi denominado Framework MBRIS 0.1 e, mesmo que de caráter
+
+71
+
+prototipal, permitiu demonstrar tecnicamente a viabilidade desse novo conceito.
+Ainda, visando alcançar a execução altamente paralela de notificações almejada, o
+framework utiliza, além das técnicas de SpMV da solução proposta, também a
+ferramenta OpenCL, a qual permite execução de compute kernels em GPUs de
+maneira simplificada.
+Para pôr em prova a implementação da solução, a fim de entender como ela
+se comporta em aplicações reais e identificar seus pontos positivos e negativos, foi
+desenvolvida uma aplicação de simulação de leitura de sensores com o Framework
+MBRIS 0.1 em três diferentes versões. Cada versão teve seu desempenho
+comparado com a mesma aplicação desenvolvida com o Framework PON C++ 4.0.
+Muito embora o resultado dos experimentos não tenha sido favorável para o MBRIS,
+que obteve um tempo de CPU sete mil vezes maior do que o Framework PON C++
+4.0, quando apenas uma Rule foi aprovada, e vinte vezes maior quando todas as
+cem mil Rules foram aprovadas, o experimento pode demonstrar o funcionamento
+do Framework MBRIS 0.1, abrindo portas para trabalhos futuros ademais.
+5.2 Resultados vis-à-vis objetivos
+Ao longo de todo o desenvolvimento deste trabalho, foram considerados os
+objetivos específicos definidos na Seção 1.3.2, visando alcançar o objetivo geral
+definido na Seção 1.3.1. Diversas ações foram tomadas para atingir cada um dos
+objetivos, detalhadas a seguir.
+O primeiro objetivo foi propor uma forma de traduzir as expressões lógicas do
+Paradigma Orientado a Notificações para operações de multiplicação de matrizes
+esparsas por um vetor denso. A tradução proposta na Seção 3.1 buscou respeitar os
+princípios primordiais de não-redundância temporal e estrutural do PON, ao mesmo
+tempo em que vislumbrou uma forma inovadora de executar o fluxo lógico-causal de
+notificações do PON, por meio de um novo mecanismo de execução das
+notificações.
+Em seguida, a Seção 3.2 descreveu a formalização teórica e matemática para
+este novo mecanismo inovador. Ao fazer uso de um coeficiente especial, chamado
+de indicador de função de ativação, foi possível traduzir as expressões lógicas do
+PON para um cálculo aritmético de matrizes, denominadas matrizes de ativadores,
+sendo o conjunto destas matrizes uma representação aritmética da dependência
+
+72
+
+entre as diferentes entidades lógico-causais do PON. Tal formalização é coerente
+com o segundo objetivo do trabalho.
+O terceiro objetivo foi contemplado com o projeto de desenvolvimento de um
+novo framework PON. Batizado de Framework MBRIS 0.1 e inspirado na
+formalização e no conceito da matriz de ativadores, tal framework implementou um
+mecanismo de execução do fluxo lógico-causal de notificações por meio de
+operações de Sparse Matrix-Vector Multiplication. Nesse sentido, visando respeitar
+os princípios do PON, o uso de matrizes esparsas e de algoritmos de SpMV
+garantiram que não houvesse processamento lógico-causal redundante e que
+apenas as notificações necessárias fossem executadas. Ainda, para alcançar um
+alto grau de paralelismo, o Framework MBRIS 0.1 foi desenvolvido utilizando a
+tecnologia OpenCL, a qual permite execução altamente paralela de código em
+hardwares aceleradores, como placas de vídeo.
+Por fim, para contemplar o último objetivo do trabalho, foi implementada a
+aplicação NOPSensor, clássica da literatura do PON, utilizando o framework
+desenvolvido. O desempenho da aplicação foi medido em diversos cenários e então
+comparado com a implementação da mesma aplicação no Framework PON C++ 4.0,
+atual estado da técnica do PON a nível de frameworks, desenvolvida por Neves
+(2021). Embora seja simples, tal experimento demonstrou tecnicamente a viabilidade
+do mecanismo inovador proposto neste trabalho para executar o fluxo lógico-causal
+de notificações do PON.
+Portanto, com todas as ações tomadas acima, é possível verificar que os
+objetivos deste trabalho foram atingidos com êxito, contribuindo para o avanço da
+pesquisa acerca do Paradigma Orientado a Notificações, em especial, no que tange
+ao paralelismo de notificações, formalização teórica da dependência entre as
+entidades do paradigma e execução de código PON em hardwares distintos.
+5.3 Considerações finais
+O mecanismo de execução do fluxo lógico-causal de notificações do PON
+proposto, formalizado e implementado no Framework MBRIS 0.1 apresenta uma
+inovação na forma de implementar e executar o PON em software. Ainda que os
+resultados dos experimentos não tenham sido promissores em termos de
+desempenho do framework em um primeiro momento, é pertinente lembrar que
+
+73
+
+todas as inovações do paradigma demandaram algumas iterações até que fossem
+alcançados os resultados almejados.
+Exemplos de tais iterações refinadoras são as que seguem: do Framework
+CON/PON C++ Prototipal (SIMÃO, 2001; SIMÃO; STADZISZ, 2008) ao Framework
+PON C++ 4.0 (NEVES, 2021), das primeiras tentativas de distribuição no Framework
+PON C++ 2.0 com PON-IP e paralelismo no Framework PON C++ 3.0 (BELMONTE
+et al., 2012; SCHÜTZ, 2019) até os recentes Framework PON Elixir/Erlang
+(NEGRINI et al., 2019) e Framework PON C++ 4.0 IOT (FIGUEIREDO, 2022), e da
+Tecnologia LingPON 1.0 até a Tecnologia LingPON 3.0 (CHIERICI; SKORA; SIMÃO,
+2022). Assim, não poderia ser diferente com o MBRIS, sendo que os trabalhos
+futuros descritos abaixo podem guiar as futuras iterações do framework, visando
+sempre avançar a pesquisa do PON. Este trabalho, portanto, cumpriu ao que se
+propôs e servirá de base para que inovações ainda maiores do as aqui descritas
+sejam desenvolvidas no futuro.
+5.4 Trabalhos futuros
+O presente trabalho abre caminho para trabalhos futuros, desde melhorias no
+próprio Framework MBRIS, a fim de torná-lo industrialmente viável, até novas
+iniciativas para a execução de aplicações PON em placas de vídeo ou hardwares
+aceleradores distintos.
+Em relação ao MBRIS, é necessário ainda o desenvolvimento de novas
+aplicações mais complexas e em cenários mais favoráveis ao paralelismo, para
+compreender melhor suas capacidades e identificar se ele poderia ser viável para
+uso em aplicações reais (acadêmicas ou industriais) no futuro. Podem ainda ser
+explorados diferentes formatos de armazenamento para matrizes esparsas, levando
+a diferentes algoritmos de SpMV, a fim de identificar qual deles é o mais adequado
+para o PON.
+A implementação do framework também pode ser aprimorada, tanto o código
+em C++, quanto o código em OpenCL. A parte em C++ poderia ser refatorada para
+diminuir os travamentos entre threads e reestruturar algumas funções internas do
+framework. Além disso, a lógica de ativação dos indicadores de função de ativação
+pode ser transferida do C++ para o OpenCL, e a implementação da matriz de
+ativadores em OpenCL pode ser melhorada e possivelmente otimizada para algum
+hardware em específico. O próprio OpenCL pode ser substituído no MBRIS por outra
+
+74
+
+tecnologia/ferramenta de programação paralela mais moderna, a fim de alcançar um
+desempenho superior. Por fim, é preciso tornar o framework mais flexível em termos
+dos tipos de dados aceitos para os Attributes, para expandir a gama de aplicações
+viáveis de serem desenvolvidas com o framework.
+Em relação ao modelo de execução do PON através de operações de SpMV,
+um modelo diferente do proposto neste projeto pode ser desenvolvido e comparado
+com a matriz de ativadores, a fim de explorar outras alternativas para a execução de
+programas PON em hardwares como o de GPUs. Inclusive, outros compute kernels,
+inspirados ou não no SpMV, podem ser utilizados para um possível novo modelo de
+execução do PON.
+Por fim, muito embora este trabalho tenha explorado o conceito de matriz de
+ativadores e o Framework MBRIS 0.1 sob a ótica do PON, tanto a formalização,
+quanto o framework são mais flexíveis do que o PON propriamente dito e
+possibilitam modelos de programação diferentes do modelo do PON. A matriz de
+ativadores é nada mais do que uma ferramenta para converter qualquer expressão
+lógica em um cálculo aritmético de multiplicação de matrizes por um vetor. Assim,
+existe a possibilidade de se desenvolver diversos trabalhos explorando o conceito da
+matriz de ativadores sobre outras óticas, desde a computação teórica até a de
+outros modelos de programação.
+Em suma, os trabalhos futuros aqui apresentados evidenciariam o potencial
+do framework, do conceito de matriz de ativadores e da ideia de executar PON em
+hardwares distintos, dando continuidade ao desenvolvimento do paradigma e da
+programação paralela.
+
+75
+
+REFERÊNCIAS
+
+BANASZEWSKI, R. F. Paradigma orientado a notificações: Avanços e
+comparações. Dissertação (Mestrado) – CPGEI, UTFPR, 2009.
+BELMONTE, D.; SIMÃO, J. M.; STADZISZ, P. C. Proposta de um método para
+distribuição de carga de trabalho usando o paradigma orientado a notificações
+(PON). Revista SODEBRAS, v. 8, n. 84, 2012.
+BERG, T. B.; SIEGEL, H. J. Instruction execution trade-offs for SIMD vs. MIMD
+vs. mixed mode parallelism. In: [1991] Proceedings. The Fifth International Parallel
+Processing Symposium. IEEE, 1991. p. 301-308.
+BROOKSHEAR, J. G. Computer Science: An Overview. Addison Wesley, 2006.
+CHIERICI, G. B.; SKORA, L. E. B.; SIMÃO, J. M. Proposta e implementação da
+Tecnologia LingPON 3.0 para o Paradigma Orientado a Notificações. In: XII
+Seminário de Extensão e Inovação &amp; XXVII Seminário de Iniciação Científica e
+Tecnológica da UTFPR, 2022, Santa Helena - PR. XII SEI &amp; XXVII SICITE 2022,
+2022.
+FIGUEIREDO, L. H. P. Framework PON C++ 4.0 IoT: Paradigma Orientado a
+Notificações para Ambiente de Internet das Coisas. Dissertação (Mestrado em
+Computação Aplicada) – Universidade Tecnológica Federal do Paraná, Curitiba,
+2022.
+GABBRIELLI, M.; MARTINI, S. Programming Languages: Principles and
+Paradigms. 1st ed. Springer Publishing Company, Incorporated, 2010.
+GAMMA, E.; HELM, E.; JOHNSON, R.; VLISSIDES, R. Design Patterns: Elements
+of Reusable Object-Oriented Software. [S.l.: s.n.], 1995.
+GAO, Jianhua et al. A Systematic Literature Survey of Sparse Matrix-Vector
+Multiplication. arXiv, 2024. Disponível em: &lt;https://arxiv.org/abs/2404.06047&gt;.
+Acesso em: 8 maio. 2025
+KHRONOS GROUP INC. The OpenCLTM Specification. Disponível em:
+&lt;https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_API.html&gt;.
+Acesso em: 3 jul. 2025.
+LEDESMA, M. K.; SIMÃO, J. M. Avanços em Paradigma Orientado a Notificações
+- Framework PON C++ 4.5 e seu gerador de código em Tecnologia LingPON 3.0. In:
+XII Seminário de Extensão e Inovação &amp; XXVII Seminário de Iniciação Científica e
+Tecnológica da UTFPR, 2022, Santa Helena - PR. XII SEI &amp; XXVII SICITE 2022,
+2022.
+LEDESMA, M. K. Framework PON MicroPython 1.0: Paradigma Orientado a
+Notificações para microcontroladores. TCC (Graduação) – Curso de Engenharia de
+Computação, UTFPR, 2025.
+
+76
+
+LINHARES, R. R. Contribuição para o desenvolvimento de uma arquitetura de
+computação própria ao paradigma orientado a notificações. Tese (Doutorado) –
+CPGEI, UTFPR, Curitiba, 2015.
+NEGRINI, F. Tecnologia NOPL Erlang-Elixir – Paradigma orientado a notificações
+via uma abordagem orientada a microatores assíncronos. Dissertação (Mestrado) –
+Programa de Pós-Graduação em Engenharia Elétrica e Informática Industrial,
+Universidade Tecnológica Federal do Paraná, Curitiba, 2019.
+NEVES, F. S. Framework PON C++ 4.0: Contribuição para a Concepção no
+Paradigma Orientado a Notificações por meio de Programa Genérico. Dissertação
+de Mestrado – Pós-Graduação em Engenharia Elétrica e Informática Industrial
+(CPGEI), UTFPR, 2021.
+NVIDIA CORPORATION. CUDA C++ Programming Guide. Disponível em:
+&lt;https://docs.nvidia.com/cuda/cuda-c-programming-guide/&gt;. Acesso em: 15 ago.
+2025.
+OLIVEIRA, R. N. et al. Assistência à autonomia domiciliar empregando
+paradigma orientado a notificações. 2019. Dissertação de Mestrado. Universidade
+Tecnológica Federal do Paraná.
+OSHIRO, L. K. Contribuição para o Paradigma Orientado a Notificações:
+Evolução da Tecnologia LingPON 2.0 via Aprimoramento da Linguagem e
+Compilador para Código Notificante Modular em C++. Dissertação (Mestrado) –
+Programa de Pós-graduação em Engenharia Elétrica e Informática Industrial
+(CPGEI), Universidade Tecnológica Federal do Paraná (UTFPR), Curitiba, 2021.
+PAN, J.; SOUZA, G. N.; KAK; A. C. FuzzyShell: A large-scale expert system shell
+using fuzzy logic for uncertainty reasoning. IEEE Trans. Fuzzy Syst., vol. 6, no. 4, pp.
+563–581, Nov. 1998
+RONSZCKA, A. F. et al. Notification-oriented and rete network inference: A
+comparative study. In: 2015 IEEE International Conference on Systems, Man, and
+Cybernetics. IEEE, 2015. p. 807-814.
+RONSZCKA, A. F. Método para a Criação de Linguagens de Programação e
+Compiladores para o Paradigma Orientado a Notificações em Plataformas
+Distintas. Tese (Doutorado) – CPGEI, UTFPR, Curitiba, 2019.
+SCOTT, M. L. Programming Language Pragmatics. [S.l.]: Morgan Kaufmann
+Publishers Inc, 2000.
+SIMÃO, J. M. Proposta de uma arquitetura de controle para sistemas flexíveis
+de manufatura baseada em regras e agentes. Dissertação (Mestrado em
+Engenharia Elétrica e Informática Industrial) – CPGEI, UTFPR, Curitiba, 2001.
+SIMÃO, J. M.; STADZISZ, P. C. Paradigma orientado a notificações (PON) – uma
+técnica de composição e execução de software orientado a notificações. Pedido de
+patente: Privilégio de Inovação, Número do registro: PI08055181, data de depósito:
+26 nov. 2008. INPI – Instituto Nacional da Propriedade Industrial, Universidade
+Tecnológica Federal do Paraná, 2008.
+
+77
+
+SIMÃO, J. M.; STADZISZ, P. C.; BANASZEWSKI, R. F. Notification Oriented
+Paradigm (NOP) and Imperative Paradigm: A Comparative Study. Journal of
+Software Engineering and Applications, v. 5, n. 6, p. 402-416, 2009.
+SMAILBEGOVIC, F. S.; GAYDADJIEV, G. N.; VASSILIADIS, S. Sparse matrix
+storage format. In: Proceedings of the 16th Annual workshop on circuits, systems
+and signal processing. 2005. p. 445-448.
+VAN ROY, P.; HARIDI, S. Concepts, Techniques, and Models of Computer
+Programming. Helion, Gliwice, 2005.
+WATT, D. Programming Language Design Concepts. [S.l.]: J. Willey &amp; Sons,
+2004.
+XAVIER, R. D. Paradigmas de Desenvolvimento de Software: Comparação entre
+abordagens Orientada a Eventos e Orientada a Notificações, Dissertação de
+Mestrado, Programa de Pós-Graduação em Computação Aplicada (PPGCA),
+UTFPR. Curitiba, Brasil, 2014
+
+78
+
+APÊNDICE A - Exemplos de PON a partir de operações de SpMV
+
+79
+
+Para compreender melhor como representar a relação de dependência entre
+as entidades do PON a partir de operações de SpMV, a Figura 21 traz dois FBEs em
+LingPON 3.0 e a operação de SpMV que representa a dependência entre suas
+entidades, sendo que as Figuras 22, 23, 24, 25, 26, 27, 28 e 29 destacam como
+cada entidade (Premise, Condition e Rule) é representada nas matrizes da
+operação. Além disso, a Figura 30 apresenta outro exemplo com compartilhamento
+de Attributes e Premises, sendo que as Figuras 31, 32, 33... destacam como o
+compartilhamento de entidades do PON é representado no modelo proposto e como
+representar a não-dependência de uma Premise por um Attribute ou de uma
+Condition por uma Premise, isto é, os elementos nulos das matrizes.
+Figura 21 - Exemplo de FBEs em LingPON 3.0 e a dependência entre suas entidades
+representada por uma operação de SpMV
+
+Fonte: Autoria própria
+
+80
+
+Figura 22 - Premise “atIsRead == false” representada na operação de SpMV da Figura 21
+
+Fonte: Autoria própria
+Figura 23 - Premise “atIsActivated == true” representada na operação de SpMV da Figura 21
+
+Fonte: Autoria própria
+
+81
+
+Figura 24 - Premise “atX &gt; atY + 10” representada na operação de SpMV da Figura 21
+
+Fonte: Autoria própria
+Figura 25 - Premise “atZ != 3” representada na operação de SpMV da Figura 21
+
+Fonte: Autoria própria
+
+82
+
+Figura 26 - Condition da Rule “sensorRule” representada na operação de SpMV da Figura 21
+
+Fonte: Autoria própria
+Figura 27 - Condition da Rule “GenericRule” representada na operação de SpMV da Figura 21
+
+Fonte: Autoria própria
+
+83
+
+Figura 28 - Rule “sensorRule” representada na operação de SpMV da Figura 21
+
+Fonte: Autoria própria
+Figura 29 - Rule “GenericRule” representada na operação de SpMV da Figura 21
+
+Fonte: Autoria própria
+
+84
+
+Figura 30 - Exemplo de FBE em LingPON 3.0 com compartilhamento de entidades e a sua
+representação por uma operação de SpMV
+
+Fonte: Autoria própria
+Figura 31 - Compartilhamento do Attribute “atIsActivated” representado na operação de SpMV
+da Figura 30
+
+Fonte: Autoria própria
+
+85
+
+Figura 32 - Compartilhamento da Premise “prSensorActivated” representado na operação de
+SpMV da Figura 30
+
+Fonte: Autoria própria
+Figura 33 - Compartilhamento da Premise “prSendMessage” representado na operação de
+SpMV da Figura 30
+
+Fonte: Autoria própria
+
+86
+
+Figura 34 - Representação de que a Premise “atIsRead == false” não depende do Attribute
+“atSendMessage” na operação de SpMV da Figura 30
+
+Fonte: Autoria própria
+Figura 35 - Representação de que a Condition da Rule “SensorRule” não depende da Premise
+“atIsActivated == false” na operação de SpMV da Figura 30
+
+Fonte: Autoria própria
+
+87
+
+APÊNDICE B - Código completo da implementação em OpenCL
+
+88
+
+#define MAX_MAP_ENTRIES_PER_ACTIV 10
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+typedef union
+{
+double d;
+int activ_map_counter;
+} cl_coefficient_t;
+typedef enum
+{
+DOUBLE
+= 0,
+ACTIV_MAP = 1
+} COEF_TYPE;
+typedef struct
+{
+int label;
+double coef;
+} cl_simple_activator_t;
+typedef struct
+{
+int label;
+COEF_TYPE coef_type;
+cl_coefficient_t coef;
+} cl_activator_t;
+typedef enum
+{
+EL_DOUBLE = 0,
+EL_ACTIV = 1
+} ELEM_TYPE;
+typedef struct
+{
+ELEM_TYPE elem_type;
+union {
+double d;
+cl_activator_t activ;
+} data;
+} cl_matrix_element_t;
+__kernel void spmv_csr(
+__global const cl_matrix_element_t* restrict data,
+__global const double* restrict vec,
+__global const ulong* restrict col_idxs,
+__global const ulong* restrict row_ptrs,
+__global cl_matrix_element_t* restrict out,
+__global cl_simple_activator_t* restrict activ_map,
+const ulong dim
+)
+{
+const ulong row = get_global_id(0);
+if(row &gt;= dim) return;
+cl_matrix_element_t res;
+res.elem_type = EL_DOUBLE;
+res.data.d = 0.0;
+const ulong start = row_ptrs[row];
+const ulong end = row_ptrs[row + 1];
+const ulong activ_map_start = row * MAX_MAP_ENTRIES_PER_ACTIV;
+int map_counter = -1;
+for(int i = start; i &lt; end; ++i)
+{
+const ulong col = col_idxs[i];
+
+89
+
+const double x = vec[col];
+cl_matrix_element_t elem = data[i];
+if(EL_DOUBLE == elem.elem_type)
+{
+if(EL_DOUBLE == res.elem_type)
+{
+res.data.d += elem.data.d * x;
+}
+else
+{
+if(DOUBLE == res.data.activ.coef_type)
+{
+res.data.activ.coef.d += elem.data.d * x;
+}
+else
+{
+bool found = false;
+for(int j = 0; j &lt; res.data.activ.coef.activ_map_counter; ++j)
+{
+cl_simple_activator_t map_elem = activ_map[activ_map_start + j];
+if(-1 == map_elem.label)
+{
+found = true;
+activ_map[activ_map_start + j].coef += elem.data.d * x;
+break;
+}
+}
+if(!found)
+{
+map_counter++;
+cl_simple_activator_t new_activ;
+new_activ.label = -1;
+new_activ.coef = elem.data.d * x;
+activ_map[activ_map_start + map_counter] = new_activ;
+res.data.activ.coef.activ_map_counter = map_counter + 1;
+}
+}
+}
+}
+else
+{
+if(DOUBLE == elem.data.activ.coef_type)
+{
+if(EL_DOUBLE == res.elem_type)
+{
+elem.data.activ.coef.d *= x;
+elem.data.activ.coef.d += res.data.d;
+res.elem_type = EL_ACTIV;
+res.data.activ = elem.data.activ;
+}
+else
+{
+if(DOUBLE == res.data.activ.coef_type)
+{
+if(elem.data.activ.label == res.data.activ.label)
+{
+res.data.activ.coef.d += elem.data.activ.coef.d * x;
+}
+else
+{
+map_counter++;
+cl_simple_activator_t new_activ;
+new_activ.label = res.data.activ.label;
+new_activ.coef = res.data.activ.coef.d;
+activ_map[activ_map_start + map_counter] = new_activ;
+
+90
+
+map_counter++;
+new_activ.label = elem.data.activ.label;
+new_activ.coef = elem.data.activ.coef.d * x;
+activ_map[activ_map_start + map_counter] = new_activ;
+res.data.activ.coef_type = ACTIV_MAP;
+res.data.activ.coef.activ_map_counter = map_counter + 1;
+}
+}
+else
+{
+bool found = false;
+for(int j = 0; j &lt;= map_counter; ++j)
+{
+cl_simple_activator_t map_elem = activ_map[activ_map_start +
+j];
+if(elem.data.activ.label == map_elem.label)
+{
+found = true;
+activ_map[activ_map_start + j].coef +=
+elem.data.activ.coef.d * x;
+break;
+}
+}
+if(!found)
+{
+map_counter++;
+cl_simple_activator_t new_activ;
+new_activ.label = elem.data.activ.label;
+new_activ.coef = elem.data.activ.coef.d * x;
+activ_map[activ_map_start + map_counter] = new_activ;
+res.data.activ.coef.activ_map_counter = map_counter + 1;
+}
+}
+}
+}
+else
+{
+// Not supported
+}
+}
+out[row] = res;
+}
+}
+
+91
+
+APÊNDICE C - Código completo das aplicações desenvolvidas
+
+92
+
+#include &lt;benchmark/benchmark.h&gt;
+#include &lt;chrono&gt;
+#include &lt;random&gt;
+#include &lt;vector&gt;
+#include &quot;gtest/gtest.h&quot;
+#define TEST_SENSOR
+\
+Args({100000, 1})
+\
+-&gt;Args({100000, 10})
+\
+-&gt;Args({100000, 100})
+\
+-&gt;Args({100000, 1000})
+\
+-&gt;Args({100000, 10000}) \
+-&gt;Args({100000, 100000})
+struct NOPSensorFull
+{
+inline static std::atomic&lt;int&gt; counter{0};
+mbris::NOP::SharedAttribute atIsRead{mbris::NOP::BuildAttribute(-1)};
+mbris::NOP::SharedAttribute atIsActivated{mbris::NOP::BuildAttribute(-1)};
+mbris::NOP::SharedRule sensorRule = mbris::NOP::BuildRule(
+&quot;sensorRule&quot;,
+mbris::NOP::BuildCondition&lt;mbris::NOP::EConditionType::Conjunction&gt;(
+mbris::NOP::BuildPremise(atIsActivated, 1.0, mbris::NOP::Equal),
+mbris::NOP::BuildPremise(atIsRead, 0.0, mbris::NOP::Equal)),
+[&amp;](mbris::NOP::NOPFlag Flag, double approval_val){
+++NOPSensorFull::counter;
+this-&gt;Read();
+this-&gt;Deactivate();
+}
+);
+void Activate() const
+{
+atIsActivated-&gt;setValue(1.0);
+atIsRead-&gt;setValue(0.0);
+}
+void Read() const { atIsRead-&gt;setValue(1.0); }
+void Deactivate() const { atIsActivated-&gt;setValue(0.0); }
+};
+struct NOPSensorSimplified
+{
+inline static std::atomic&lt;int&gt; counter{0};
+mbris::NOP::SharedAttribute atIsRead{mbris::NOP::BuildAttribute(-1)};
+mbris::NOP::SharedAttribute atIsActivated{mbris::NOP::BuildAttribute(-1)};
+mbris::SharedRule sensorRule{mbris::BuildRule(
+&quot;sensorRule&quot;,
+RULE_EXPR(atIsActivated, mbris::NOP::Equal, 1.0, &quot;prIsActivated&quot;),
+RULE_EXPR(atIsRead, mbris::NOP::Equal, 0.0, &quot;prIsNotRead&quot;)
+)};
+void Activate() const
+{
+atIsActivated-&gt;setValue(1.0);
+atIsRead-&gt;setValue(0.0);
+}
+void Read() const { atIsRead-&gt;setValue(1.0); }
+void Deactivate() const { atIsActivated-&gt;setValue(0.0); }
+NOPSensorSimplified()
+{
+static int instance{0};
+sensorRule-&gt;setAction([&amp;](mbris::NOP::NOPFlag Flag, double approval_val){
+++NOPSensorSimplified::counter;
+this-&gt;Read();
+
+93
+
+this-&gt;Deactivate();
+});
+}
+};
+std::vector&lt;NOPSensorFull&gt; g_sensors(100000);
+std::vector&lt;NOPSensorSimplified&gt; g_simplified_sensors(100000);
+#ifdef MBRIS_BENCHMARK_SENSOR_ENABLE
+static void BM_NOPSensorFull(benchmark::State&amp; state)
+{
+auto&amp; exec = mbris::Executor::instance();
+for (auto _ : state)
+{
+std::for_each(std::execution::par_unseq, g_sensors.begin(),
+g_sensors.begin() + state.range(1),
+[](auto&amp; sensor) { sensor.Activate(); });
+exec.waitExecution();
+#ifdef MBRIS_USE_OPENCL
+exec.resetTimers();
+#endif /* MBRIS_USE_OPENCL */
+}
+}
+static void BM_NOPSensorSimplified(benchmark::State&amp; state)
+{
+auto&amp; exec = mbris::Executor::instance();
+for (auto _ : state)
+{
+NOPSensorSimplified::counter = 0;
+std::for_each(std::execution::seq, g_simplified_sensors.begin(),
+g_simplified_sensors.begin() + state.range(1),
+[](auto&amp; sensor) { sensor.Activate(); });
+exec.waitExecution();
+#ifdef MBRIS_USE_OPENCL
+exec.resetTimers();
+#endif /* MBRIS_USE_OPENCL */
+}
+}
+BENCHMARK(BM_NOPSensorFull)-&gt;TEST_SENSOR-&gt;MeasureProcessCPUTime()&gt;Unit(benchmark::kMicrosecond);
+BENCHMARK(BM_NOPSensorSimplified)-&gt;TEST_SENSOR-&gt;MeasureProcessCPUTime()&gt;Unit(benchmark::kMicrosecond);
+#ifdef MBRIS_USE_OPENCL
+static void BM_NOPSensorFull_KernelTime(benchmark::State&amp; state)
+{
+auto&amp; exec = mbris::Executor::instance();
+for (auto _ : state)
+{
+NOPSensorFull::counter = 0;
+std::for_each(std::execution::par_unseq, g_sensors.begin(),
+g_sensors.begin() + state.range(1),
+[](auto&amp; sensor) { sensor.Activate(); });
+exec.waitExecution();
+auto cl_time = exec.getTimingInfo();
+state.SetIterationTime(std::chrono::duration_cast&lt;std::chrono::duration&lt;double&gt;&gt;(st
+d::get&lt;1&gt;(cl_time)).count());
+exec.resetTimers();
+}
+}
+
+94
+
+static void BM_NOPSensorSimplified_KernelTime(benchmark::State&amp; state)
+{
+auto&amp; exec = mbris::Executor::instance();
+for (auto _ : state)
+{
+NOPSensorSimplified::counter = 0;
+std::for_each(std::execution::seq, g_simplified_sensors.begin(),
+g_simplified_sensors.begin() + state.range(1),
+[](auto&amp; sensor) { sensor.Activate(); });
+exec.waitExecution();
+auto cl_time = exec.getTimingInfo();
+state.SetIterationTime(std::chrono::duration_cast&lt;std::chrono::duration&lt;double&gt;&gt;(st
+d::get&lt;1&gt;(cl_time)).count());
+exec.resetTimers();
+}
+}
+BENCHMARK(BM_NOPSensorFull_KernelTime)-&gt;TEST_SENSOR-&gt;Iterations(10)-&gt;UseManualTime()&gt;Unit(benchmark::kMicrosecond);
+BENCHMARK(BM_NOPSensorSimplified_KernelTime)-&gt;TEST_SENSOR-&gt;Iterations(10)-&gt;UseManualTime()&gt;Unit(benchmark::kMicrosecond);
+#endif
+#endif
+BENCHMARK_MAIN();
+
+</content>
+</knowledge_document>

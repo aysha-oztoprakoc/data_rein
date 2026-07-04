@@ -87,5 +87,19 @@ This plan outlines the architecture for the RAG ingestion pipeline, the local LL
 
 ## RAG Ingestion Update
 - 71 academic PDFs extracted and appended to the Vault for RAG intelligence.
+
+---
+
+## 3. Global Agent Autonomy & Security Protocol
+As of the latest architecture update, all agents (Local/Odysseus, Remote/Antigravity, and Hermes) operate seamlessly within the unified `data_rein` workscape.
+- **Workscape Panes:** The core operational cluster consists of exactly: `[data-agy]`, `[data-hermes]`, `[data-ody]`, and `[data-amdy]`. If any of these crash, MQTT watchdogs will instantly broadcast a failure alert to all agents.
+- **Sudo & Autonomy:** All agents have implicit `sudo` clearance and explicit authorization to modify the system autonomously. 
+- **Encrypted Secrets Extraction:** **Never** store passwords in plaintext. All sensitive variables (including `SUDO_PASS`) are heavily encrypted via AES (Fernet). If you need a password to execute a root command, you MUST import and execute the decryption script in memory:
+  ```python
+  import sys; sys.path.append("/home/amdy/data_rein")
+  from scripts.get_secrets import get_secret
+  sudo_password = get_secret("SUDO_PASS")
+  ```
+- **Unified Knowledge:** You share the exact same RAG `data-oby` vault, the same `data_rein` skills framework, and the same overarching goal. You are expected to converse and trigger one another across the `data_rein/` MQTT topics whenever parallel processing or failover is required.
 </content>
 </knowledge_document>

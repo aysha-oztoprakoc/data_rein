@@ -1,8 +1,9 @@
 import os
 import re
+import json
 import xml.etree.ElementTree as ET
 import subprocess
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 from reins.services.logger import get_logger
 
 logger = get_logger("universal_router")
@@ -16,6 +17,13 @@ class UniversalModelRouter:
     def __init__(self) -> None:
         self.blueprint_path = os.path.expanduser("~/data_rein/knowledge_base/agents/hermes/data_hermes_wiki.xml")
         self.matrix_cache: Dict[str, Dict[str, str]] = {}
+        self.repo_dir = os.path.expanduser("~/data_rein")
+        self.training_dir = os.path.join(self.repo_dir, "moe_training")
+        self.state_file = os.path.expanduser("~/.config/data_nexus/state.json")
+        
+        os.makedirs(self.training_dir, exist_ok=True)
+        os.makedirs(os.path.dirname(self.state_file), exist_ok=True)
+        
         self._parse_blueprint()
 
     def _parse_blueprint(self) -> None:
@@ -58,12 +66,32 @@ class UniversalModelRouter:
             logger.error(f"Failed to parse Hermes blueprint: {e}")
 
     def get_optimal_model(self, task: str, node: str = "amdy") -> str:
-        """Looks up the Tier 1 model for the specified task and node."""
+        """
+        Looks up the Tier 1 model for the specified task and node.
+
+        Prefers the model-agnostic harness router (config/model_router.json) so
+        routing is driven by the single canonical config; falls back to the
+        legacy Hermes XML blueprint matrix, then to a hard default.
+        """
         node = node.lower()
-        if node not in self.matrix_cache:
-            return "llama3:latest" # ultimate fallback
-        
-        return self.matrix_cache[node].get(task, "llama3:latest")
+
+        # 1. Canonical, model-agnostic router (config/model_router.json).
+        try:
+            from reins.harness.models import ModelRouter
+            spec = ModelRouter().optimal(task.lower(), node)
+            if spec and spec.model and spec.model != ModelRouter.FALLBACK_MODEL:
+                return spec.model
+        except Exception:
+            pass
+
+        # 2. Legacy XML blueprint matrix.
+        if node in self.matrix_cache:
+            legacy = self.matrix_cache[node].get(task)
+            if legacy:
+                return legacy
+
+        # 3. Ultimate fallback.
+        return "llama3.1:8b"
 
     def route_inference(self, task: str, prompt: str, target_node: str = "amdy", task_id: str = None) -> Optional[str]:
         """
@@ -139,6 +167,70 @@ class UniversalModelRouter:
         logger.error(f"Ultimate failure: Task {task_id} failed on both nodes.")
         trail.update_task(task_id, "fatal_error")
         return None
+
+    def get_last_run_timestamp(self) -> float:
+        if os.path.exists(self.state_file):
+            try:
+                with open(self.state_file, "r") as f:
+                    return json.load(f).get("last_run", 0.0)
+            except Exception:
+                return 0.0
+        return 0.0
+
+    def update_last_run_timestamp(self, ts: float) -> None:
+        try:
+            with open(self.state_file, "w") as f:
+                json.dump({"last_run": ts}, f)
+        except Exception as e:
+            logger.error(f"Failed to update state: {e}")
+
+    def gather_training_context(self) -> str:
+        last_run = self.get_last_run_timestamp()
+        current_time = __import__('time').time()
+        
+        modified_files = []
+        for root, _, files in os.walk(self.training_dir):
+            for f in files:
+                fpath = os.path.join(root, f)
+                try:
+                    if os.path.getmtime(fpath) > last_run:
+                        modified_files.append(fpath)
+                except Exception:
+                    pass
+        
+        if not modified_files:
+            return ""
+
+        self.update_last_run_timestamp(current_time)
+
+        context = ""
+        for fpath in modified_files[:5]:
+            try:
+                with open(fpath, "r", encoding="utf-8") as file_obj:
+                    content = file_obj.read()
+                    if len(content) > 5000:
+                        content = content[:5000] + "\n...[TRUNCATED]"
+                    context += f"--- NEW/MODIFIED FILE: {os.path.basename(fpath)} ---\n{content}\n\n"
+            except Exception as e:
+                logger.error(f"Failed to read {fpath}: {e}")
+        
+        return context
+
+    def generate_optimization(self) -> Optional[str]:
+        context = self.gather_training_context()
+        if not context:
+            logger.info("No training data changes detected. Idling.")
+            return None
+            
+        prompt = (
+            "You are Data-Nexus, the Searcher of Knowledge.\n"
+            "Analyze the following newly added/modified training data and generate a synthesized insight, "
+            "optimization, or learning extraction. Focus on safety, performance, and scalability.\n\n"
+            f"Context:\n{context}\n\n"
+            "Provide your insight in Markdown format."
+        )
+
+        return self.route_inference(task="Data Processing", prompt=prompt, target_node="amdy")
 
 # Keep backward compatibility alias for now
 ReasoningEngine = UniversalModelRouter

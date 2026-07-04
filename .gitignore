@@ -1,3 +1,46 @@
 ComfyUI/
 .venv/
 training_data/
+
+# --- Secrets (never commit) ---
+config/api_keys.json
+config/.secrets.env
+config/.secrets.enc
+config/.secrets.key
+.secrets.env
+ai_models/id_ed25519
+ai_models/id_ed25519.pub
+
+# --- Derived / rebuildable artifacts ---
+# The monolith Wiki DB is rebuilt idempotently from tracked sources via
+# `reins wiki consolidate`; commit the sources, not the binary.
+knowledge_base/wiki.db
+knowledge_base/wiki.db-shm
+knowledge_base/wiki.db-wal
+
+# --- Massive binaries / model blobs / nested repos (never commit) ---
+# Anchored to repo root so nested dirs of the same name (e.g.
+# knowledge_base/agents/odysseus/) are NOT ignored.
+/ai_models/
+/bin/
+/odysseus/
+/.gemini/
+/logs/
+/chroma_notebooklm/
+
+# --- Stray environment / home dotfiles that leaked into the repo root ---
+.bashrc
+.bash_profile
+.profile
+.zshrc
+.zprofile
+.gitconfig
+.ripgreprc
+.idea/
+.mcp.json
+
+# --- Python caches ---
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/

@@ -55,10 +55,24 @@ class KnowledgeIngestor:
         try:
             self._append_to_xml(task_id, prompt, result_text)
             logger.info(f"Successfully ingested task {task_id} into Knowledge Base.")
-            return True
         except Exception as e:
             logger.error(f"Failed to append to XML: {e}")
             return False
+
+        # Mirror the learned task into the single monolith Wiki DB as a memory.
+        # Graceful degradation: never let this break the continuous-learning loop.
+        try:
+            from reins.harness.wiki import WikiDB
+            with WikiDB() as db:
+                db.add_memory(
+                    f"TASK: {prompt}\nRESULT: {result_text}",
+                    category="learned_task",
+                    source=task_id,
+                    owner="knowledge_ingestor",
+                )
+        except Exception as e:
+            logger.error(f"Failed to mirror learned task into monolith wiki: {e}")
+        return True
 
     def _append_to_xml(self, task_id: str, prompt: str, result_text: str) -> None:
         if not os.path.exists(self.wiki_path):

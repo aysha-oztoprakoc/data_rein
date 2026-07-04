@@ -1,0 +1,217 @@
+<?xml version="1.0" ?>
+<knowledge_document>
+  <metadata>
+    <title>Writebook Executive Summary.pdf</title>
+    <path>/home/amdy/Downloads/raw_data/sofia_protocol/Writebook Executive Summary.pdf</path>
+  </metadata>
+  <content>7/3/26, 7:12 PM
+
+Quick Guide
+
+ODYSSEUS — DEEP RESEARCH REPORT
+
+Quick Guide
+
+443.6s Duration
+
+5 Rounds
+
+13 Queries
+
+43 URLs Analyzed
+
+qwen2.5-coder:7b Model
+
+searxng Search
+
+1
+
+Executive Summary
+
+Writebook by 37signals is a free, self-hosted web publishing platform
+designed to let users instantly publish text and images in a clean, browsable
+online book format. It offers features such as Markdown support, different
+page types (text, picture, section), user management with permissions, and
+the ability to create both public and private books. The platform is designed for
+localhost:7000/api/research/report/rp-696dabeda4c5
+
+1/7
+
+7/3/26, 7:12 PM
+
+Quick Guide
+
+writers, publishers, and content creators who want a simple, distraction-free
+platform for publishing long-form content with full ownership of their work.
+This research report provides a comprehensive overview of Writebook's
+features, ideal use cases, technical requirements, deployment steps, and
+additional insights. It also includes new findings that highlight the collaborative
+writing capabilities, versatility beyond technical documentation, and open
+source nature of the platform. The report is structured to guide users through
+setting up their own instance of Writebook and provides practical tips and
+warnings along the way.
+1. Install Docker
+2. Obtain a domain name or subdomain
+3. Configure DNS settings
+4. Execute the installation script via SSH
+5. Finalize setup using the automated installer
+
+2
+
+Prerequisites
+
+localhost:7000/api/research/report/rp-696dabeda4c5
+
+2/7
+
+7/3/26, 7:12 PM
+
+Quick Guide
+
+Before starting, you will need: - A lightweight server environment with at least 1
+CPU and 2GB of RAM. - Your own domain name or subdomain pointed directly to
+the server's public IP address without active proxying. - Basic knowledge of
+Linux command line operations.
+
+3
+
+Step 1: Install Docker
+
+Docker is a containerization platform that allows you to package your application
+along with its dependencies into a single, portable container. This ensures
+consistency across different environments.
+Installation Steps: 1. Log in to your server via SSH. 2. Update the package list:
+bash sudo apt-get update 3. Install Docker: bash sudo apt-get install
+docker.io 4. Start and enable Docker service: bash sudo systemctl start
+docker sudo systemctl enable docker
+
+Tip: Ensure Docker is running by checking its status:
+$
+
+4
+
+sudo systemctl status docker
+
+Step 2: Obtain a Domain Name or Subdomain
+
+localhost:7000/api/research/report/rp-696dabeda4c5
+
+3/7
+
+7/3/26, 7:12 PM
+
+Quick Guide
+
+To make your Writebook instance accessible via the web, you need to have a
+domain name or subdomain. You can purchase one from various domain
+registrars like GoDaddy, Namecheap, or Cloudflare.
+Steps: 1. Choose a registrar and sign up for an account. 2. Purchase a domain
+name or subdomain. 3. Point your chosen domain or subdomain to your server's
+public IP address without active proxying.
+
+5
+
+Step 3: Configure DNS Settings
+
+After obtaining your domain, you need to configure the DNS settings to point to
+your server's IP address.
+Steps: 1. Log in to your domain registrar's control panel. 2. Navigate to the DNS
+management section. 3. Add an A record pointing your domain or subdomain to
+your server's public IP address.
+
+6
+
+Step 4: Execute the Installation Script via SSH
+
+localhost:7000/api/research/report/rp-696dabeda4c5
+
+4/7
+
+7/3/26, 7:12 PM
+
+Quick Guide
+
+Once Docker is installed and your DNS settings are configured, you can proceed
+with the installation of Writebook.
+Steps: 1. Log in to your server via SSH. 2. Navigate to the directory where you
+want to install Writebook. 3. Paste the single-line installation string from your
+email into the terminal and execute it: bash curl -s
+[https://once.com/writebook/install](https://once.com/writebook/install) |
+bash
+
+Tip: Ensure you have the necessary permissions to execute the script.
+
+7
+
+Step 5: Finalize Setup Using the Automated Installer
+
+The automated installer will use Docker behind the scenes to bundle
+dependencies, configure the app server, and automatically provision an SSL
+certificate. The setup process typically takes around 5 minutes.
+Steps: 1. Monitor the installation progress in the terminal. 2. Once the setup is
+complete, access your Writebook instance via a web browser using your domain
+or subdomain. 3. Log in to the admin panel to configure your books and settings.
+
+8
+
+Common Mistakes
+
+Mistake: Forgetting to update the package list before installing Docker.
+Solution: Always update the package list before installing new software.
+Mistake: Not pointing the domain or subdomain correctly to the server's IP
+address.
+Solution: Double-check your DNS settings and ensure they are correctly
+configured.
+Mistake: Failing to execute the installation script via SSH.
+localhost:7000/api/research/report/rp-696dabeda4c5
+
+5/7
+
+7/3/26, 7:12 PM
+
+Quick Guide
+
+Solution: Ensure you have the necessary permissions and follow the instructions
+carefully.
+
+9
+
+Conclusion
+
+Writebook by 37signals is a powerful, free, self-hosted web publishing platform
+designed for writers, publishers, and content creators. Its features such as
+Markdown support, flexible page layouts, granular privacy, collaborative writing,
+and seamless progress syncing make it an ideal choice for various use cases
+beyond technical documentation.
+By following the detailed steps provided in this guide, you can easily set up your
+own instance of Writebook on a lightweight server environment. The open source
+nature of the platform provides developers with the flexibility to modify and
+extend its functionality, further enhancing its capabilities and potential
+applications.
+Whether you're creating technical runbooks, employee handbooks, product
+instruction manuals, creative writing, or family histories, Writebook offers a
+simple, distraction-free platform for publishing long-form content with full
+ownership of your work.
+
+▶ Sources (35)
+
+Discuss
+
+localhost:7000/api/research/report/rp-696dabeda4c5
+
+6/7
+
+7/3/26, 7:12 PM
+
+Quick Guide
+
+Opens a new chat with this report as context.
+
+Generated by Odysseus Deep Research · July 03, 2026 at 22:12
+
+localhost:7000/api/research/report/rp-696dabeda4c5
+
+7/7
+
+</content>
+</knowledge_document>

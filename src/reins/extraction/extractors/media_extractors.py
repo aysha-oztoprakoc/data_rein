@@ -78,7 +78,10 @@ class AudioWhisperExtractor(RemoteMediaExtractor):
 
 
 class VideoWhisperExtractor(RemoteMediaExtractor):
-    SUPPORTED_FORMATS = [".mp4", ".avi", ".mkv"]
+    SUPPORTED_FORMATS = [
+        ".mp4", ".avi", ".mkv", ".mov", ".wmv",
+        ".flv", ".webm", ".m4v", ".mpg", ".mpeg"
+    ]
 
     def extract(self, filepath: str, output_dir: str) -> Dict[str, Any]:
         expected_out = f"{os.path.basename(filepath)}.transcript.txt"

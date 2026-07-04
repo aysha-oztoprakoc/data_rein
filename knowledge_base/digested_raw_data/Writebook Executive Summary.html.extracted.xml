@@ -1,0 +1,221 @@
+<?xml version="1.0" ?>
+<knowledge_document>
+  <metadata>
+    <title>Writebook Executive Summary.html</title>
+    <path>/home/amdy/Downloads/raw_data/sofia_protocol/Writebook Executive Summary.html</path>
+  </metadata>
+  <content>Quick Guide
+Export ▾
+Save as PDF
+Download HTML
+Odysseus — Deep Research Report
+Quick Guide
+443.6s
+Duration
+5
+Rounds
+13
+Queries
+43
+URLs Analyzed
+qwen2.5-coder:7b
+Model
+searxng
+Search
+Executive Summary
+Prerequisites
+Step 1: Install Docker
+Step 2: Obtain a Domain Name or Subdomain
+Step 3: Configure DNS Settings
+Step 4: Execute the Installation Script via SSH
+Step 5: Finalize Setup Using the Automated Installer
+Common Mistakes
+Conclusion
+Executive Summary
+Writebook by 37signals is a free, self-hosted web publishing platform designed to let users instantly publish text and images in a clean, browsable online book format. It offers features such as Markdown support, different page types (text, picture, section), user management with permissions, and the ability to create both public and private books. The platform is designed for writers, publishers, and content creators who want a simple, distraction-free platform for publishing long-form content with full ownership of their work.
+This research report provides a comprehensive overview of Writebook's features, ideal use cases, technical requirements, deployment steps, and additional insights. It also includes new findings that highlight the collaborative writing capabilities, versatility beyond technical documentation, and open source nature of the platform. The report is structured to guide users through setting up their own instance of Writebook and provides practical tips and warnings along the way.
+Install Docker
+Obtain a domain name or subdomain
+Configure DNS settings
+Execute the installation script via SSH
+Finalize setup using the automated installer
+Prerequisites
+Before starting, you will need:
+- A lightweight server environment with at least 1 CPU and 2GB of RAM.
+- Your own domain name or subdomain pointed directly to the server's public IP address without active proxying.
+- Basic knowledge of Linux command line operations.
+Step 1: Install Docker
+Docker is a containerization platform that allows you to package your application along with its dependencies into a single, portable container. This ensures consistency across different environments.
+Installation Steps:
+1. Log in to your server via SSH.
+2. Update the package list:
+bash
+   sudo apt-get update
+3. Install Docker:
+bash
+   sudo apt-get install docker.io
+4. Start and enable Docker service:
+bash
+   sudo systemctl start docker
+   sudo systemctl enable docker
+Tip:
+Ensure Docker is running by checking its status:
+sudo
+systemctl
+status
+docker
+Step 2: Obtain a Domain Name or Subdomain
+To make your Writebook instance accessible via the web, you need to have a domain name or subdomain. You can purchase one from various domain registrars like GoDaddy, Namecheap, or Cloudflare.
+Steps:
+1. Choose a registrar and sign up for an account.
+2. Purchase a domain name or subdomain.
+3. Point your chosen domain or subdomain to your server's public IP address without active proxying.
+Step 3: Configure DNS Settings
+After obtaining your domain, you need to configure the DNS settings to point to your server's IP address.
+Steps:
+1. Log in to your domain registrar's control panel.
+2. Navigate to the DNS management section.
+3. Add an A record pointing your domain or subdomain to your server's public IP address.
+Step 4: Execute the Installation Script via SSH
+Once Docker is installed and your DNS settings are configured, you can proceed with the installation of Writebook.
+Steps:
+1. Log in to your server via SSH.
+2. Navigate to the directory where you want to install Writebook.
+3. Paste the single-line installation string from your email into the terminal and execute it:
+bash
+   curl -s [https://once.com/writebook/install](https://once.com/writebook/install) | bash
+Tip:
+Ensure you have the necessary permissions to execute the script.
+Step 5: Finalize Setup Using the Automated Installer
+The automated installer will use Docker behind the scenes to bundle dependencies, configure the app server, and automatically provision an SSL certificate. The setup process typically takes around 5 minutes.
+Steps:
+1. Monitor the installation progress in the terminal.
+2. Once the setup is complete, access your Writebook instance via a web browser using your domain or subdomain.
+3. Log in to the admin panel to configure your books and settings.
+Common Mistakes
+Mistake:
+Forgetting to update the package list before installing Docker.
+Solution:
+Always update the package list before installing new software.
+Mistake:
+Not pointing the domain or subdomain correctly to the server's IP address.
+Solution:
+Double-check your DNS settings and ensure they are correctly configured.
+Mistake:
+Failing to execute the installation script via SSH.
+Solution:
+Ensure you have the necessary permissions and follow the instructions carefully.
+Conclusion
+Writebook by 37signals is a powerful, free, self-hosted web publishing platform designed for writers, publishers, and content creators. Its features such as Markdown support, flexible page layouts, granular privacy, collaborative writing, and seamless progress syncing make it an ideal choice for various use cases beyond technical documentation.
+By following the detailed steps provided in this guide, you can easily set up your own instance of Writebook on a lightweight server environment. The open source nature of the platform provides developers with the flexibility to modify and extend its functionality, further enhancing its capabilities and potential applications.
+Whether you're creating technical runbooks, employee handbooks, product instruction manuals, creative writing, or family histories, Writebook offers a simple, distraction-free platform for publishing long-form content with full ownership of your work.
+Sources (35)
+1.
+ONCE — Writebook
+once.com
+2.
+The Writebook Manual - 37signals
+books.37signals.com
+3.
+37signals - Library | Writebook
+books.37signals.com
+4.
+Writebook Review: Free Self-Hosted Publishing from 37signals
+daveswift.com
+5.
+Introducing Writebook - HEY
+world.hey.com
+6.
+AI Book Writer - Write a Book with AI | AIWriteBook
+aiwritebook.com
+7.
+GitHub - basecamp/writebook
+github.com
+8.
+Creating your book · The Writebook Manual · 37signals
+biblicalibrary.com
+9.
+37Signals, the company behind Basecamp and HEY, is introducing ...
+mitchwagner.com
+10.
+Did 37Signals Just Accidentally Make Writebook Open Source?
+kerrick.blog
+11.
+Target : Expect More. Pay Less.
+target.com
+12.
+Target Audience - Writers Club of America
+writersclubofamerica.com
+13.
+Evite: Online Invitations, eCards &amp; Party Ideas
+evite.com
+14.
+Fox News - Breaking News Updates | Latest News Headlines | Photos ...
+foxnews.com
+15.
+Associated Press News: Breaking News, Latest Headlines and Videos | AP News
+apnews.com
+16.
+ONCE — Writebook Changelog
+once.com
+17.
+NBC News
+nbcnews.com
+18.
+writebook/README.md at main · gezibash/writebook · GitHub
+github.com
+19.
+ABC News - Breaking News, Latest News and Videos
+abcnews.com
+20.
+Exploring the Writebook Source Code - mgmarlow.com
+mgmarlow.com
+21.
+Primary Clothing - Brilliant Basics for Baby &amp; Kids
+primary.com
+22.
+Collaborative writing: Strategies and activities for writing ... - Springer
+link.springer.com
+23.
+Collaborative and Group Writing - The Writing Center - UW-Madison
+writing.wisc.edu
+24.
+Chapter Three: Collaborative Writing Process — Writing at Work ...
+udel.pressbooks.pub
+25.
+Collaborative Writing Resources | Writing Center | University of ...
+writingcenter.uconn.edu
+26.
+Collaborative writing - Wikipedia
+en.wikipedia.org
+27.
+Users, Readers &amp; Writers · The Writebook Manual · 37signals
+books.37signals.com
+28.
+GitHub - syskaul/once.com-writebook
+github.com
+29.
+Library | Writebook
+learn.omacom.io
+30.
+Community - Wikipedia
+en.wikipedia.org
+31.
+Community (TV series) - Wikipedia
+en.wikipedia.org
+32.
+Ville de Laval | Découvrez votre île
+laval.ca
+33.
+Home | Ville de Laval
+laval.ca
+34.
+Centre communautaire Val-Martin | au coeur de son quartier depuis …
+ccvm.org
+35.
+Case Knives | Built with integrity for people of integrity.
+caseknives.com
+Discuss
+Opens a new chat with this report as context.
+Generated by Odysseus Deep Research · July 03, 2026 at 22:12</content>
+</knowledge_document>

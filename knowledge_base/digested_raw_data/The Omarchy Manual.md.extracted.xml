@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<knowledge_document>
+  <metadata>
+    <title>The Omarchy Manual.md</title>
+    <path>/home/amdy/Downloads/raw_data/sofia_protocol/The Omarchy Manual.md</path>
+  </metadata>
+  <content>[The Omarchy Manual](https://learn.omacom.io/2/the-omarchy-manual) is the official documentation for **Omarchy**, an opinionated, developer-focused Linux distribution created by David Heinemeier Hansson (DHH). It bridges the gap between the power of Arch Linux and the aesthetic minimalism of the Hyprland tiling window manager. \[[1](https://learn.omacom.io/2/the-omarchy-manual), [2](https://www.youtube.com/watch?v=49YSzBRyRk0&amp;vl=en)\]
+
+Below is an overview of the key sections, hotkeys, and features outlined across the official Omarchy Manual. \[[1](https://akitaonrails.com/en/2025/08/29/new-omarchy-2-0-install/), [2](https://learn.omacom.io/2/the-omarchy-manual)\]
+
+Core Desktop Navigation
+
+The system is built primarily around a keyboard-driven layout utilizing automatic tiling. \[[1](https://www.youtube.com/watch?v=YeT407j1JtY&amp;t=289), [2](https://www.youtube.com/watch?v=E2AxAu6zbys&amp;t=651)\]
+
+* **Application Launcher**: Super \+ Space (Opens Walker to search and open apps).  
+* **The Omarchy Menu**: Super \+ Alt \+ Space (The central hub for system updates, hardware triggers, and software installs).  
+* **Open Terminal**: Super \+ Enter (Launches the preconfigured Alacritty or Ghosty terminal).  
+* **Close Window**: Super \+ W.  
+* **Window Navigation**: Super \+ Arrow Keys to switch focus.  
+* **Workspace Swapping**: Super \+ Shift \+ \[1-9\] to send apps to different workspaces.  
+* **Fullscreen Modes**: Super \+ F for absolute fullscreen, or Super \+ Alt \+ F to maximize full-width while preserving the status bar.  
+* **Power Menu**: Super \+ Escape to lock, suspend, or shutdown. \[[1](https://learn.omacom.io/2/the-omarchy-manual), [2](https://learn.omacom.io/2/the-omarchy-manual/51/navigation), [3](https://learn.omacom.io/2/the-omarchy-manual/65/dotfiles), [4](https://www.youtube.com/watch?v=E2AxAu6zbys&amp;t=651), [5](https://www.youtube.com/watch?v=49YSzBRyRk0&amp;vl=en), [6](https://www.youtube.com/watch?v=vQDwtsS1doM&amp;t=35)\]
+
+System Installation &amp; Updates
+
+Omarchy is designed to occupy an entire dedicated drive by default. \[[1](https://learn.omacom.io/2/the-omarchy-manual/50/getting-started), [2](https://slimbook.com/en/blog/guides-2/post/introduction-to-omarchy-484)\]
+
+* **The Standard Path**: Download the official ISO, write it to a USB drive using tools like balenaEtcher, disable Secure Boot/TPM in your BIOS, and install. \[[1](https://learn.omacom.io/2/the-omarchy-manual/50/getting-started)\]  
+* **Manual Setup Option**: For custom dual-boot partitioning, advanced users can use the vanilla Arch ISO with archinstall, install wget, and run the installation script: wget \-qO- https://omarchy.org/install | bash. \[[1](https://www.youtube.com/watch?v=6YJImMYKefk), [2](https://learn.omacom.io/2/the-omarchy-manual/96/manual-installation)\]  
+* **Maintenance**: Running **Update \&gt; Omarchy** from the central menu pulls the latest configurations, migrates dotfiles safely, and keeps your system packages synchronized via the [Omarchy Repository](https://learn.omacom.io/2/the-omarchy-manual/68/updates). \[[1](https://learn.omacom.io/2/the-omarchy-manual/68/updates)\]
+
+System Customization &amp; Dotfiles
+
+The manual emphasizes keeping user tweaks clean without cluttering system defaults. \[[1](https://learn.omacom.io/2/the-omarchy-manual/65/dotfiles), [2](https://github.com/basecamp/omarchy/discussions/2224)\]
+
+* **Theming**: Omarchy ships with 19 curated visual themes. Switch between them via Super \+ Ctrl \+ Shift \+ Space or cycle background wallpapers instantly with Super \+ Ctrl \+ Space. \[[1](https://learn.omacom.io/2/the-omarchy-manual/52/themes)\]  
+* **Config Management**: Avoid changing files in \~/.local/share/omarchy directly. Instead, edit settings via **Setup \&gt; Configs** in the menu. Neovim opens the file, and exiting the text editor automatically reloads the relevant system service (like Waybar or Walker). \[[1](https://learn.omacom.io/2/the-omarchy-manual/65/dotfiles)\]  
+* **AI Integration**: The OS features an experimental **Omarchy Skill** built for AI coding agents (like Claude Code). This allows an AI model to safely interact with your environment via the omarchy CLI to script custom layouts or generate brand new themes from scratch. \[[1](https://learn.omacom.io/2/the-omarchy-manual/115/omarchy-cli), [2](https://learn.omacom.io/2/the-omarchy-manual/107/ai)\]
+
+Developer &amp; Productivity Tools
+
+The out-of-the-box configuration strips out generic bloatware while delivering deep environment optimizations: \[[1](https://learn.omacom.io/2/the-omarchy-manual)\]
+
+* **Built-in Reminders**: Set quick notification timers by running omarchy reminder 7 'Tea ready' in the CLI or pressing Super \+ Ctrl \+ R. \[[1](https://learn.omacom.io/2/the-omarchy-manual)\]  
+* **Isolated Windows VM**: Run Windows-specific apps like Microsoft Office safely using a local Docker VM container. Install it through the menu; it isolates Windows from your primary Linux directories except for a shared sandbox folder at \~/Windows. \[[1](https://learn.omacom.io/2/the-omarchy-manual), [2](https://learn.omacom.io/2/the-omarchy-manual)\]  
+* **Terminal Multi-plexing**: Seamlessly use Tmux via Super \+ Alt \+ Return with an optimized keybinding set configured natively to use Ctrl \+ Space as its primary prefix. \[[1](https://learn.omacom.io/2/the-omarchy-manual/106/terminal)\]  
+* **Network &amp; SSH Port Forwarding**: Leverage rapid built-in shell aliases like fip to forward remote container ports smoothly to your local sandbox ecosystem.
+
+</content>
+</knowledge_document>

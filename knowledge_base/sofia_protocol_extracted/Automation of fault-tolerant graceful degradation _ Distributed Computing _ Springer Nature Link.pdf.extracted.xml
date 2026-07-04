@@ -1,0 +1,333 @@
+<?xml version="1.0" ?>
+<knowledge_document>
+  <metadata>
+    <title>Automation of fault-tolerant graceful degradation _ Distributed Computing _ Springer Nature Link.pdf</title>
+    <path>/home/amdy/Downloads/raw_data/sofia_protocol/Automation of fault-tolerant graceful degradation _ Distributed Computing _ Springer Nature Link.pdf</path>
+  </metadata>
+  <content>7/2/26, 11:07 AM
+
+Automation of fault-tolerant graceful degradation | Distributed Computing | Springer Nature Link
+
+Log in
+
+Automation of fault-tolerant graceful
+degradation
+Published: 16 December 2017
+Volume 32, pages 1–25 (2019) Cite this article
+
+Distributed Computing
+Aims and scope
+Submit manuscript
+
+Yiyan Lin, Sandeep Kulkarni
+
+638 Accesses
+
+&amp; Arshad Jhumka
+
+2 Citations Explore all metrics
+
+Abstract
+Traditionally, (nonmasking and masking) fault-tolerance has focused on ensuring that after
+the occurrence of faults, the program recovers to states from where it continues to satisfy its
+original specification. However, a problem with this limited notion is that, in some cases, it
+may be impossible to recover to states from where the entire original specification is
+satisfied. For this reason, one can consider a fault-tolerant graceful-degradation program
+that ensures that upon the occurrence of faults, the program recovers to states from where a
+(given) subset of its specification is satisfied. Typically, the subset of specification satisfied
+thus would be the critical/important requirements. In this paper, we initially focus on
+automatically revising a given fault-intolerant program into a fault-tolerant gracefully
+degrading program. Specifically, we propose a two-step approach: In the first step, we
+transform the fault-intolerant program into a graceful program. This program is guaranteed
+to satisfy only the given subset of specification (e.g., critical requirements). In particular,
+this step involves adding new behaviors that will satisfy the given subset of the specification.
+https://link.springer.com/article/10.1007/s00446-017-0319-x
+
+1/9
+
+7/2/26, 11:07 AM
+
+Automation of fault-tolerant graceful degradation | Distributed Computing | Springer Nature Link
+
+The second step involves utilizing the original program and the graceful program to obtain a
+fault-tolerant gracefully degrading program. We also develop an algorithm to transform the
+gracefully degrading program into a distributed gracefully degrading program. Afterwards,
+the second phase of our transformation can be applied to generate a distributed faulttolerant gracefully degrading program. We showcase the algorithm with three different nontrivial case studies. Finally, we formalize the problem of multi-graceful degradation and
+propose an algorithm that solves it and we use a complex case study to showcase the viability
+of the approach. All the algorithms have polynomial time complexity in the size of the state
+space of the original program.
+
+This is a preview of subscription content, log in via an institution to check access.
+
+Access this article
+Log in via an institution
+
+Subscribe and save
+Springer+
+from $39.99 /Month
+Starting from 10 chapters or articles per month
+Access and download chapters and articles from more than 300k books and 2,500
+journals
+Cancel anytime
+
+View plans
+
+Buy Now
+Buy article PDF USD 39.95
+https://link.springer.com/article/10.1007/s00446-017-0319-x
+
+2/9
+
+7/2/26, 11:07 AM
+
+Automation of fault-tolerant graceful degradation | Distributed Computing | Springer Nature Link
+
+Price includes VAT (Brazil)
+Instant access to the full article PDF.
+
+Institutional subscriptions
+
+Explore related subjects
+
+Discover the latest articles, books and news in related subjects, suggested using machine learning.
+
+Algorithms
+
+Automation
+
+Reprogramming
+
+Checkpoints
+
+Evolvability
+
+Multistability
+
+Self-Adaptive Software Systems Engineering
+
+Notes
+1. Note that these variations are not the same as masking and/or stabilizing tolerance since
+
+\(p_{f}\) may not satisfy its original specification after recovery is complete. Moreover, if
+we utilize existing algorithms [5] where the input consists of program \(p\) then those
+algorithms will declare failure to add masking fault-tolerance if it is impossible to
+guarantee recovery to behaviors of program \(p\).
+
+2. The Agreement requirement generally considered in the literature corresponds to
+
+weak
+
+from this paper. The Validity requirement generally considered in the
+literature is slightly different from weak validity considered here. Specifically, weak
+validity requires the non-general to be non-byzantine. But does not impose the same
+requirement on the general. This is due to the fact that weak validity is expected to be
+satisfied in the absence of faults (that make the general byzantine) and only weak
+agreement is expected to be satisfied in the presence of faults.
+agreement
+
+3. We could also apply Algorithm 1 to the program where the original specification is
+strong validity
+
+and strong agreement. However, the corresponding derivation is
+
+https://link.springer.com/article/10.1007/s00446-017-0319-x
+
+3/9
+
+7/2/26, 11:07 AM
+
+Automation of fault-tolerant graceful degradation | Distributed Computing | Springer Nature Link
+
+outside the scope of this paper.
+
+References
+1. Bonakdarpour, B., Kulkarni, S.S.: Exploiting symbolic techniques in automated synthesis
+of distributed programs. In: IEEE International Conference on Distributed Computing
+Systems, pp. 3–10 (2007)
+
+2. Abujarad, F., Kulkarni, S.: Constraint based automated synthesis of nonmasking and
+
+stabilizing fault-tolerance. In: Reliable Distributed Systems, 2009. SRDS ’09. 28th IEEE
+International Symposium on, Sept. 2009, pp. 119 –128 (2009)
+
+3. Bartocci, E., Grosu, R., Katsaros, P., Ramakrishnan, C.R., Smolka, S.A.: Model repair for
+probabilistic systems. In: TACAS, pp. 326–340 (2011)
+
+4. Herlihy, M., Wing, J.M.: Specifying graceful degradation. IEEE Trans. Parallel Distrib.
+Syst. 2(1), 93–104 (1991)
+
+5. Kulkarni, S.S., Arora, A.: Automating the addition of fault-tolerance. In: Formal
+
+Techniques in Real-Time and Fault-Tolerant Systems (FTRTFT), pp. 82–93 (2000)
+
+6. Leal, W., McCreery, M., Faria, D.: The OCRC fuel cell lab safety system: a self-stabilizing
+
+safety-critical system. In: Défago, X., Petit, F., Villain, V. (eds.) Stabilization, Safety, and
+Security of Distributed Systems, ser. Lecture Notes in Computer Science. Springer,
+Berlin, 2011, vol. 6976, pp. 326–340. [Online]. https://doi.org/10.1007/978-3-64224550-3_25 (2011)
+
+https://link.springer.com/article/10.1007/s00446-017-0319-x
+
+4/9
+
+7/2/26, 11:07 AM
+
+Automation of fault-tolerant graceful degradation | Distributed Computing | Springer Nature Link
+
+7. Alpern, B., Schneider, F.B.: Defining liveness. Inf. Process. Lett. 21(4), 181–185 (1985)
+8. Dijkstra, E.W.: Self stabilizing systems in spite of distributed control. Commun. ACM
+17(11), 643–644 (1974)
+
+9. Tahat, A., Ebnenasir, A.: A hybrid method for the verification and synthesis of
+
+parameterized self-stabilizing protocols. In: Proceedings LOPSTR, pp. 201–218 (2014)
+
+10. Klinkhamer, A., Ebnenasir, A.: Verifying livelock freedom on parameterized rings and
+chains. In: Proceedings Stabilization, Safety and Security of Distributed Systems, pp.
+163–177 (2013)
+
+11. Zruba, G.V., Chlamtac, I., Das, S.K.: A Prioritized Real-TimeWireless Call Degradation
+Framework for Optimal Call Mix Selection. Kluwer, Dordrecht (2002)
+
+12. Kulkarni, S.S., Ebnenasir, A.: Complexity issues in automated synthesis of failsafe
+fault-tolerance. IEEE Trans. Dependable Secur. Comput. 2(3), 201–215 (2005)
+
+13. Gärtner, F.C., Jhumka, A.: Automating the addition of fail-safe fault-tolerance: Beyond
+
+fusion-closed specifications. In: Lakhnech, Y., Yovine, S. (eds.) FORMATS/FTRTFT, ser.
+Lecture Notes in Computer Science, vol. 3253. Springer, Berlin, pp. 183–198 (2004)
+
+14. Lamport, L., Shostak, R.E., Pease, M.C.: The byzantine generals problem. ACM Trans.
+Program. Lang. Syst. 4(3), 382–401 (1982)
+
+15. Leal, W., McCreery, M., Faria, D.: The OCRC fuel cell lab safety system: a self-stabilizing
+safety-critical system. In: Proceedings of the 13th International Conference on
+
+https://link.springer.com/article/10.1007/s00446-017-0319-x
+
+5/9
+
+7/2/26, 11:07 AM
+
+Automation of fault-tolerant graceful degradation | Distributed Computing | Springer Nature Link
+
+Stabilization, Safety, and Security of Distributed Systems, ser. SSS’11. Berlin: Springer,
+pp. 326–340. [Online]. http://dl.acm.org/citation.cfm?id=2050613.2050638 (2011)
+
+16. Ramadge, P.J., Wonham, W.M.: The control of discrete event systems. Proc. IEEE 77(1),
+81–98 (1989)
+
+17. Cho, K.H., Lim, J.T.: Synthesis of fault-tolerant supervisor for automated
+
+manufacturing systems: a case study on photolithography process. IEEE Trans. Robot.
+Autom. 14(2), 348–351 (1998)
+
+18. Girault, A., Rutten, É.: Automating the addition of fault tolerance with discrete
+controller synthesis. Formal Methods Syst. Des. 35(2), 190–225 (2009)
+
+19. Pnueli, A., Rosner, R.: On the synthesis of a reactive module. In: Principles of
+Programming Languages (POPL), pp. 179–190 (1989)
+
+20. Jobstmann, B., Griesmayer, A., Bloem, R.: Program repair as a game. In: Conference on
+Computer Aided Verification (CAV), pp. 226–238, LNCS 3576 (2005)
+
+21. Thomas, W.: On the synthesis of strategies in infinite games. In: Theoretical Aspects of
+Computer Science (STACS), pp. 1–13 (1995)
+
+22. Thomas, W.: Handbook of Theoretical Computer Science: Chapter 4, Automata on
+Infinite Objects. Elsevier Science Publishers B.V. (1990)
+
+23. Bonakdarpour, B., Abujarad, S., Kulkarni, S.S.: Symbolic synthesis of masking faulttolerant distributed programs. Distrib. Comput. 25(1), 83–108 (2012)
+
+https://link.springer.com/article/10.1007/s00446-017-0319-x
+
+6/9
+
+7/2/26, 11:07 AM
+
+Automation of fault-tolerant graceful degradation | Distributed Computing | Springer Nature Link
+
+24. Faghih, F., Bonakdarpour, B.: Smt-based synthesis of distributed self-stabilizing
+systems. Trans. Adapt. Auton. Syst. 10(3), 1–26 (2015)
+
+25. Bonakdarpour, B., Kulkarni, S., Abujarad, F.: Symbolic synthesis of masking faulttolerant distributed programs. Distrib. Comput. 25(1), 83–108 (2012)
+
+26. Chen, J., Kulkarni, S.S.: Mr4um: a framework for adding fault tolerance to uml state
+diagrams. Theoret. Comput. Sci. 496, 17–33 (2013)
+
+27. Hajisheykhi, R., Ebnenasir, A., Kulkarni, S.S.: Evaluating the effect of faults in systemC
+TLM models using UPPAAL. In: Proceedings SEFM, pp. 175–189 (2014)
+
+28. Hajisheykhi, R., Ebnenasir, A., Kulkarni, S.S.: UFIT: A tool for modeling faults in
+UPPAAL timed automata. In: Proceedings NFM, pp. 429–435 (2015)
+
+29. Randell, B.: System structure for software fault tolerance. IEEE Trans. Softw. Eng., 1(2),
+221–232 (1975). [Online]. https://doi.org/10.1109/TSE.1975.6312842
+
+30. Randell, B., Romanovsky, A., Rubira, C.M.F., Stroud, R.J., Wu, Z., Xu, J.: From recovery
+blocks to concurrent atomic actions. Springer, Berlin, pp. 87–101. (1995) [Online].
+https://doi.org/10.1007/978-3-642-79789-7_6
+
+31. Ebnenasir, A., Kulkarni, S.: Feasibility of stepwise design of multitolerant programs.
+ACM Trans. Softw. Eng. Methodol. 21(1), 1–49 (2011)
+
+Acknowledgements
+https://link.springer.com/article/10.1007/s00446-017-0319-x
+
+7/9
+
+7/2/26, 11:07 AM
+
+Automation of fault-tolerant graceful degradation | Distributed Computing | Springer Nature Link
+
+This work is supported by NSF CNS 1329807, NSF CNS 1318678, and XPS 1533802.
+
+Author information
+Authors and Affiliations
+
+Department of Computer Science and Engineering, Michigan State University, East
+Lansing, MI, USA
+Yiyan Lin &amp; Sandeep Kulkarni
+Department of Computer Science, University of Warwick, Coventry, UK
+Arshad Jhumka
+
+Corresponding author
+
+Correspondence to Sandeep Kulkarni.
+
+Rights and permissions
+Reprints and permissions
+
+About this article
+Cite this article
+
+Lin, Y., Kulkarni, S. &amp; Jhumka, A. Automation of fault-tolerant graceful degradation. Distrib.
+Comput. 32, 1–25 (2019). https://doi.org/10.1007/s00446-017-0319-x
+Received
+20 June 2016
+
+Accepted
+01 December 2017
+
+Published
+16 December 2017
+
+Issue date
+12 February 2019
+https://link.springer.com/article/10.1007/s00446-017-0319-x
+
+8/9
+
+7/2/26, 11:07 AM
+
+Automation of fault-tolerant graceful degradation | Distributed Computing | Springer Nature Link
+
+DOI
+https://doi.org/10.1007/s00446-017-0319-x
+
+https://link.springer.com/article/10.1007/s00446-017-0319-x
+
+9/9
+
+</content>
+</knowledge_document>

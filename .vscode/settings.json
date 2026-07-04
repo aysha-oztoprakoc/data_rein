@@ -1,0 +1,72 @@
+{
+    "workbench.colorCustomizations": {
+        "window.activeBorder": "#ff4040",
+        "window.inactiveBorder": "#5c5855",
+        "editor.background": "#140000",
+        "sideBar.background": "#200000",
+        "sideBar.border": "#ff4040",
+        "activityBar.background": "#200000",
+        "activityBar.foreground": "#ff4040",
+        "activityBar.inactiveForeground": "#5c5855",
+        "activityBarBadge.background": "#ff1100",
+        "titleBar.activeBackground": "#200000",
+        "titleBar.activeForeground": "#ff4040",
+        "titleBar.inactiveBackground": "#090300",
+        "statusBar.background": "#200000",
+        "statusBar.foreground": "#ff3c3c",
+        "statusBarItem.errorBackground": "#ff1100",
+        "statusBarItem.warningBackground": "#ffcf3d",
+        "terminal.background": "#090300",
+        "terminal.foreground": "#ff3c3c",
+        "terminalCursor.foreground": "#ff4040"
+    },
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                "scope": ["source", "text", "meta", "storage", "keyword", "string", "variable", "entity.name", "comment", "constant", "support"],
+                "settings": {
+                    "fontStyle": ""
+                }
+            },
+            {
+                "scope": ["source", "text"],
+                "settings": {
+                    "foreground": "#cccccc"
+                }
+            },
+            {
+                "scope": ["comment"],
+                "settings": {
+                    "foreground": "#5c5855",
+                    "fontStyle": "italic"
+                }
+            },
+            {
+                "scope": ["keyword", "storage.type", "storage.modifier"],
+                "settings": {
+                    "foreground": "#ff1100",
+                    "fontStyle": "bold"
+                }
+            },
+            {
+                "scope": ["string", "punctuation.definition.string"],
+                "settings": {
+                    "foreground": "#ff4040"
+                }
+            },
+            {
+                "scope": ["entity.name.function", "support.function"],
+                "settings": {
+                    "foreground": "#ffcf3d"
+                }
+            },
+            {
+                "scope": ["variable", "entity.name.type"],
+                "settings": {
+                    "foreground": "#ffffff"
+                }
+            }
+        ]
+    },
+    "editor.fontFamily": "'JetBrainsMono NFM', 'JetBrainsMono Nerd Font Mono', 'JetBrains Mono', monospace"
+}

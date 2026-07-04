@@ -52,9 +52,25 @@ class KnowledgeManager:
     def save_insight(self, filename: str, content: str) -> None:
         """
         Saves a new insight to the knowledge base and enforces storage limits.
+        Also mirrors the insight into the single monolith Wiki DB so every
+        environment under the harness can search it.
         """
         filepath = os.path.join(KB_DIR, filename)
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(content)
-        
+
         self.enforce_storage_limit()
+
+        # Mirror into the monolith wiki (graceful degradation: never crash).
+        try:
+            from reins.harness.wiki import WikiDB
+            with WikiDB() as db:
+                db.upsert_page(
+                    title=os.path.splitext(filename)[0],
+                    content=content,
+                    source_path=filepath,
+                    category="insight",
+                    owner="data_nexus",
+                )
+        except Exception:
+            pass

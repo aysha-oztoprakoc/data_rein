@@ -64,6 +64,13 @@ def sync_trail():
     print("Sync complete.")
 
 def main() -> None:
+    try:
+        from reins.services.harness_bootstrapper import HarnessBootstrapper
+        bootstrapper = HarnessBootstrapper()
+        bootstrapper.bootstrap()
+    except Exception as e:
+        print(f"Warning: Failed to bootstrap harness state: {e}")
+
     parser = argparse.ArgumentParser(description='Sovereign AI Data Harness CLI')
     subparsers = parser.add_subparsers(dest='command')
 
@@ -85,7 +92,24 @@ def main() -> None:
     trail_sub.add_parser('clear', help='Clear trail')
     trail_sub.add_parser('sync', help='Sync AGY tasks into Hermes trail')
 
+    # Odysseus commands
+    ody_parser = subparsers.add_parser('ody', help='Manage Odysseus AI daemon')
+    ody_sub = ody_parser.add_subparsers(dest='subcmd')
+    ody_sub.add_parser('start', help='Start Odysseus AI daemon')
+
+    # Universal harness commands (wiki / directive / paths)
+    try:
+        from reins.harness import cli as harness_cli
+        harness_cli.register(subparsers)
+    except Exception as e:
+        print(f"Warning: harness verbs unavailable: {e}")
+        harness_cli = None
+
     args = parser.parse_args()
+
+    if harness_cli is not None and args.command in ('wiki', 'directive', 'paths'):
+        if harness_cli.handle(args):
+            return
 
     if args.command == 'models':
         if args.subcmd == 'list':
@@ -107,6 +131,42 @@ def main() -> None:
             sync_trail()
         else:
             trail_parser.print_help()
+    elif args.command == 'ody':
+        if args.subcmd == 'start':
+            # Fix docker volume mount issue where settings.yml is created as a root-owned dir
+            try:
+                import os
+                import subprocess
+                ody_dir = "/home/amdy/data_rein/odysseus"
+                bad_dir = "/home/amdy/data_rein/odysseus/config/searxng/settings.yml"
+                
+                # Take back ownership of the entire odysseus directory from root
+                subprocess.run(["sudo", "chown", "-R", f"{os.getuid()}:{os.getgid()}", ody_dir], check=True)
+                
+                if os.path.isdir(bad_dir):
+                    print("Repairing root-owned settings.yml directory...")
+                    subprocess.run(["sudo", "rm", "-rf", bad_dir], check=True)
+                    with open(bad_dir, "w", encoding="utf-8") as f:
+                        f.write("# Auto-generated to fix Docker mount\n")
+                    print("Repair successful.")
+            except Exception as e:
+                print(f"Warning: Failed to auto-repair settings.yml: {e}")
+
+            # Attempt to start the actual docker containers if they exist
+            try:
+                print("Starting Odysseus AI and Broker containers via docker compose...")
+                subprocess.run(["docker", "compose", "up", "-d"], cwd="/home/amdy/data_rein/DATA/kad-1.0/broker", check=True)
+                subprocess.run(["docker", "compose", "up", "-d", "--build"], cwd="/home/amdy/data_rein/odysseus", check=True)
+                print("Graphical interface should now be available on localhost!")
+            except Exception as e:
+                print(f"Warning: Failed to start docker containers: {e}")
+            
+            # Start the fallback agent daemon
+            from reins.services.fallback_agent import OdysseusAgent
+            agent = OdysseusAgent()
+            agent.run_daemon()
+        else:
+            ody_parser.print_help()
     else:
         parser.print_help()
 
