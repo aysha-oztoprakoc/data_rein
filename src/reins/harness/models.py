@@ -182,10 +182,16 @@ class ModelRouter:
 
     # -- providers ----------------------------------------------------------
     def _ollama(self, model: str, prompt: str, node: str) -> Optional[str]:
-        if node == "tell":
-            cmd = ["ssh", "-o", "BatchMode=yes", "tell", "ollama", "run", model]
-        else:
-            cmd = ["ollama", "run", model]
+        # Local node: use the clean HTTP API (no TUI spinner artifacts), starting
+        # the harness model server on demand.
+        if node != "tell":
+            from reins.harness import local
+
+            local.ensure_server()
+            return local.generate(model, prompt)
+
+        # Remote node (tell): drive its Ollama over SSH.
+        cmd = ["ssh", "-o", "BatchMode=yes", "tell", "ollama", "run", model]
         res = subprocess.run(cmd, input=prompt.encode("utf-8"), capture_output=True)
         if res.returncode == 0 and res.stdout.strip():
             return res.stdout.decode("utf-8", "replace")

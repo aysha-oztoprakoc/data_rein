@@ -39,6 +39,18 @@ reins skills install        # link skills into every environment
 reins trail list            # shared task state machine
 ```
 
+## Local models (offload low-effort work)
+
+13 local models in `ai_models/models/`, served on demand by Ollama.
+```bash
+reins local status | up | list
+reins run "<category>" "<prompt>" [--rag] [--node amdy|tell]
+reins ask|summarize|classify|optimize "<text|file>"   # low-effort shortcuts
+reins batch "<category>" prompts.txt                   # unattended bulk, trail-logged
+```
+Routes through `reins.harness.workflow` → `ModelRouter` (local-first, graceful
+amdy↔tell failover). Prefer local for trivial work; reserve cloud for heavy tasks.
+
 ## Skills
 
 One canonical, tracked skills tree: `skills/` (see `skills/MANIFEST.md`). Edit

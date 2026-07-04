@@ -1,0 +1,25 @@
+# data_rein local model plane — serves the harness model store (ai_models/models)
+# on the canonical Ollama port so `reins run/ask/batch/...` always have models.
+#
+# Install (user service):
+#   mkdir -p ~/.config/systemd/user
+#   ln -sf ~/data_rein/systemd/ollama-harness.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now ollama-harness
+#
+# `reins local up` will also start it on demand if this unit is not installed.
+
+[Unit]
+Description=data_rein local Ollama model plane
+After=network.target
+
+[Service]
+Type=simple
+Environment=OLLAMA_MODELS=%h/data_rein/ai_models/models
+Environment=OLLAMA_HOST=127.0.0.1:11434
+ExecStart=/usr/local/bin/ollama serve
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

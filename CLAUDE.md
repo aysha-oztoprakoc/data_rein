@@ -36,6 +36,22 @@ Route by task category, never by hard-coded model, via
 `config/model_router.json`. Local-first; cloud (Gemini/Claude/OpenAI) only for
 explicit/heavy tasks; secrets only via `scripts.get_secrets.get_secret`.
 
+### Leverage local models (offload low-effort work here first)
+
+The 13 local models in `ai_models/models/` are served by an on-demand Ollama
+server (`reins local up` / auto-started). Prefer them for trivial work:
+
+```bash
+reins local status                 # server + model store + count
+reins run "deep search" "<q>" --rag   # route to best local model, inject wiki context
+reins ask "<q>"                    # quick chat (small fast model, tell->amdy failover)
+reins summarize file.md            # or: cat x | reins summarize
+reins optimize "<prompt>"          # tighten a prompt
+reins batch "data processing" prompts.txt   # unattended bulk run, logged to trail
+```
+All of this routes through `reins.harness.workflow`, inherits graceful failover,
+and logs batch work to the shared Task Trail.
+
 ## Skills
 
 Canonical harness skills live in `skills/` (tracked, indexed by

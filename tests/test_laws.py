@@ -30,20 +30,29 @@ from conftest import harness_source_files, SRC_ROOT
 # ---------------------------------------------------------------------------
 
 def _polling_violations(path: Path) -> list[str]:
-    tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"), filename=str(path))
+    """
+    Report PON violations in a source file. A single line may opt out of the
+    time.sleep ban with a trailing ``# pon-allow: <reason>`` marker — reserved for
+    genuinely event-less waits (e.g. a bounded one-time subprocess cold-start).
+    `while True` spin loops are never allowed.
+    """
+    src_lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    tree = ast.parse("\n".join(src_lines), filename=str(path))
+
+    def _allowed(lineno: int) -> bool:
+        return "pon-allow" in src_lines[lineno - 1] if 0 < lineno <= len(src_lines) else False
+
     out: list[str] = []
     for node in ast.walk(tree):
-        # `while True:` / `while 1:` spin loops
         if isinstance(node, ast.While):
             test = node.test
-            if (isinstance(test, ast.Constant) and bool(test.value) is True):
+            if isinstance(test, ast.Constant) and bool(test.value) is True:
                 out.append(f"{path.name}:{node.lineno} while-True spin loop")
-        # time.sleep(...) busy-wait
         if isinstance(node, ast.Call):
             fn = node.func
             if isinstance(fn, ast.Attribute) and fn.attr == "sleep":
                 base = fn.value
-                if isinstance(base, ast.Name) and base.id == "time":
+                if isinstance(base, ast.Name) and base.id == "time" and not _allowed(node.lineno):
                     out.append(f"{path.name}:{node.lineno} time.sleep() busy-wait")
     return out
 

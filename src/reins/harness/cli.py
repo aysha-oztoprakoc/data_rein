@@ -43,6 +43,38 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     ssub.add_parser("list", help="List registered canonical skills")
     ssub.add_parser("install", help="Link skills into every environment")
 
+    # reins local ... (local model server lifecycle)
+    local_p = subparsers.add_parser("local", help="Manage the local Ollama model plane")
+    lsub = local_p.add_subparsers(dest="subcmd")
+    lsub.add_parser("status", help="Show server status + model store")
+    lsub.add_parser("list", help="List locally served models")
+    lsub.add_parser("up", help="Start the local model server on the harness store")
+
+    # reins run <category> [prompt]  (route a prompt to the best local model)
+    run_p = subparsers.add_parser("run", help="Run a prompt on the best local model for a category")
+    run_p.add_argument("category")
+    run_p.add_argument("prompt", nargs="?", help="prompt text (or read from stdin)")
+    run_p.add_argument("--node", default="amdy", choices=["amdy", "tell"])
+    run_p.add_argument("--rag", action="store_true", help="inject wiki context")
+
+    # low-effort shortcuts
+    for verb, helptext in (
+        ("ask", "Quick question -> small fast local model"),
+        ("summarize", "Summarize a file or stdin"),
+        ("classify", "Classify/label stdin or text"),
+        ("optimize", "Optimize a prompt"),
+    ):
+        sp = subparsers.add_parser(verb, help=helptext)
+        sp.add_argument("text", nargs="?", help="text/file (or read from stdin)")
+        sp.add_argument("--rag", action="store_true", help="inject wiki context")
+
+    # reins batch <category> [file]  (heavy automation)
+    batch_p = subparsers.add_parser("batch", help="Run a model over many prompts (one per line)")
+    batch_p.add_argument("category")
+    batch_p.add_argument("file", nargs="?", help="file of prompts (or stdin)")
+    batch_p.add_argument("--node", default="amdy", choices=["amdy", "tell"])
+    batch_p.add_argument("--rag", action="store_true")
+
     # reins directive / paths
     subparsers.add_parser("directive", help="Print the Prime Directive")
     subparsers.add_parser("paths", help="Print canonical harness paths")
@@ -54,6 +86,8 @@ def handle(args: argparse.Namespace) -> bool:
         return _handle_wiki(args)
     if args.command == "skills":
         return _handle_skills(args)
+    if args.command in ("local", "run", "batch", "ask", "summarize", "classify", "optimize"):
+        return _handle_workflow(args)
     if args.command == "directive":
         pd = paths.prime_directive()
         print(pd.read_text(encoding="utf-8") if pd.exists() else f"// missing: {pd}")
@@ -63,6 +97,97 @@ def handle(args: argparse.Namespace) -> bool:
             print(f"{k:20s} {v}")
         return True
     return False
+
+
+def _read_text_arg(value: Optional[str]) -> str:
+    """A positional that is a file path -> file contents; '-' or None -> stdin; else literal."""
+    import sys
+
+    if value and value != "-" and Path(value).is_file():
+        return Path(value).read_text(encoding="utf-8", errors="replace")
+    if value and value != "-":
+        return value
+    if not sys.stdin.isatty():
+        return sys.stdin.read()
+    return ""
+
+
+def _handle_workflow(args: argparse.Namespace) -> bool:
+    from reins.harness import local, workflow
+
+    cmd = args.command
+
+    if cmd == "local":
+        sub = getattr(args, "subcmd", None)
+        if sub == "up":
+            ok = local.ensure_server()
+            print(f"// local model server {'up' if ok else 'FAILED to start'} "
+                  f"[store={local.model_store()}]")
+        elif sub == "list":
+            models = local.list_models()
+            print(f"// {len(models)} local models served:")
+            for m in models:
+                print(f"  {m}")
+        else:  # status
+            up = local.server_up()
+            print(f"// local model plane")
+            print(f"   server   : {'UP' if up else 'down'} ({local.DEFAULT_HOST})")
+            print(f"   store    : {local.model_store()}")
+            print(f"   models   : {len(local.list_models()) if up else 0}")
+        return True
+
+    if cmd == "run":
+        prompt = args.prompt or _read_text_arg(None)
+        if not prompt.strip():
+            print("// no prompt (pass an arg or pipe stdin)")
+            return True
+        res = workflow.run(args.category, prompt, node=args.node, rag=args.rag)
+        _print_route(res)
+        return True
+
+    if cmd in ("ask", "summarize", "classify", "optimize"):
+        text = _read_text_arg(getattr(args, "text", None))
+        if not text.strip():
+            print(f"// no input for {cmd} (pass text/file or pipe stdin)")
+            return True
+        if cmd == "summarize":
+            text = "Summarize the following concisely:\n\n" + text
+        elif cmd == "classify":
+            text = "Classify/label the following. Reply with the label(s) only:\n\n" + text
+        elif cmd == "optimize":
+            text = "Rewrite this prompt to be clearer and more token-efficient:\n\n" + text
+        res = workflow.low_effort(cmd, text, rag=getattr(args, "rag", False))
+        _print_route(res)
+        return True
+
+    if cmd == "batch":
+        text = _read_text_arg(getattr(args, "file", None))
+        prompts = [ln for ln in text.splitlines() if ln.strip()]
+        if not prompts:
+            print("// no prompts (one per line via file or stdin)")
+            return True
+        print(f"// batch: {len(prompts)} prompts -> category '{args.category}' on {args.node}")
+
+        def _emit(item: workflow.BatchItem) -> None:
+            status = "ok " if item.ok else "ERR"
+            body = (item.text or item.error or "").strip().replace("\n", " ")
+            print(f"  [{status}] #{item.index} ({item.model}): {body[:120]}")
+
+        results = workflow.batch(args.category, prompts, node=args.node,
+                                 rag=args.rag, on_result=_emit)
+        ok = sum(1 for r in results if r.ok)
+        print(f"// done: {ok}/{len(results)} succeeded")
+        return True
+
+    return False
+
+
+def _print_route(res) -> None:
+    if res.ok:
+        print(f"// {res.model} @ {res.node} [{res.provider}]")
+        print(res.text.strip() if res.text else "")
+    else:
+        print(f"// all candidates degraded: {res.error}")
 
 
 def _skills_dir() -> Path:
