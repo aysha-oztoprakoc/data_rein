@@ -47,5 +47,6 @@ __pycache__/
 
 # --- Logs & local editor/tooling state ---
 *.log
+.idea
 .idea/
 .claude/
