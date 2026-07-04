@@ -1,35 +1,43 @@
 import os
 import glob
 import re
-import time
-from reins.services.task_trail import TaskTrail
+
 from reins.services.logger import get_logger
+from reins.harness import paths
+from reins.harness.agents import HarnessAgent
 
 logger = get_logger("agy_bridge")
 
-class AGYBridge:
+
+class AGYBridge(HarnessAgent):
     """
-    Synchronizes Antigravity's internal Markdown task checklists (task.md)
-    into the Hermes Universal Task Trail (task_trail.json).
+    The data-agy bridge: synchronizes Antigravity's internal Markdown task
+    checklists (task.md) into the shared Universal Task Trail.
+
+    Converged onto the harness spine: it is a ``HarnessAgent`` (role ``data-agy``)
+    and mutates the trail only through its public, lock-safe API — never the
+    private ``_load`` / ``_save`` internals.
     """
+
+    role = "data-agy"
+
     def __init__(self) -> None:
-        self.trail = TaskTrail()
-        # Path where Antigravity stores conversation brain artifacts
-        self.agy_brains_dir = os.path.expanduser("~/.gemini/antigravity-cli/brain")
+        super().__init__()
+        # Canonical location of Antigravity conversation brain artifacts.
+        self.agy_brains_dir = str(paths.agy_brain_dir())
 
     def scan_and_sync(self) -> None:
-        """Finds all task.md files, parses checkboxes, and pushes to Hermes JSON."""
+        """Find all task.md files, parse checkboxes, upsert them into the trail."""
+        if self.trail is None:
+            logger.error("Task trail unavailable; cannot sync AGY tasks.")
+            return
+
         task_files = glob.glob(os.path.join(self.agy_brains_dir, "*", "task.md"))
-        
         if not task_files:
             logger.info("No AGY task files found to sync.")
             return
 
-        hermes_tasks = self.trail._load()
-        existing_ids = {t.get("task_id") for t in hermes_tasks}
-        
         synced_count = 0
-        
         for filepath in task_files:
             try:
                 with open(filepath, "r", encoding="utf-8") as f:
@@ -37,44 +45,26 @@ class AGYBridge:
             except Exception as e:
                 logger.error(f"Failed to read {filepath}: {e}")
                 continue
-                
-            conv_id = os.path.basename(os.path.dirname(filepath))
-            
-            for i, line in enumerate(content):
-                line = line.strip()
-                match = re.match(r'- \[( |x|/)\] (.*)', line)
-                if match:
-                    state_char = match.group(1)
-                    task_desc = match.group(2)
-                    
-                    # Generate a deterministic ID based on conv_id and line number
-                    task_id = f"AGY-{conv_id}-L{i}"
-                    
-                    status = "pending"
-                    if state_char == "x":
-                        status = "success"
-                    elif state_char == "/":
-                        status = "running"
-                        
-                    # If exists, update
-                    if task_id in existing_ids:
-                        for t in hermes_tasks:
-                            if t["task_id"] == task_id:
-                                t["status"] = status
-                                break
-                    else:
-                        # Create new
-                        hermes_tasks.append({
-                            "task_id": task_id,
-                            "task_type": "AGY Checkbox",
-                            "prompt": task_desc,
-                            "target_node": "AGY-Frontend",
-                            "status": status,
-                            "timestamp": time.time(),
-                            "attempts": 1
-                        })
-                        existing_ids.add(task_id)
-                        synced_count += 1
 
-        self.trail._save(hermes_tasks)
-        logger.info(f"AGY Bridge Sync Complete. Synced {synced_count} new tasks.")
+            conv_id = os.path.basename(os.path.dirname(filepath))
+            for i, line in enumerate(content):
+                match = re.match(r"- \[( |x|/)\] (.*)", line.strip())
+                if not match:
+                    continue
+                state_char, task_desc = match.group(1), match.group(2)
+                status = {"x": "success", "/": "running"}.get(state_char, "pending")
+
+                # Deterministic id -> idempotent upsert (safe to re-run any time).
+                task_id = f"AGY-{conv_id}-L{i}"
+                is_new = self.trail.get_task(task_id) is None
+                self.trail.upsert_task(
+                    task_id,
+                    task_type="AGY Checkbox",
+                    prompt=task_desc,
+                    target_node="AGY-Frontend",
+                    status=status,
+                )
+                if is_new:
+                    synced_count += 1
+
+        logger.info(f"AGY Bridge sync complete. {synced_count} new task(s) added.")

@@ -38,8 +38,7 @@ class KnowledgeIngestor:
             logger.error(f"Error parsing success payload: {e}")
 
     def ingest_task(self, task_id: str, result_text: str) -> bool:
-        tasks = self.trail._load()
-        task = next((t for t in tasks if t["task_id"] == task_id), None)
+        task = self.trail.get_task(task_id)
         
         if not task:
             logger.warning(f"Task {task_id} not found in trail. Skipping ingestion.")

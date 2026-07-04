@@ -2,19 +2,22 @@ import json
 import threading
 from typing import Any, Dict
 from reins.services.logger import get_logger
-from reins.services.data_nexus.reasoning_engine import UniversalModelRouter
+from reins.harness.agents import HarnessAgent
 
 logger = get_logger("subagent_manager")
 
-class SubagentManager:
+class SubagentManager(HarnessAgent):
     """
-    PON-compliant Subagent Orchestrator.
-    Listens for instigations to spawn subagents and routes them using the Universal Model Harness.
+    PON-compliant Subagent Orchestrator (the data-hermes routing service).
+    Listens for instigations to spawn subagents and routes them through the single
+    model-agnostic harness router (local-first, graceful amdy<->tell failover).
     """
+    role = "data-hermes"
+
     def __init__(self, mqtt_client: Any) -> None:
+        super().__init__()
         self.mqtt = mqtt_client
-        self.router = UniversalModelRouter()
-        
+
         # Subscribe to spawn events
         self.mqtt.subscribe("data_rein/subagents/spawn")
         self.mqtt.message_callback_add("data_rein/subagents/spawn", self.on_spawn_request)
@@ -50,23 +53,24 @@ class SubagentManager:
             return
             
         logger.info(f"Spawning '{task_type}' subagent on node '{node}'...")
-        
-        # Route through the universal harness
-        result = self.router.route_inference(task_type, prompt, target_node=node)
-        
+
+        # Route through the single model-agnostic harness router.
+        res = self.infer(task_type, prompt, node=node)
+
         # Publish result back
-        if result:
+        if res.ok:
             self.mqtt.publish(reply_topic, json.dumps({
                 "status": "success",
                 "task_type": task_type,
-                "node": node,
-                "output": result
+                "node": res.node,
+                "model": res.model,
+                "output": res.text
             }))
-            logger.info(f"Subagent '{task_type}' completed successfully.")
+            logger.info(f"Subagent '{task_type}' completed on {res.model}.")
         else:
             self.mqtt.publish(reply_topic, json.dumps({
                 "status": "error",
                 "task_type": task_type,
                 "node": node,
-                "output": "Inference failed or degraded gracefully."
+                "output": f"Inference degraded gracefully: {res.error}"
             }))

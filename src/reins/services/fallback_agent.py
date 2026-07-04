@@ -1,48 +1,48 @@
-import subprocess
 from typing import Any, List, Dict
 
 from reins.services.logger import get_logger
-from reins.services.task_trail import TaskTrail
 from reins.services.harness_bootstrapper import HarnessBootstrapper
+from reins.harness.agents import HarnessAgent
 
 logger = get_logger("odysseus_agent")
 
 TRAIL_EVENT_TOPIC = "data_rein/trail/updated"
 
 
-class OdysseusAgent:
+class OdysseusAgent(HarnessAgent):
     """
-    Local Odysseus AI persona daemon.
+    Local Odysseus AI persona daemon (the data-ody fallback service).
 
-    Runs under the Data Harness and reacts to TaskTrail changes for tasks assigned
-    to 'data-ody', gracefully taking over 'pending'/'running' tasks when the cloud
-    API fails.
+    Reacts to TaskTrail changes for tasks assigned to 'data-ody', gracefully taking
+    over 'pending'/'running' tasks when the cloud API fails.
 
     PON-compliant: it does NOT poll. It drains any backlog once on startup, then
     blocks on the MQTT event loop (epoll-based, ~0% idle CPU) and reacts to trail
     notifications via callback. There is no `while True` / `time.sleep` spin-wait.
     """
 
+    role = "data-ody"
+
     def __init__(self, model_name: str = "qwen2.5-coder:7b"):
+        super().__init__()
         self.model_name = model_name
-        self.trail = TaskTrail()
         self.bootstrapper = HarnessBootstrapper()
 
     def query_ollama(self, prompt: str) -> str:
-        """Queries the local Ollama instance. Degrades to an error string, never raises."""
+        """
+        Run the local model via the harness local plane (clean HTTP output, model
+        store aware, server auto-started). Degrades to an 'Error: ...' string,
+        never raises.
+        """
         try:
+            from reins.harness import local
+
             logger.info(f"Querying local model {self.model_name}...")
-            result = subprocess.run(
-                ["ollama", "run", self.model_name, prompt],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            return result.stdout
+            local.ensure_server()
+            return local.generate(self.model_name, prompt)
         except Exception as e:  # graceful degradation
-            stderr = getattr(e, "stderr", "") or str(e)
-            logger.error(f"Local LLM failed: {stderr}")
-            return f"Error: {stderr}"
+            logger.error(f"Local LLM failed: {e}")
+            return f"Error: {e}"
 
     def process_pending(self) -> List[Dict[str, Any]]:
         """
@@ -51,8 +51,7 @@ class OdysseusAgent:
         task (marked 'failed') without aborting the drain or crashing the daemon.
         """
         acted: List[Dict[str, Any]] = []
-        tasks = self.trail._load()
-        pending = [t for t in tasks if t.get("status") in ("pending", "running")]
+        pending = self.trail.by_status("pending", "running")
 
         for task in pending:
             task_id = task.get("task_id")

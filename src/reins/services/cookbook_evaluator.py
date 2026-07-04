@@ -1,78 +1,90 @@
 import os
 import json
-import subprocess
 import time
+import subprocess
 import threading
-from typing import Any
+from typing import Any, Optional
+
 from reins.services.logger import get_logger
+from reins.harness import paths, local
 
 logger = get_logger("cookbook_evaluator")
 
+
 class CookbookEvaluator:
     """
-    Evaluates Ollama models by benchmarking them against the Cookbook Test Suite.
-    Checks logical parsing and speed to ensure a performance score of >= 85.
+    Benchmarks the installed Ollama models (the Odysseus cookbook suite): a quick
+    logic + speed probe, gated at score >= 85. Converged onto the harness planes —
+    local models run through ``reins.harness.local`` (clean HTTP, auto-started
+    server), remote (``tell``) models over SSH — instead of raw ``ollama`` shells.
+    Results feed back into the model registry / router tiers.
     """
-    def __init__(self, mqtt_client: Any) -> None:
+
+    PASS_SCORE = 85
+
+    def __init__(self, mqtt_client: Any = None) -> None:
         self.mqtt = mqtt_client
-        self.registry_path = os.path.expanduser("~/data_rein/data-oby/TrainingData/model_registry.json")
-        self.mqtt.subscribe("data_rein/cookbook/trigger")
-        self.mqtt.message_callback_add("data_rein/cookbook/trigger", self.on_trigger)
+        self.registry_path = str(paths.model_registry())
+        if self.mqtt is not None:
+            self.mqtt.subscribe("data_rein/cookbook/trigger")
+            self.mqtt.message_callback_add("data_rein/cookbook/trigger", self.on_trigger)
         logger.info("Cookbook Evaluator online. Ready to benchmark.")
 
     def on_trigger(self, client: Any, userdata: Any, msg: Any) -> None:
         threading.Thread(target=self.run_evaluations, daemon=True).start()
 
-    def evaluate_model(self, model: str, host: str = None) -> int:
-        """Runs the Cookbook Math/Logic test against the model."""
+    def evaluate_model(self, model: str, node: str = "amdy") -> int:
+        """Run the cookbook logic+speed probe against one model on one node."""
         prompt = "Answer exactly 'SUCCESS' if 5 * 5 is 25. Say nothing else."
-        cmd = ["ollama", "run", model]
-        if host and host != "amdy":
-            cmd = ["ssh", "-o", "BatchMode=yes", host, "ollama", "run", model]
-            
         try:
-            start_time = time.time()
-            res = subprocess.run(cmd, input=prompt.encode("utf-8"), capture_output=True, timeout=20)
-            elapsed = time.time() - start_time
-            
-            if res.returncode != 0:
-                return 0
-                
-            output = res.stdout.decode("utf-8").strip().upper()
-            
+            start = time.time()
+            if node == "amdy":
+                local.ensure_server()
+                output = local.generate(model, prompt)  # raises on failure
+            else:
+                res = subprocess.run(
+                    ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=3", node, "ollama", "run", model],
+                    input=prompt.encode("utf-8"), capture_output=True, timeout=25,
+                )
+                if res.returncode != 0:
+                    return 0
+                output = res.stdout.decode("utf-8")
+            elapsed = time.time() - start
+
             score = 100
-            if "SUCCESS" not in output:
-                score -= 30 # Logic failure
-                
+            if "SUCCESS" not in output.strip().upper():
+                score -= 30  # logic failure
             if elapsed > 10.0:
-                score -= 20 # Too slow
-                
+                score -= 20  # too slow on this hardware
             return score
-        except Exception as e:
-            logger.error(f"Failed to evaluate {model} on {host}: {e}")
+        except Exception as e:  # graceful degradation
+            logger.error(f"Failed to evaluate {model} on {node}: {e}")
             return 0
 
-    def run_evaluations(self) -> None:
+    def _models_for(self, registry: dict, node: str) -> list:
+        node_data = registry.get(node, {})
+        # New getinfo format: models_fit=[{model,...}]; tolerate the legacy `models` key.
+        entries = node_data.get("models_fit") or node_data.get("models") or []
+        return [e["model"] for e in entries if isinstance(e, dict) and e.get("model")]
+
+    def run_evaluations(self) -> Optional[dict]:
         if not os.path.exists(self.registry_path):
-            logger.error("Registry not found. Run sys_profiler first.")
-            return
-            
+            logger.error("Model registry not found. Run getinfo (sys_profiler) first.")
+            return None
         with open(self.registry_path, "r") as f:
             registry = json.load(f)
-            
-        results = {"amdy": {}, "tell": {}}
-        
-        for node in ["amdy", "tell"]:
-            models = registry.get(node, {}).get("models", [])
-            for m in models:
-                name = m["model"]
+
+        results: dict = {"amdy": {}, "tell": {}}
+        for node in ("amdy", "tell"):
+            for name in self._models_for(registry, node):
                 logger.info(f"Evaluating {name} on {node}...")
                 score = self.evaluate_model(name, node)
-                
-                if score >= 85:
-                    logger.info(f"{name} PASSED Cookbook Test (Score: {score})")
-                    results[node][name] = score
+                results[node][name] = score
+                if score >= self.PASS_SCORE:
+                    logger.info(f"{name} PASSED cookbook (score {score}).")
                 else:
-                    logger.warning(f"{name} FAILED Cookbook Test (Score: {score})")
-                    
-        self.mqtt.publish("data_rein/cookbook/result", json.dumps({"status": "success", "evaluations": results}))
+                    logger.warning(f"{name} FAILED cookbook (score {score}).")
+
+        if self.mqtt is not None:
+            self.mqtt.publish("data_rein/cookbook/result", json.dumps({"status": "success", "evaluations": results}))
+        return results
