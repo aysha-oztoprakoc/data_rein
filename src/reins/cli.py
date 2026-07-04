@@ -5,22 +5,23 @@ import subprocess
 from reins.services.task_trail import TaskTrail
 
 def list_models():
-    registry_path = os.path.expanduser("~/data_rein/data-oby/TrainingData/model_registry.json")
+    from reins.harness import paths
+
+    registry_path = str(paths.model_registry())
     if not os.path.exists(registry_path):
-        print("Model registry not found. Is the sys_profiler running?")
+        print("Model registry not found. Run `getinfo` (sys_profiler) first.")
         return
-        
+
     try:
         with open(registry_path, "r") as f:
             data = json.load(f)
-            
-        print("--- AMDY Local Models ---")
-        for m in data.get("amdy", {}).get("models", []):
-            print(f" - {m['model']} (Score: {m['score']})")
-            
-        print("\n--- TELL Remote Models ---")
-        for m in data.get("tell", {}).get("models", []):
-            print(f" - {m['model']} (Score: {m['score']})")
+        for node, label in (("amdy", "AMDY Local Models"), ("tell", "TELL Remote Models")):
+            print(f"--- {label} ---")
+            node_data = data.get(node, {})
+            # New getinfo format: models_fit=[{model,size_gb,score}]; tolerate legacy `models`.
+            for m in node_data.get("models_fit") or node_data.get("models") or []:
+                size = f", {m['size_gb']}GB" if "size_gb" in m else ""
+                print(f" - {m['model']} (score {m.get('score', '?')}{size})")
     except Exception as e:
         print(f"Error reading registry: {e}")
 
@@ -35,14 +36,15 @@ def rm_model(name: str):
     print(f"Model {name} deleted.")
 
 def train_model(name: str):
-    print(f"Initiating Training Pipeline for {name}...")
-    print("Dispatching to MoE Trainer Bridge.")
-    # Placeholder for actual training loop
-    print("Training sequence complete.")
+    # The MoE trainer bridge is not implemented. Be honest instead of claiming
+    # a fake success — training data is staged under moe_training/ for a future
+    # bridge, but no training loop runs here yet.
+    print(f"// `models train {name}` is not implemented (no MoE trainer bridge yet).")
+    print("// Training corpus is staged under moe_training/; wire a real trainer before using this.")
 
 def list_trail():
     trail = TaskTrail()
-    tasks = trail._load()
+    tasks = trail.all_tasks()
     if not tasks:
         print("Task trail is empty.")
         return
@@ -53,7 +55,7 @@ def list_trail():
         
 def clear_trail():
     trail = TaskTrail()
-    trail._save([])
+    trail.clear()
     print("Task trail cleared successfully.")
 
 def sync_trail():
@@ -108,7 +110,7 @@ def main() -> None:
     args = parser.parse_args()
 
     _harness_cmds = ('wiki', 'skills', 'directive', 'paths', 'local', 'run',
-                     'batch', 'ask', 'summarize', 'classify', 'optimize')
+                     'batch', 'ask', 'summarize', 'classify', 'optimize', 'digest')
     if harness_cli is not None and args.command in _harness_cmds:
         if harness_cli.handle(args):
             return

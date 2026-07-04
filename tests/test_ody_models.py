@@ -31,15 +31,20 @@ def test_ody_dockerfile_python_version():
 
 
 def test_model_registry_populated():
-    """When sys_profiler has run, the registry must map local models for amdy."""
+    """When getinfo/sys_profiler has run, the registry maps VRAM-fitting local models for amdy."""
+    from reins.harness import paths
+
     registry_file = require(
-        "~/data_rein/data-oby/TrainingData/model_registry.json",
-        "model registry not generated (sys_profiler has not run on this host)",
+        str(paths.model_registry()),
+        "model registry not generated (run `getinfo` / sys_profiler on this host)",
     )
     with open(registry_file, "r") as f:
         registry = json.load(f)
     assert "amdy" in registry, "Local node amdy missing from registry"
-    assert len(registry["amdy"].get("models", [])) > 0, "No models detected by sys_profiler"
+    amdy = registry["amdy"]
+    # New getinfo format exposes `models_fit`; tolerate the legacy `models` key.
+    fit = amdy.get("models_fit") or amdy.get("models") or []
+    assert len(fit) > 0, "No VRAM-fitting models detected for amdy"
 
 
 def test_memory_ingestion():
