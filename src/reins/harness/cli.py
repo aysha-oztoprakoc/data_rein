@@ -82,6 +82,27 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     dig.add_argument("--no-enrich", action="store_true", help="skip local-model fact enrichment (faster)")
     dig.add_argument("--no-trail", action="store_true", help="do not log to the Task Trail")
 
+    # reins backup ...  (omarchy/workspace backup + shutdown guard)
+    bak = subparsers.add_parser("backup", help="Backup + shutdown-guard for omarchy/workspace")
+    bsub = bak.add_subparsers(dest="subcmd")
+    bsub.add_parser("check", help="Run the health/integrity suite and report")
+    bsub.add_parser("now", help="Back up if healthy (refresh rescue script + push dotfiles)")
+    bsub.add_parser("status", help="Show backup config + last rescue script")
+    bsub.add_parser("install", help="Wire the guard into bash/zsh + systemd (user-space)")
+    bsub.add_parser("uninstall", help="Remove the guard wiring")
+    g = bsub.add_parser("guard", help="Intercept a power action: health-gate + back up")
+    g.add_argument("action", choices=["reboot", "poweroff", "shutdown"])
+    g.add_argument("--force", action="store_true", help="proceed even if health checks fail")
+    g.add_argument("--dry-run", action="store_true", help="do everything except the real power action")
+    em = bsub.add_parser("emergency", help="Generate the portable single-file rescue script")
+    em.add_argument("--out", help="output path (default from config)")
+    rs = bsub.add_parser("restore", help="Restore the workspace")
+    rs.add_argument("--source", default="local", choices=["local", "github", "gcloud"])
+
+    # reins secret <KEY>  (read one value from the encrypted vault)
+    sec = subparsers.add_parser("secret", help="Print a secret value from the encrypted vault")
+    sec.add_argument("key", help="secret name, e.g. GITHUB_TOKEN")
+
     # reins directive / paths
     subparsers.add_parser("directive", help="Print the Prime Directive")
     subparsers.add_parser("paths", help="Print canonical harness paths")
@@ -97,6 +118,10 @@ def handle(args: argparse.Namespace) -> bool:
         return _handle_workflow(args)
     if args.command == "digest":
         return _handle_digest(args)
+    if args.command == "backup":
+        return _handle_backup(args)
+    if args.command == "secret":
+        return _handle_secret(args)
     if args.command == "directive":
         pd = paths.prime_directive()
         print(pd.read_text(encoding="utf-8") if pd.exists() else f"// missing: {pd}")
@@ -212,6 +237,75 @@ def _handle_digest(args: argparse.Namespace) -> bool:
     )
     ok = sum(1 for r in results if r.ok)
     print(f"// digested {ok}/{len(results)} file(s) into the wiki")
+    return True
+
+
+def _handle_backup(args: argparse.Namespace) -> bool:
+    from reins.services.backup import BackupService
+
+    svc = BackupService()
+    sub = getattr(args, "subcmd", None)
+
+    if sub == "check":
+        rep = svc.health_check()
+        for r in rep.results:
+            mark = "\033[32m✓\033[0m" if r.ok else "\033[31m✗\033[0m"
+            print(f"  {mark} {r.name:20s} {r.detail}")
+        print(f"// health: {'OK' if rep.passed else 'FAILED (' + str(len(rep.failures)) + ')'}")
+        return True
+    if sub == "now":
+        rep = svc.health_check()
+        if not rep.passed:
+            print(f"// health FAILED ({len(rep.failures)}); refusing to overwrite the good backup. "
+                  "Run `reins backup check`.")
+            svc.failsafe_backup()
+            return True
+        out = svc.backup_now()
+        print(f"// backup OK -> rescue={out['emergency_script']} dotfiles_pushed={out['dotfiles_pushed']}")
+        return True
+    if sub == "guard":
+        rc = svc.guard(args.action, force=args.force, dry_run=args.dry_run)
+        raise SystemExit(rc)
+    if sub == "emergency":
+        p = svc.generate_emergency_script(dest=getattr(args, "out", None))
+        print(f"// portable rescue script -> {p}  ({p.stat().st_size // 1024} KB)")
+        print("   restore from a live USB with:  bash omarchy_rescue.sh --restore")
+        return True
+    if sub == "restore":
+        ok = svc.restore(args.source)
+        print(f"// restore from {args.source}: {'OK' if ok else 'FAILED'}")
+        return True
+    if sub == "install":
+        for note in svc.install_hooks():
+            print(f"  {note}")
+        print("// guard installed. Open a new shell (or `source ~/.bashrc`) to activate.")
+        return True
+    if sub == "uninstall":
+        for note in svc.uninstall_hooks():
+            print(f"  {note}")
+        return True
+    # status / default
+    cfg = svc.config
+    print(f"// backup config -> {svc.config_path}")
+    print(f"   dotfiles repo : {cfg.get('dotfiles', {}).get('git_dir')}")
+    print(f"   rescue script : {cfg.get('emergency_script')}")
+    print(f"   github restore: {cfg.get('remote_restore', {}).get('github', {}).get('repo')}")
+    print(f"   gcloud restore: {'enabled' if cfg.get('remote_restore', {}).get('gcloud', {}).get('enabled') else 'disabled'}")
+    return True
+
+
+def _handle_secret(args: argparse.Namespace) -> bool:
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(paths.home() / "scripts"))
+        from get_secrets import get_secret  # type: ignore
+        val = get_secret(args.key)
+        if val:
+            print(val)
+        else:
+            print(f"// no such secret: {args.key}", file=__import__("sys").stderr)
+    except Exception as e:
+        print(f"// vault error: {e}", file=__import__("sys").stderr)
     return True
 
 

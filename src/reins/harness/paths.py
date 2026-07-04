@@ -87,6 +87,11 @@ def model_registry() -> Path:
     return config_dir() / "model_registry.json"
 
 
+def backup_config() -> Path:
+    """Config for the backup + shutdown-guard system (reins.services.backup)."""
+    return config_dir() / "backup_config.json"
+
+
 def obsidian_vault() -> Path:
     """The human-facing 'oby' Obsidian vault."""
     return _resolve("DATA_REIN_OBY", "data-oby")

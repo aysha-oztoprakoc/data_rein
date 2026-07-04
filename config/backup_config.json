@@ -1,27 +1,80 @@
 {
-    "base_paths": [
-        "~/data_rein",
-        "~/omarchy-oasis",
-        "~/DATA",
-        "~/.hermes"
-    ],
-    "destinations": [
-        {
-            "id": "amdy_local",
-            "type": "local",
-            "path": "~/backups/{repo_name}"
-        },
-        {
-            "id": "tell_nvme",
-            "type": "remote",
-            "host": "tell@192.168.0.2",
-            "path": "~/DATA/nvme_backup/{repo_name}"
-        },
-        {
-            "id": "tell_hdd",
-            "type": "remote",
-            "host": "tell@192.168.0.2",
-            "path": "~/HDD/backups/{repo_name}"
-        }
+  "_comment": "Single source of truth for the data_rein backup + shutdown-guard system (reins.services.backup). Machine-readable so the emergency rescue script AND a future Nix flake can both consume it. Paths use ~ (expanded at runtime).",
+
+  "dotfiles": {
+    "git_dir": "~/.dotfiles",
+    "work_tree": "~",
+    "remote": "origin",
+    "branch": "main",
+    "paths": [
+      "~/.config/hypr",
+      "~/.config/omarchy",
+      "~/.config/waybar",
+      "~/.config/starship.toml",
+      "~/.config/mako",
+      "~/.config/walker"
     ]
+  },
+
+  "harness": {
+    "repo": "https://github.com/aysha-oztoprakoc/data_rein.git",
+    "branch": "main",
+    "root": "~/data_rein",
+    "essential_paths": [
+      "src/reins",
+      "config",
+      "scripts",
+      "skills",
+      "knowledge_base/PRIME_DIRECTIVE.md",
+      "knowledge_base/AESTHETIC_DIRECTIVE.md",
+      "knowledge_base/HARDWARE.md",
+      "pyproject.toml",
+      "CLAUDE.md"
+    ]
+  },
+
+  "emergency_script": "~/.cache/data_rein/backup/omarchy_rescue.sh",
+  "failsafe_backup_dir": "~/.cache/data_rein/backup/failsafe",
+
+  "health": {
+    "hypr_critical_files": [
+      "~/.config/hypr/hyprland.conf",
+      "~/.config/hypr/bindings.conf",
+      "~/.config/hypr/monitors.conf",
+      "~/.config/hypr/input.conf"
+    ],
+    "waybar_config": "~/.config/waybar/config.jsonc",
+    "omarchy_theme_dir": "~/.config/omarchy/themes",
+    "hypr_syntax_dirs": [
+      "~/.config/hypr",
+      "~/.config/omarchy/current/theme"
+    ],
+    "essential_packages": ["hyprland"],
+    "workspace_paths": [
+      "~/data_rein/src/reins",
+      "~/data_rein/knowledge_base/PRIME_DIRECTIVE.md",
+      "~/data_rein/.venv"
+    ]
+  },
+
+  "remote_restore": {
+    "github": {
+      "repo": "https://github.com/aysha-oztoprakoc/data_rein.git",
+      "branch": "main"
+    },
+    "gcloud": {
+      "enabled": false,
+      "bucket": "",
+      "note": "gcloud SDK not installed on amdy; enable + set bucket to activate cloud restore."
+    }
+  },
+
+  "rsync_backup": {
+    "base_paths": ["~/data_rein", "~/.dotfiles", "~/.hermes"],
+    "destinations": [
+      {"id": "amdy_local", "type": "local", "path": "~/backups/{repo_name}"},
+      {"id": "tell_nvme", "type": "remote", "host": "tell@192.168.0.2", "path": "~/DATA/nvme_backup/{repo_name}"},
+      {"id": "tell_hdd", "type": "remote", "host": "tell@192.168.0.2", "path": "~/HDD/backups/{repo_name}"}
+    ]
+  }
 }
