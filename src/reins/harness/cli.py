@@ -75,6 +75,13 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     batch_p.add_argument("--node", default="amdy", choices=["amdy", "tell"])
     batch_p.add_argument("--rag", action="store_true")
 
+    # reins digest <path>  (raw files -> wiki knowledge)
+    dig = subparsers.add_parser("digest", help="Extract files (text/audio/video/images) into the wiki")
+    dig.add_argument("path", help="file or directory to digest")
+    dig.add_argument("--recursive", action="store_true", help="recurse into subdirectories")
+    dig.add_argument("--no-enrich", action="store_true", help="skip local-model fact enrichment (faster)")
+    dig.add_argument("--no-trail", action="store_true", help="do not log to the Task Trail")
+
     # reins directive / paths
     subparsers.add_parser("directive", help="Print the Prime Directive")
     subparsers.add_parser("paths", help="Print canonical harness paths")
@@ -88,6 +95,8 @@ def handle(args: argparse.Namespace) -> bool:
         return _handle_skills(args)
     if args.command in ("local", "run", "batch", "ask", "summarize", "classify", "optimize"):
         return _handle_workflow(args)
+    if args.command == "digest":
+        return _handle_digest(args)
     if args.command == "directive":
         pd = paths.prime_directive()
         print(pd.read_text(encoding="utf-8") if pd.exists() else f"// missing: {pd}")
@@ -180,6 +189,30 @@ def _handle_workflow(args: argparse.Namespace) -> bool:
         return True
 
     return False
+
+
+def _handle_digest(args: argparse.Namespace) -> bool:
+    from reins.harness import digest
+
+    p = Path(args.path).expanduser()
+    if not p.exists():
+        print(f"// no such path: {p}")
+        return True
+    print(f"// digesting {p} -> wiki (enrich={not args.no_enrich})")
+
+    def _emit(item: "digest.DigestItem") -> None:
+        if item.ok:
+            print(f"  [ok ] {item.node}: {item.slug} (+{item.facts} facts)  <- {item.path}")
+        else:
+            print(f"  [ERR] {item.path}: {item.error}")
+
+    results = digest.digest_path(
+        str(p), recursive=args.recursive, enrich=not args.no_enrich,
+        on_result=_emit, log_trail=not args.no_trail,
+    )
+    ok = sum(1 for r in results if r.ok)
+    print(f"// digested {ok}/{len(results)} file(s) into the wiki")
+    return True
 
 
 def _print_route(res) -> None:
