@@ -80,7 +80,7 @@ Universal access examples (work identically in every environment with a shell):
 ```bash
 reins wiki search "graceful degradation"
 reins wiki get <slug>
-reins wiki add-memory "amdy GPU is RX 9060 XT, 16GB VRAM" --category system
+reins wiki add-memory "amdy GPU is RX 9060 XT, 8GB VRAM" --category system
 ```
 
 ---
@@ -100,6 +100,23 @@ The harness is not welded to any vendor. Route by *task category*, not by model.
   fails over to the other node. Cloud models (Gemini/Claude/OpenAI) are for
   explicit, heavy, or user-authorized tasks. Secrets come only from the encrypted
   vault (`scripts.get_secrets.get_secret`) — never from plaintext, never hard-coded.
+
+### 3a. Hardware manifest — the single source of truth for specs
+
+Never hard-code hardware specs. The live cluster hardware lives in one place:
+**`knowledge_base/HARDWARE.md`** (`reins.harness.paths.hardware_manifest`), regenerated
+by the **`getinfo`** scan (`SysProfiler` → MQTT `data_rein/getinfo/trigger`, or
+`python -m reins.services.sys_profiler`). Every model tier in `model_router.json`
+must fit the VRAM budget the manifest reports. Current budget (auto-refreshed on the
+next scan, so this is a pointer, not a copy):
+
+| Node   | GPU              | VRAM | RAM   | CPU                        |
+|--------|------------------|------|-------|----------------------------|
+| `amdy` | AMD RX 9060 XT   | 8 GB | 16 GB | Ryzen 7 7700 (8c/16t)      |
+| `tell` | NVIDIA GTX 1060  | 6 GB | 16 GB | Intel i5 7th-gen (4c/4t)   |
+
+When hardware changes, run `getinfo`; the manifest, the mirrored `system` wiki memory,
+and every downstream decision update from the scan — do not edit specs by hand elsewhere.
 
 ---
 

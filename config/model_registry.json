@@ -1,107 +1,62 @@
 {
+  "scanned_at": "2026-07-04T12:31:37.207487+00:00",
   "amdy": {
+    "reachable": true,
     "hardware": {
-      "vram_gb": 16.0
+      "vram_gb": 8.0,
+      "ram_gb": 14.7,
+      "cpu": {
+        "threads": "8",
+        "model": "AMD Ryzen 7 7700 8-Core Processor",
+        "cores_per_socket": "8"
+      }
     },
-    "tiers": {
-      "KAT_11": [
-        {
-          "model": "starcoder2:7b",
-          "score": 90.8
-        },
-        {
-          "model": "codegemma:7b",
-          "score": 90.8
-        },
-        {
-          "model": "gemma2:9b",
-          "score": 88.2
-        },
-        {
-          "model": "llama3.2-vision:11b",
-          "score": 85.6
-        },
-        {
-          "model": "qwen2.5-coder:7b",
-          "score": 90.8
-        },
-        {
-          "model": "qwen2.5:7b",
-          "score": 90.8
-        },
-        {
-          "model": "llama3.1:8b",
-          "score": 89.5
-        }
-      ],
-      "KAT_7": [
-        {
-          "model": "mistral:instruct",
-          "score": 92.5
-        },
-        {
-          "model": "phi4:latest",
-          "score": 92.5
-        },
-        {
-          "model": "bakllava:latest",
-          "score": 92.5
-        }
-      ],
-      "KAT_3": []
-    }
+    "models_installed": [
+      "bakllava:latest",
+      "codegemma:7b",
+      "deepseek-r1:14b",
+      "gemma3:12b",
+      "llama3.1:8b",
+      "llama3.2-vision:11b",
+      "llava:13b",
+      "phi4:latest",
+      "qwen2.5-coder:7b"
+    ],
+    "models_fit": [
+      {
+        "model": "bakllava:latest",
+        "size_gb": 4.7,
+        "score": 41.2
+      },
+      {
+        "model": "codegemma:7b",
+        "size_gb": 5.0,
+        "score": 37.5
+      },
+      {
+        "model": "llama3.1:8b",
+        "size_gb": 4.9,
+        "score": 38.7
+      },
+      {
+        "model": "qwen2.5-coder:7b",
+        "size_gb": 4.7,
+        "score": 41.2
+      }
+    ]
   },
   "tell": {
+    "reachable": false,
     "hardware": {
-      "vram_gb": 16.0
+      "vram_gb": 6.0,
+      "ram_gb": 16.0,
+      "cpu": {
+        "model": "Intel Core i5 (7th gen)",
+        "cores_per_socket": "4",
+        "threads": "4"
+      }
     },
-    "tiers": {
-      "KAT_11": [
-        {
-          "model": "deepseek-r1:7b",
-          "score": 90.8
-        },
-        {
-          "model": "deepseek-r1:8b",
-          "score": 89.5
-        },
-        {
-          "model": "minicpm-v:8b",
-          "score": 89.5
-        },
-        {
-          "model": "llama3.1:8b-instruct-q4_K_M",
-          "score": 89.5
-        }
-      ],
-      "KAT_7": [
-        {
-          "model": "qwen2.5-coder:3b",
-          "score": 96.1
-        },
-        {
-          "model": "qwen2.5:3b",
-          "score": 96.1
-        }
-      ],
-      "KAT_3": [
-        {
-          "model": "deepseek-r1:1.5b",
-          "score": 98.0
-        },
-        {
-          "model": "moondream:1.8b",
-          "score": 97.6
-        },
-        {
-          "model": "smollm2:1.7b",
-          "score": 97.8
-        },
-        {
-          "model": "gemma2:2b",
-          "score": 97.4
-        }
-      ]
-    }
+    "models_installed": [],
+    "models_fit": []
   }
 }

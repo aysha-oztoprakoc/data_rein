@@ -1,49 +1,42 @@
 {
+  "_comment": "Re-tiered 2026-07-04 to the real hardware budget: amdy = RX 9060 XT 8GB VRAM / 16GB RAM, tell = GTX 1060 6GB / 16GB DDR4. amdy entries are restricted to models actually installed AND fitting 8GB VRAM (verified via `reins local list`). tell entries follow tools/pull_models_tell.sh intent and must be re-validated by the cookbook when tell is online. Scores are provisional until cookbook_evaluator refreshes them.",
   "categories": {
     "general chatting": {
       "amdy": [
-        {"model": "llama3.1:8b", "score": 89.5, "power": "high"},
-        {"model": "gemma2:9b", "score": 88.2, "power": "high"},
-        {"model": "phi4:latest", "score": 92.5, "power": "medium"}
+        {"model": "llama3.1:8b", "score": 89.5, "power": "high"}
       ],
       "tell": [
         {"model": "llama3.1:8b-instruct-q4_K_M", "score": 89.5, "power": "high"},
-        {"model": "deepseek-r1:8b", "score": 89.5, "power": "high"},
         {"model": "qwen2.5:3b", "score": 96.1, "power": "low"}
       ]
     },
     "deep search": {
       "amdy": [
-        {"model": "qwen2.5:7b", "score": 90.8, "power": "high"},
-        {"model": "mistral:instruct", "score": 92.5, "power": "high"},
-        {"model": "llama3.1:8b", "score": 89.5, "power": "high"}
+        {"model": "llama3.1:8b", "score": 89.5, "power": "high"},
+        {"model": "qwen2.5-coder:7b", "score": 90.8, "power": "high"}
       ],
       "tell": [
         {"model": "deepseek-r1:8b", "score": 89.5, "power": "high"},
-        {"model": "deepseek-r1:7b", "score": 90.8, "power": "high"},
         {"model": "qwen2.5:3b", "score": 96.1, "power": "low"}
       ]
     },
     "image generation": {
       "amdy": [
         {"model": "comfyui_sdxl_base", "score": 95.0, "power": "extreme", "backend": "comfyui"},
-        {"model": "llama3.2-vision:11b", "score": 85.6, "power": "high", "type": "vision_analysis"},
         {"model": "bakllava:latest", "score": 92.5, "power": "medium", "type": "vision_analysis"}
       ],
       "tell": [
-        {"model": "minicpm-v:8b", "score": 89.5, "power": "high", "type": "vision_analysis"},
         {"model": "moondream:1.8b", "score": 97.6, "power": "low", "type": "vision_analysis"},
+        {"model": "minicpm-v:8b", "score": 89.5, "power": "high", "type": "vision_analysis"},
         {"model": "llama3.1:8b-instruct-q4_K_M", "score": 89.5, "power": "high", "type": "prompt_generation"}
       ]
     },
     "audio generation": {
       "amdy": [
         {"model": "comfyui_audio_bark", "score": 92.0, "power": "extreme", "backend": "comfyui"},
-        {"model": "llama3.1:8b", "score": 89.5, "power": "high", "type": "prompt_generation"},
-        {"model": "qwen2.5-coder:7b", "score": 90.8, "power": "high", "type": "prompt_generation"}
+        {"model": "llama3.1:8b", "score": 89.5, "power": "high", "type": "prompt_generation"}
       ],
       "tell": [
-        {"model": "deepseek-r1:8b", "score": 89.5, "power": "high", "type": "prompt_generation"},
         {"model": "qwen2.5:3b", "score": 96.1, "power": "low", "type": "prompt_generation"},
         {"model": "gemma2:2b", "score": 97.4, "power": "low", "type": "prompt_generation"}
       ]
@@ -51,44 +44,36 @@
     "data processing": {
       "amdy": [
         {"model": "qwen2.5-coder:7b", "score": 90.8, "power": "high"},
-        {"model": "starcoder2:7b", "score": 90.8, "power": "high"},
         {"model": "codegemma:7b", "score": 90.8, "power": "high"}
       ],
       "tell": [
         {"model": "qwen2.5-coder:3b", "score": 96.1, "power": "low"},
-        {"model": "deepseek-r1:8b", "score": 89.5, "power": "high"},
         {"model": "gemma2:2b", "score": 97.4, "power": "low"}
       ]
     },
     "data organizing": {
       "amdy": [
         {"model": "qwen2.5-coder:7b", "score": 90.8, "power": "high"},
-        {"model": "starcoder2:7b", "score": 90.8, "power": "high"},
         {"model": "codegemma:7b", "score": 90.8, "power": "high"}
       ],
       "tell": [
         {"model": "qwen2.5-coder:3b", "score": 96.1, "power": "low"},
-        {"model": "deepseek-r1:8b", "score": 89.5, "power": "high"},
         {"model": "gemma2:2b", "score": 97.4, "power": "low"}
       ]
     },
     "rag extraction": {
       "amdy": [
-        {"model": "phi4:latest", "score": 92.5, "power": "medium"},
-        {"model": "qwen2.5:7b", "score": 90.8, "power": "high"},
-        {"model": "mistral:instruct", "score": 92.5, "power": "high"}
+        {"model": "llama3.1:8b", "score": 89.5, "power": "high"},
+        {"model": "qwen2.5-coder:7b", "score": 90.8, "power": "high"}
       ],
       "tell": [
         {"model": "qwen2.5:3b", "score": 96.1, "power": "low"},
-        {"model": "deepseek-r1:7b", "score": 90.8, "power": "high"},
         {"model": "smollm2:1.7b", "score": 97.8, "power": "low"}
       ]
     },
     "prompt optimization": {
       "amdy": [
-        {"model": "llama3.1:8b", "score": 89.5, "power": "high"},
-        {"model": "phi4:latest", "score": 92.5, "power": "medium"},
-        {"model": "gemma2:9b", "score": 88.2, "power": "high"}
+        {"model": "llama3.1:8b", "score": 89.5, "power": "high"}
       ],
       "tell": [
         {"model": "deepseek-r1:1.5b", "score": 98.0, "power": "low"},
@@ -98,38 +83,32 @@
     },
     "external memory vault": {
       "amdy": [
-        {"model": "starcoder2:7b", "score": 90.8, "power": "high"},
         {"model": "codegemma:7b", "score": 90.8, "power": "high"},
-        {"model": "mistral:instruct", "score": 92.5, "power": "high"}
+        {"model": "qwen2.5-coder:7b", "score": 90.8, "power": "high"}
       ],
       "tell": [
         {"model": "qwen2.5-coder:3b", "score": 96.1, "power": "low"},
-        {"model": "deepseek-r1:8b", "score": 89.5, "power": "high"},
-        {"model": "deepseek-r1:7b", "score": 90.8, "power": "high"}
+        {"model": "deepseek-r1:8b", "score": 89.5, "power": "high"}
       ]
     },
     "external memory guardian": {
       "amdy": [
         {"model": "llama3.1:8b", "score": 89.5, "power": "high"},
-        {"model": "gemma2:9b", "score": 88.2, "power": "high"},
         {"model": "qwen2.5-coder:7b", "score": 90.8, "power": "high"}
       ],
       "tell": [
         {"model": "deepseek-r1:8b", "score": 89.5, "power": "high"},
-        {"model": "llama3.1:8b-instruct-q4_K_M", "score": 89.5, "power": "high"},
         {"model": "minicpm-v:8b", "score": 89.5, "power": "high"}
       ]
     },
     "self-optimization": {
       "amdy": [
         {"model": "qwen2.5-coder:7b", "score": 90.8, "power": "high"},
-        {"model": "llama3.1:8b", "score": 89.5, "power": "high"},
-        {"model": "mistral:instruct", "score": 92.5, "power": "high"}
+        {"model": "llama3.1:8b", "score": 89.5, "power": "high"}
       ],
       "tell": [
         {"model": "deepseek-r1:7b", "score": 90.8, "power": "high"},
-        {"model": "qwen2.5-coder:3b", "score": 96.1, "power": "low"},
-        {"model": "deepseek-r1:8b", "score": 89.5, "power": "high"}
+        {"model": "qwen2.5-coder:3b", "score": 96.1, "power": "low"}
       ]
     }
   }

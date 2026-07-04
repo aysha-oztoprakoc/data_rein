@@ -65,6 +65,11 @@ def shared_context() -> Path:
     return _resolve("DATA_REIN_SHARED_CONTEXT", "knowledge_base", "SHARED_CONTEXT.md")
 
 
+def hardware_manifest() -> Path:
+    """Canonical, live-refreshed hardware manifest (written by the getinfo scan)."""
+    return _resolve("DATA_REIN_HARDWARE", "knowledge_base", "HARDWARE.md")
+
+
 def wiki_db() -> Path:
     """The single shared monolith Wiki database (derived, rebuildable)."""
     return _resolve("DATA_REIN_WIKI_DB", "knowledge_base", "wiki.db")
@@ -85,6 +90,14 @@ def model_registry() -> Path:
 def obsidian_vault() -> Path:
     """The human-facing 'oby' Obsidian vault."""
     return _resolve("DATA_REIN_OBY", "data-oby")
+
+
+def agy_brain_dir() -> Path:
+    """Where Antigravity (data-agy) stores conversation brain artifacts (task.md)."""
+    override = os.environ.get("DATA_REIN_AGY_BRAIN")
+    if override:
+        return Path(override).expanduser()
+    return Path("~/.gemini/antigravity-cli/brain").expanduser()
 
 
 def state_dir() -> Path:
@@ -113,6 +126,7 @@ def summary() -> dict[str, str]:
         "prime_directive": str(prime_directive()),
         "aesthetic_directive": str(aesthetic_directive()),
         "shared_context": str(shared_context()),
+        "hardware_manifest": str(hardware_manifest()),
         "wiki_db": str(wiki_db()),
         "config_dir": str(config_dir()),
         "model_router": str(model_router()),
