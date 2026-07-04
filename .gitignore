@@ -1,6 +1,6 @@
 ComfyUI/
 .venv/
-training_data/
+/training_data/
 
 # --- Secrets (never commit) ---
 config/api_keys.json
@@ -44,3 +44,8 @@ __pycache__/
 *.pyc
 .mypy_cache/
 .pytest_cache/
+
+# --- Logs & local editor/tooling state ---
+*.log
+.idea/
+.claude/

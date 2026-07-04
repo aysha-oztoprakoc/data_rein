@@ -1,0 +1,380 @@
+# Architecture Principles for Resilience.pdf
+
+Frank J. Furrer
+1447 Accesses
+Abstract
+In today’s very complex systems, errors, faults, malfunctions, attacks, and malicious
+activities are no longer exceptions, but everyday facts. Such events may lead to
+unavailability, failures, or unacceptable delays in the services or products implemented by
+software. The consequences of such events may be grave—possibly endangering life, health,
+property, profit, or reputation. The systems must, therefore, be designed and implemented
+to exhibit sufficient resilience against adverse incidents. Building resilient systems is a
+significant engineering discipline with a rich history and extensive literature. This chapter
+provides an introduction to resilience engineering and presents some of the fundamental
+principles for designing and evolving the architecture of resilient systems.
+ This is a preview of subscription content, log in via an institution
+ to check access.
+Log in
+Architecture Principles for Resilience
+Chapter
+First Online: 26 September 2019
+pp 309–336
+Cite this chapter
+Future-Proof Software-Systems
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+1/14
+
+
+Access this chapter
+Subscribe and save
+Springer+
+from $39.99 /Month
+Buy Now
+Chapter
+USD 29.95
+Price excludes VAT (Brazil)
+eBook
+USD 39.99
+Hardcover Book
+USD 54.99
+Log in via an institution
+Starting from 10 chapters or articles per month
+Access and download chapters and articles from more than 300k books and 2,500
+journals
+Cancel anytime
+View plans 
+Available as PDF
+Read on any device
+Instant download
+Own it forever
+Buy Chapter 
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+2/14
+
+
+Tax calculation will be finalised at checkout
+Purchases are for personal use only
+Institutional subscriptions 
+Explore related subjects
+Discover the latest articles, books and news in related subjects, suggested using machine learning.
+Architectural History and Theory
+Building Law for Engineers and Architects
+Enterprise Architecture
+Principles and Models of Security
+Sociology of Architecture
+System Robustness
+References
+[Allocco10] Allocco M (2010) Safety analyses of complex systems—considerations of
+software, firmware, hardware, human, and the environment. Wiley,
+Hoboken. ISBN 978-0-470-58770-6
+[Al-Malki11] Al-Malki MF (2011) Fault-tolerant flight control—system design with
+application to bell-205 helicopter. VDM, Müller. ISBN 978-3-6392-
+3928-7
+[Anwar18] Anwar S (2018) Fault tolerant drive by wire systems—impact on vehicle
+safety and reliability. Bentham Science Publishers, Sharjah. ISBN 978-1-
+6080-5667-5
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+3/14
+
+
+[Bacik08] Bacik S (2008) Building an effective security policy architecture. CRC Press
+Inc., Boca Raton. ISBN 978-1-420-05905-2
+[Barman07] Barman S (2007) Writing information security policies. Pearson
+Technology Group, Upper Saddle River. ISBN 978-1-578-70264-0
+[Benveniste12] Benveniste A, Caillaud B, Nickovic D, Passerone R, Raclet J-B,
+Reinkemeier P, Sangiovanni-Vincentelli A, Damm W, Henzinger T,
+Larsen K (2012) Contracts for systems design. INRIA Research
+Report, N° 8147. ISSN 0249-6399.
+http://hal.inria.fr/docs/00/75/85/14/PDF/RR-8147.pdf. Accessed 23
+Sep 2017
+[Blokdyk18c] Blokdyk G (2018) Information policy—a clear and concise reference.
+CreateSpace Independent Publishing Platform, Scotts Valley. ISBN 978-
+1-9869-4593-6
+[Bondavalli16] Bondavalli A, Bouchenak S, Kopetz H (eds) (2016) Cyber-physical
+systems of systems: foundations—a conceptual model and some
+derivations: the AMADEOS legacy. Springer Lecture Notes in
+Computer Science, Heidelberg. ISBN 978-3-319-47589-9
+[Borger03] Borger E (2003) Abstract state machines—a method for high-level system
+design and analysis. Springer, Berlin. ISBN 978-3-540-00702-9
+[Buchanan02] Buchanan R (2002) Disaster proofing information systems—a
+complete methodology for eliminating single points of failure.
+McGraw-Hill Education, New York. ISBN 978-0-071-40922-3
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+4/14
+
+
+[Butler07] Butler M, Jones C, Romanovsky A, Troubytsina E (eds) (2007) Rigorous
+development of complex fault-tolerant systems. Springer, Berlin (Lecture
+Notes in Computer Science, Vol. 4157). ISBN 978-3-540-48265-9
+[Butler10] Butler M, Jones CB, Romanovsky A, Troubitsyna E (2010) Methods, models
+and tools for fault tolerance. Springer, Berlin (Lecture Notes in Computer
+Science, Vol. 5454). ISBN 978-3-642-00866-5
+[Chio18] Chio C, Freeman D (2018) Machine learning and security—protecting systems
+with data and algorithms. O’Reilly UK Ltd., Beijing. ISBN 978-1-491-97990-7
+[Diogenes18] Diogenes Yuri, Ozkaya Erdal (2018) Cybersecurity—attack and defense
+strategies: infrastructure security with red team and blue team tactics.
+Packt Publishing Inc., Birmingham. ISBN 978-1-7884-7529-7
+[Dubrova13] Dubrova E (2013) Fault-tolerant design. Springer, Berlin. ISBN 978-1-
+461-42112-2
+[Ericson15] Ericson CA (2015) Hazard analysis techniques for system safety, 2nd edn.
+Wiley, Hoboken. ISBN 978-1-118-94038-9
+[Erl08] Erl T (2008) Web service contract design and versioning for SOA. Prentice Hall,
+Upper Saddle River. ISBN 978-0-136-13517-3
+[Flammini12] Flammini F (ed) (2012) Railway safety, reliability, and security—
+technologies and systems engineering. Information Science Reference
+(IGI Global), Hershey. ISBN 978-1-4666-1643-1
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+5/14
+
+
+[Flammini18] Flammini F (ed) (2018) Resilience of cyber-physical systems—from
+risk modelling to threat counteraction. Springer, Berlin. ISBN 978-3-
+319-95596-4
+[Flynn09] Flynn N (2009) The e-Policy handbook—rules and best practices to safely
+manage your company’s e-mail, blogs, social networking, … and other
+internet communication tools. American Management Association, New
+York. ISBN 978-0-8144-1065-3
+[Forouzan10] Forouzan BA (2010) TCP/IP protocol suite, 4th edn. McGraw-Hill Inc.,
+Chennai. ISBN 978-0-070-70652-1
+[Francis14] Francis R, Bekera B (2014) A metric and frameworks for resilience
+analysis of engineered and infrastructure systems. Reliab Eng Sys Safety
+121:90–103. https://blogs.gwu.edu/seed/files/2012/07/Reliability-
+Engineering-and-System-Safety-2014-Francis-1y5jkh9.pdf. Accessed 3
+Sep 2017
+[Gertsbakh11] Gertsbakh I, Shpungin Y (2011) Network reliability and resilience.
+SpringerBriefs in Electrical and Computer Engineering. Springer,
+Heidelberg. ISBN 978-3-642-22373-0
+[Goloubeva06] Goloubeva O, Rebaudengo M, Reorda MS, Violante M (2006)
+Software-implemented hardware fault tolerance. Springer, Berlin.
+ISBN 978-0-387-26060-0
+[Hanmer07] Hanmer R (2007) Patterns for fault tolerant software. Wiley, Hoboken.
+ISBN 978-0-470-31979-6
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+6/14
+
+
+[Hodson19] Hodson C (2019) Cyber risk management. Kogan Page, New York. ISBN
+978-0-749-48412-5
+[Hole16] Hole KJ (2016) Anti-fragile ICT systems. Springer, Berlin. ISBN 978-3-319-
+30068-9
+[Hollnagel06] Hollnagel E, Woods DD, Leveson N (eds) (2006) Resilience
+engineering—concepts and precepts. Ashgate Publishing Ltd.,
+Aldershot. ISBN 978-0-7546-4904-5
+[Hollnagel13] Hollnagel E, Paries J, Woods DD, Wreathall J (2013) Resilience
+engineering in practice—a guidebook. CRC Press, Boca Raton. ISBN
+978-1-472-42074-9
+[Holzmann09] Holzmann F (2009) Adaptive cooperation between driver and
+assistant system—improving road safety. Springer, Berlin. ISBN
+978-3-642-09388-3
+[Hopkin18] Hopkin P (2018) Fundamentals of risk management—understanding,
+evaluating and implementing effective risk management, 5th edn. Kogan
+Page, New York. ISBN 978-0-749-48307-4
+[Jackson10] Jackson S (2010) Architecting resilient systems—accident avoidance and
+survival and recovery from disruptions. Wiley, Hoboken. ISBN 978-0-
+470-40503-1
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+7/14
+
+
+[Jain17] Jain T, Yamé JJ, Sauter D (2017) Active fault-tolerant control systems—a
+behavioral system theoretic perspective. Springer, Berlin. ISBN 978-3-319-
+68827-5
+[Josephsen13] Josephsen D (2013) Nagios—building enterprise-grade monitoring
+infrastructures for systems and networks, 2nd edn. Prentice Hall Inc.,
+Upper Saddle River. ISBN 978-0-133-13573-2
+[Julian17] Julian M (2017) Practical monitoring—effective strategies for the real world.
+O’Reilly UK Ltd., Farnham. ISBN 978-1-491-95735-6
+[Killmeyer06] Killmeyer J (2006) Information security architecture—an integrated
+approach to security in the organization. Auerbach Publishers Inc.,
+Boca Raton. ISBN 978-0-849-31549-7
+[Knight12] Knight J (2012) Fundamentals of dependable computing for software
+engineers. Chapman and Hall/CRC Inc, Boca Raton. ISBN 978-1-439-
+86255-1
+[Kopetz11] Kopetz H (2011) Real-time systems—design principles for distributed
+embedded applications. Springer, New York. ISBN 978-1-4419-8237-7
+[Koren07] Koren I, Mani Krishna C (2007) Fault-tolerant systems. Morgan Kaufmann
+Publishing, San Francisco. ISBN 978-0-120-88525-1
+[Kshetri10] Kshetri N (2010) The global cybercrime industry—economic, institutional
+and strategic perspectives. Springer, Heidelberg. ISBN 978-3-642-11521-9
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+8/14
+
+
+[Landoll16] Landoll DJ (2016) Information security policies, procedures, and
+standards—a practitioner’s reference. CRC Press, Boca Raton. ISBN 978-
+1-482-24589-9
+[Leveson11] Leveson NG (2011) Engineering a safer world—systems thinking applied
+to safety. MIT Press, Cambridge. ISBN 978-0-262-01662-9
+[Mahmoud13] Mahmoud MS, Xia Y (2013) Analysis and synthesis of fault-tolerant
+control systems. Wiley, Hoboken. ISBN 978-1-118-54133-3
+[Mansouri16] Mansouri H (2016) Fault tolerance in mobile and ad hoc networks via
+checkpointing. LAP LAMBERT Academic Publishing, Saarbrücken.
+ISBN 978-3-330-00310-1
+[Marcus03] Marcus E (2003) Blueprints for high availability. Wiley, Hoboken. ISBN
+978-0-471-43026-1
+[Mead16] Mead NR, Woody CC (2016) Cyber security engineering—a practical
+approach for systems and software assurance. Addison-Wesley Professional,
+Boston. ISBN 978-0-13-418980-2
+[Mehan16] Mehan JE (2016) Insider threat—a guide to understanding, detecting, and
+defending against the enemy from within. IT Governance Publishing, Ely.
+ISBN 978-1-8492-8839-2
+[Meyer09] Meyer B (2009) A touch of class—learning to program well with objects
+and contracts. Springer, Berlin. ISBN 978-3-540-92144-5
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+9/14
+
+
+[Murer11] Murer S, Bonati B, Furrer FJ (2011) Managed evolution—a strategy for very
+large information systems. Springer, Berlin. ISBN 978-3-642-01632-5
+[Oppliger16] Oppliger R (2016) SSL and TLS—theory and practice, 2nd edn. Artech
+House Publishers, Norwood. ISBN 978-1-608-07998-8
+[Orondo14] Orondo O (2014) Identity and access management—a systems
+engineering approach. CreateSpace Independent Publishing Platform,
+Scotts Valley. ISBN 978-1-4993-5706-6
+[Oezsu11] Özsu MT, Valduriez P (2011) Principles of distributed database systems, 3rd
+edn. Springer, New York. ISBN 978-1-441-98833-1
+[Pelliccione07] Pelliccione P, Muccini H, Guelfi N, Romanofsky A (2007) Software
+engineering and fault tolerant systems. World Scientific Publishing
+Inc., Singapore. ISBN 978-9-8127-0503-7
+[Peltier04] Thomas R (2004) Peltier: Information security policies and procedures—a
+practitioner’s reference, 2nd edn. Taylor & Francis, Boca Raton. ISBN 978-
+0-8493-1958-7
+[Peti08] Peti P (2008) Diagnosis and maintenance in an integrated time-triggered
+architecture—tackling the trouble-not-identified phenomenon. VDM, Müller.
+ISBN 978-3-8364-8310-0
+[Plösch04] Plösch R (2004) Contracts, scenarios and prototypes—an integrated
+approach to high quality software. Springer, Berlin. ISBN 978-3-540-
+43486-0
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+10/14
+
+
+[Proctor02] Proctor PE, Christian Byrnes F (2002) The secured enterprise—
+protecting your information assets. Prentice Hall, Upper Saddle River.
+ISBN 978-0-130-61906-8
+[Pullum01] Pullum LL (2001) Software fault tolerance techniques and
+implementation. Artech House, Norwood. ISBN 978-1-580-53137-5
+[Riascos10] Riascos LAM, Miyagi PE (2010) Fault tolerance in manufacturing systems
+—applying petri nets. VDM, Müller. ISBN 978-3-6392-7556-8
+[Saxe18] Saxe J, Sanders H (2018) Malware data science—attack detection and
+attribution. No Starch Press Inc., San Francisco. ISBN 978-1-5932-7859-5
+[Saydjari18] Sami Saydjari O (2018) Engineering trustworthy systems—get
+cybersecurity design right the first time. McGraw-Hill Education, New
+York. ISBN 978-1-260-11817-9
+[Schmidt06] Schmidt K (2006) High availability and disaster recovery—concepts,
+design, implementation. Springer, Berlin. ISBN 978-3-540-24460-8
+[Scholz14] Scholz JA (2014) Enterprise architecture and information assurance—
+developing a secure foundation. Auerbach, Boca Raton. ISBN 978-1-439-
+84159-4
+[Selby17] Selby N, Vescent H (2017) Cyber attack survival manual—from identity theft
+to the digital apocalypse and everything in between. Weldon Owen, San
+Francisco. ISBN 978-1-6818-8175-1
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+11/14
+
+
+[Shein04] Shein R (2004) Zero-day exploit—countdown to darkness. Syngress,
+Rockland. ISBN 978-1-931836-09-8
+[Smith11] Smith DJ, Simpson KGL (2011) Safety critical systems handbook—a
+straightforward guide to functional safety, IEC 61508 and related standards,
+3rd edn. Butterworth-Heinemann, Oxford. ISBN 978-0-08-096781-3
+[Stolfo09] Stolfo SJ, Bellovin SM, Hershkop S, Keromytis A, Sinclair S, Smith SW (eds)
+(2009) Insider attack and cyber security—beyond the hacker. Springer,
+Berlin. ISBN 978-1-441-94589-1
+[Wagner06] Wagner F, Schmuki R, Wagner T, Wolstenholme P (2006) Modeling
+software with finite state machines—a practical approach. Auerbach,
+Boca Raton. ISBN 978-0-849-38086-0
+[Wahe11] Wahe S (2011) Open enterprise security architecture—a framework and
+template for policy-driven security. Van Haren Publishing, Zaltbommel. ISBN
+978-9-0875-3672-5
+[Wall07] Wall DS (2007) Cybercrime—the transformation of crime in the information
+age. Polity, Cambridge. ISBN 978-0-7456-2736-6
+[Wheeler11] Wheeler E (2011) Security risk management—building an information
+security risk management program from the ground up. Syngress,
+Rockland. ISBN 978-1-5974-9615-5
+[Yang17] Yang M, Hua G, Feng Y, Gong J (2017) Fault tolerance techniques for spacecraft
+control computers. Wiley, Hoboken. ISBN 978-1-119-10727-9
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+12/14
+
+
+[Yu14] Yu S (2014) Distributed denial of service attack and defense. Springer, New York.
+ISBN 978-1-461-49490-4
+[Zeigler17] Zeigler BP, Sarjoughian HS (2017) Guide to modeling and simulation of
+systems-of-systems, 2nd edn. Springer, London. ISBN 978-3-319-64133-1
+[Zongo18a] Zongo P (2018) The five anchors of cyber-resilience—why some
+enterprises are hacked into bankruptcy while others easily bounce back.
+Broadcast Books, Sydney. ISBN 978-0-6480078-4-5
+[Zongo18b] Zongo P (2018) The five anchors of cyber resilience—why some
+enterprises are hacked into bankruptcy, while others easily bounce back.
+CISO Advisory. ISBN 978-0-6480-0784-5. https://cisoadvisory.com.au/
+Author information
+Authors and Affiliations
+Computer Science Faculty, Technical University of Dresden, Dresden, Germany
+Frank J. Furrer
+Corresponding author
+Correspondence to Frank J. Furrer.
+Rights and permissions
+Reprints and permissions
+Copyright information
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+13/14
+
+
+© 2019 Springer Fachmedien Wiesbaden GmbH, part of Springer Nature
+About this chapter
+Cite this chapter
+Furrer, F.J. (2019). Architecture Principles for Resilience. In: Future-Proof Software-Systems.
+Springer Vieweg, Wiesbaden. https://doi.org/10.1007/978-3-658-19938-8_13
+.RIS
+.ENW
+.BIB
+DOI
+https://doi.org/10.1007/97
+8-3-658-19938-8_13
+Published
+26 September 2019
+Publisher Name
+Springer Vieweg, Wiesbaden
+Print ISBN
+978-3-658-19937-1
+Online ISBN
+978-3-658-19938-8
+eBook Packages
+Computer Science and
+Engineering (German
+Language)
+Publish with us
+Policies and ethics
+7/2/26, 11:08 AM
+Architecture Principles for Resilience | Springer Nature Link
+https://link.springer.com/chapter/10.1007/978-3-658-19938-8_13
+14/14
+
+

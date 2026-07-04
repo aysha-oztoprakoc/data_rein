@@ -1,0 +1,186 @@
+# Evolving Fractal Gene Regulatory Networks for Graceful Degradation of Software.pdf
+
+Peter J. Bentley
+Part of the book series: Lecture Notes in Computer Science ((LNTCS,volume 3460))
+Included in the following conference series:
+Self-star Workshop
+670 Accesses
+7 Citations
+Abstract
+Fractal proteins are an evolvable method of mapping genotype to phenotype through a
+developmental process, where genes are expressed into proteins comprised of subsets of the
+Mandelbrot Set. The resulting network of gene and protein interactions can be designed by
+evolution to produce specific patterns that in turn can be used to solve problems. In this
+paper, adaptive developmental programs, capable of developing different solutions in
+response to different signals from an environment, are investigated. The evolvability of
+Log in
+Evolving Fractal Gene Regulatory Networks for
+Graceful Degradation of Software
+Conference paper
+pp 21–35
+Cite this conference paper
+(SELF-STAR 2004)
+Self-star Properties in Complex
+Information Systems
+7/2/26, 11:11 AM
+Evolving Fractal Gene Regulatory Networks for Graceful Degradation of Software | Springer Nature Link
+https://link.springer.com/chapter/10.1007/11428589_2
+1/7
+
+
+solutions and the capability of these solutions to survive damage is assessed. Evolution is
+used to create a fractal gene regulatory network (GRN) thatcalculates the squareroot of the
+input (its environment). This is compared with a GP-evolved squareroot function and a
+human-designed squareroot function. The programs are damaged by corrupting their
+compiled executable code, and the ability for each of them to survive such damage is
+assessed. Experiments demonstrate that only the evolutionary developmental code shows
+gracefuldegradation after damage. This provides evidence that software based on gene,
+protein and cellular computation is far more robust than traditional methods. Like a
+multicellular organism, with its genes evolved and developed, it shows graceful degradation.
+Should it be damaged, it is designed to continue to work.
+ This is a preview of subscription content, log in via an institution
+ to check access.
+Access this chapter
+Institutional subscriptions 
+Preview
+Unable to display preview. Download preview PDF.
+Explore related subjects
+Discover the latest articles, books and news in related subjects, suggested using machine learning.
+Coevolution
+Evolutionary Developmental Biology
+Evolvability
+Log in via an institution
+7/2/26, 11:11 AM
+Evolving Fractal Gene Regulatory Networks for Graceful Degradation of Software | Springer Nature Link
+https://link.springer.com/chapter/10.1007/11428589_2
+2/7
+
+
+Gene regulatory networks
+Regulatory networks
+Saccharomyces cerevisiae
+Evolvability and Robustness in Genetic Systems
+References
+1. Bentley, P.J.: Fractal Proteins. Genetic Programming and Evolvable Machines Journal
+(2004)
+2. Bentley, P.J.: Evolving Fractal Gene Regulatory Networks for Robot Control. In: Banzhaf,
+W., Ziegler, J., Christaller, T., Dittrich, P., Kim, J.T. (eds.) ECAL 2003. LNCS (LNAI),
+vol. 2801, pp. 753–762. Springer, Heidelberg (2003)
+3. Bentley, P.J.: Evolving Fractal Proteins. In: Tyrrell, A.M., Haddow, P.C., Torresen, J. (eds.)
+ICES 2003. LNCS, vol. 2606, pp. 81–92. Springer, Heidelberg (2003)
+4. Bentley, P.J.: Evolving Beyond Perfection: An Investigation of the Effects of Long-Term
+Evolution on Fractal Gene Regulatory Networks. In: Proc. of Information Processing in
+Cells and Tissues, IPCAT 2003 (2003c)
+5. Bentley, P.J.: From Coffee Tables to Hospitals: Generic Evolutionary Design. In: Bentley,
+P.J. (ed.) Evolutionary Design by Computers, Ch. 18, pp. 405–423. Morgan Kaufmann
+Pub., San Francisco (1999)
+6. Jackson, A.H., Tyrrell, A.M.: Implementing Asynchronous Embryonic Circuits using
+AARDVArc. In: Proceedings of 2002 NASA/DoD Conference on Evolvable Hardware (EH
+2002), pp. 231–240. IEEE Computing Society, Alexandria (2002)
+7/2/26, 11:11 AM
+Evolving Fractal Gene Regulatory Networks for Graceful Degradation of Software | Springer Nature Link
+https://link.springer.com/chapter/10.1007/11428589_2
+3/7
+
+
+7. Kumar, S., Bentley, P.J.: Computational Embryology: Past, Present and Future. In: Ghosh,
+Tsutsui (eds.) Invited chapter in Theory and Application of Evolutionary Computation:
+Recent Trends. Springer, United Kingdom (2003)
+8. Langdon, W.: Genetic Programming + Data Structures = Automatic Programming!
+Kluwer Pub., Dordrecht (1998)
+9. Mahdavi, S., Bentley, P.J.: Adaptive Evolutionary Motion of Smart Robots. In: Proc. of
+EvoROB 2003, 2nd European Workshop on Evolutionary Robotics (2003)
+10. Mandelbrot, B.: The Fractal Geometry of Nature. W.H. Freeman & Company, New York
+(1982)
+11. Miller, J., Banzhaf, W.: Evolving the Program for a Cell: From French Flags to Boolean
+Circuits. In: Kumar, S., Bentley, P.J. (eds.) Invited chapter in on Growth, Form and
+Computers. Academic Press, London (2003)
+12. Shelton, C., Koopman, P.: Developing a Software Architecture for Graceful Degradation
+in an Elevator Control System. In: Workshop on Reliability in Embedded Systems
+13. Thompson, A.: Evolving Inherently Fault-Tolerant Systems. In: Proc. Instn. Mech.
+Engrs. (1997)
+14. Wolpert, L., Beddington, R., Jessell, T., Lawrence, P., Meyerowitz, E., Smith, J.:
+Principles of Development, 2nd edn. Oxford University Press, Oxford (2001)
+Author information
+7/2/26, 11:11 AM
+Evolving Fractal Gene Regulatory Networks for Graceful Degradation of Software | Springer Nature Link
+https://link.springer.com/chapter/10.1007/11428589_2
+4/7
+
+
+Authors and Affiliations
+Department of Computer Science, University College London, Malet Place, London, WC1E
+6BT, UK
+Peter J. Bentley
+Editor information
+Editors and Affiliations
+Università di Bologna, Bologna, Italy
+Ozalp Babaoglu
+Szeged University, Hungary
+Márk Jelasity
+University of Trento, Italy
+Alberto Montresor
+Department of Computer Science, Technische Universtät Dresden, Dresden, Germany
+Christof Fetzer
+University of Rome “La Sapienza”, Rome, Italy
+Stefano Leonardi
+School of Computing Science, Newcastle University, Newcastle upon Tyne, UK
+Aad van Moorsel
+Department of Computer Science, Vrije Universiteit Amsterdam, The Netherlands
+Maarten van Steen
+Rights and permissions
+Reprints and permissions
+Copyright information
+7/2/26, 11:11 AM
+Evolving Fractal Gene Regulatory Networks for Graceful Degradation of Software | Springer Nature Link
+https://link.springer.com/chapter/10.1007/11428589_2
+5/7
+
+
+© 2005 Springer-Verlag Berlin Heidelberg
+About this paper
+Cite this paper
+Bentley, P.J. (2005). Evolving Fractal Gene Regulatory Networks for Graceful Degradation of
+Software. In: Babaoglu, O., et al. Self-star Properties in Complex Information Systems. SELF-
+STAR 2004. Lecture Notes in Computer Science, vol 3460. Springer, Berlin, Heidelberg.
+https://doi.org/10.1007/11428589_2
+.RIS
+.ENW
+.BIB
+DOI
+https://doi.org/10.1007/11
+428589_2
+Publisher Name
+Springer, Berlin, Heidelberg
+Print ISBN
+978-3-540-26009-7
+Online ISBN
+978-3-540-32013-5
+eBook Packages
+Computer Science
+Computer Science (R0)
+Springer Nature
+Proceedings Computer
+Science
+Keywords
+Fractal Protein
+Gene Regulatory Network
+Environmental Protein
+Executable Code
+Wrong Kind
+These keywords were added by machine and not by the authors. This process is experimental and
+the keywords may be updated as the learning algorithm improves.
+7/2/26, 11:11 AM
+Evolving Fractal Gene Regulatory Networks for Graceful Degradation of Software | Springer Nature Link
+https://link.springer.com/chapter/10.1007/11428589_2
+6/7
+
+
+Publish with us
+Policies and ethics
+7/2/26, 11:11 AM
+Evolving Fractal Gene Regulatory Networks for Graceful Degradation of Software | Springer Nature Link
+https://link.springer.com/chapter/10.1007/11428589_2
+7/7
+
+
