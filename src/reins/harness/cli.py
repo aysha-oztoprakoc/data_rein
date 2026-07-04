@@ -37,6 +37,12 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     p.add_argument("--category", default="general")
     p.add_argument("--source", default="cli")
 
+    # reins skills ...
+    skills = subparsers.add_parser("skills", help="List/install harness skills")
+    ssub = skills.add_subparsers(dest="subcmd")
+    ssub.add_parser("list", help="List registered canonical skills")
+    ssub.add_parser("install", help="Link skills into every environment")
+
     # reins directive / paths
     subparsers.add_parser("directive", help="Print the Prime Directive")
     subparsers.add_parser("paths", help="Print canonical harness paths")
@@ -46,6 +52,8 @@ def handle(args: argparse.Namespace) -> bool:
     """Return True if this module handled the command."""
     if args.command == "wiki":
         return _handle_wiki(args)
+    if args.command == "skills":
+        return _handle_skills(args)
     if args.command == "directive":
         pd = paths.prime_directive()
         print(pd.read_text(encoding="utf-8") if pd.exists() else f"// missing: {pd}")
@@ -55,6 +63,36 @@ def handle(args: argparse.Namespace) -> bool:
             print(f"{k:20s} {v}")
         return True
     return False
+
+
+def _skills_dir() -> Path:
+    return paths.home() / "skills"
+
+
+def _handle_skills(args: argparse.Namespace) -> bool:
+    sub = getattr(args, "subcmd", None)
+    root = _skills_dir()
+
+    if sub == "install":
+        script = paths.home() / "scripts" / "install_skills.sh"
+        subprocess.run(["bash", str(script)], check=False)
+        return True
+
+    # default / list
+    if not root.is_dir():
+        print(f"// no skills dir: {root}")
+        return True
+    print(f"// canonical harness skills -> {root}")
+    for skill_md in sorted(root.glob("*/SKILL.md")):
+        name = skill_md.parent.name
+        desc = ""
+        for line in skill_md.read_text(encoding="utf-8", errors="replace").splitlines():
+            s = line.strip()
+            if s.startswith("description:"):
+                desc = s.split(":", 1)[1].strip().strip('">')
+                break
+        print(f"  {name:20s} {desc[:80]}")
+    return True
 
 
 def _handle_wiki(args: argparse.Namespace) -> bool:

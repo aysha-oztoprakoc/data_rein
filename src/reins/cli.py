@@ -107,7 +107,7 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    if harness_cli is not None and args.command in ('wiki', 'directive', 'paths'):
+    if harness_cli is not None and args.command in ('wiki', 'skills', 'directive', 'paths'):
         if harness_cli.handle(args):
             return
 

@@ -36,6 +36,14 @@ Route by task category, never by hard-coded model, via
 `config/model_router.json`. Local-first; cloud (Gemini/Claude/OpenAI) only for
 explicit/heavy tasks; secrets only via `scripts.get_secrets.get_secret`.
 
+## Skills
+
+Canonical harness skills live in `skills/` (tracked, indexed by
+`skills/MANIFEST.md`): `data_rein`, `agy-pon-compliance`, `kad_pon`,
+`hermes-persona`, `omarchy-aesthetics`. `reins skills install` symlinks them into
+`~/.claude/skills/` (and every other environment). Edit only the source in
+`skills/<name>/SKILL.md`, then re-install. List: `reins skills list`.
+
 ## Non-negotiables (from the Prime Directive)
 
 - **PON:** no polling, no `while True`, no `sleep` spin-waits. Event-driven only.

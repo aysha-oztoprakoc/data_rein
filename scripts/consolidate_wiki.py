@@ -148,6 +148,9 @@ def main() -> int:
         oby = ingest_tree(db, paths.obsidian_vault(), owner="oby-vault", dry=args.dry_run)
         log(f"  [pages] data-oby vault    : {oby}")
 
+        skills = ingest_tree(db, paths.home() / "skills", owner="skills", dry=args.dry_run)
+        log(f"  [pages] harness skills    : {skills}")
+
         mem_total = 0
         for app_db in find_app_dbs(home):
             c = ingest_memories(db, app_db, dry=args.dry_run)

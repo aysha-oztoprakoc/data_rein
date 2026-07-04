@@ -34,5 +34,13 @@
 reins paths                 # canonical locations
 reins directive             # print the Prime Directive
 reins wiki search "<q>"     # search unified knowledge
+reins skills list           # canonical harness skills (source: skills/)
+reins skills install        # link skills into every environment
 reins trail list            # shared task state machine
 ```
+
+## Skills
+
+One canonical, tracked skills tree: `skills/` (see `skills/MANIFEST.md`). Edit
+skills there only; `reins skills install` symlinks them into each environment's
+scan path. Skills are also ingested into the wiki (`reins wiki search`).

@@ -39,6 +39,22 @@ Every environment is a *client* of the same harness. None of them owns the state
 All of them resolve the *same* canonical paths via `reins.harness.paths`. There is
 no per-environment copy of anything that matters.
 
+### Skills
+
+There is one canonical, tracked skills tree: **`skills/`** (indexed by
+`skills/MANIFEST.md`). It is the single editable source for every harness skill —
+`data_rein`, `agy-pon-compliance`, `kad_pon`, `hermes-persona`, `omarchy-aesthetics`.
+Skills are lean: their deep knowledge lives in the wiki, not embedded copies.
+
+Each environment receives them as symlinks via `reins skills install` (idempotent),
+which links `skills/*` into every environment's scan path (Odysseus
+`data/skills/`, Claude Code `~/.claude/skills/`, Antigravity `.agents/skills/`,
+Codex). Never edit an installed copy — edit `skills/<name>/SKILL.md` and re-install.
+```bash
+reins skills list      # registered skills + descriptions
+reins skills install   # link them into every environment
+```
+
 ---
 
 ## 2. THE SINGLE SHARED MONOLITH WIKI DATABASE
