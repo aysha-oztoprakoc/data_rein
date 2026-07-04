@@ -33,23 +33,10 @@ def test_ram_sinkhole_defense() -> None:
         resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
         gc.collect()
 
-def test_graceful_bot_degradation() -> None:
-    """Ensure that the scraper gracefully handles blocked requests instead of crashing."""
-    status_code = 403
-    html = "<html><body>Access Denied - Cloudflare</body></html>"
-    
-    def process_response(code: int, html_body: str) -> str:
-        if code == 403 or "Access Denied" in html_body:
-            raise PermissionError("Bot defense triggered. Graceful Degradation active.")
-        return html_body
-        
-    error_caught = False
-    try:
-        process_response(status_code, html)
-    except PermissionError:
-        error_caught = True
-        
-    assert error_caught is True, "Scraper failed to degrade gracefully on bot blocks."
+# NOTE: test_graceful_bot_degradation was removed — it exercised a throwaway local
+# closure, not scraper code. Real graceful degradation is asserted below via the
+# actual NexusScraper.search returning [] on network failure.
+
 
 def test_scraper_engine_search() -> None:
     """Ensure DuckDuckGo search returns standard dictionaries and degrades gracefully on network errors."""

@@ -5,22 +5,19 @@ one rebuildable knowledge store, idempotent ingestion, FTS search, and
 model-agnostic routing that never crashes (graceful degradation).
 """
 
-import os
-
 import pytest
 
 from reins.harness import paths
-from reins.harness.wiki import WikiDB, slugify
+from reins.harness.wiki import slugify
 from reins.harness.models import ModelSpec, ModelRouter
+
+# The isolated `wiki` DB fixture is shared from conftest.py. These tests alias it
+# as `db` to keep their bodies focused.
 
 
 @pytest.fixture()
-def db(tmp_path, monkeypatch):
-    dbfile = tmp_path / "wiki.db"
-    monkeypatch.setenv("DATA_REIN_WIKI_DB", str(dbfile))
-    w = WikiDB()
-    yield w
-    w.close()
+def db(wiki):
+    return wiki
 
 
 # --- paths -----------------------------------------------------------------

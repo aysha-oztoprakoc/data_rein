@@ -2,16 +2,10 @@ import pytest
 from unittest.mock import MagicMock, patch
 from reins.services.data_nexus.nexus_daemon import NexusDaemon
 
-def test_data_nexus_singleton_integrity() -> None:
-    """Ensure Data Nexus obeys pedantic memory instancing."""
-    is_processing: bool = False
-    assert is_processing is False
+# NOTE: tautological placeholders (test_data_nexus_singleton_integrity,
+# test_nexus_llm_timeouts) were removed — they asserted hardcoded constants and
+# tested nothing. Real PON/timeout behavior is covered below and in test_laws.py.
 
-def test_nexus_llm_timeouts() -> None:
-    """Ensure Ollama local wrappers don't block infinitely."""
-    timeout_threshold: float = 30.0
-    mock_inference_time: float = 5.2
-    assert mock_inference_time < timeout_threshold, "Pedantic Wall: Inference blocked too long!"
 
 def test_nexus_daemon_assimilation() -> None:
     """Ensure Data Nexus correctly hooks into the extraction pipeline."""

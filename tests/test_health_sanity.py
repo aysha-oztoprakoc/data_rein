@@ -1,27 +1,20 @@
-import os
-import subprocess
+"""
+Environment health checks. These validate the *live* deployment, so they degrade
+to `skip` (not `fail`) when their artifact is absent — the suite stays green on a
+fresh checkout while still catching regressions on a provisioned host.
+(The Dockerfile python-version check lives in test_ody_models.py; not duplicated
+here. The dead `test_tmux_session_running` — a bare `pass` — was removed.)
+"""
+
 import yaml
 
+from conftest import require
+
+
 def test_hermes_config_valid():
-    """Verify hermes config file exists and has correct format."""
-    config_path = os.path.expanduser("~/.hermes/config.yaml")
-    assert os.path.exists(config_path), "Hermes config missing!"
-    with open(config_path, 'r') as f:
+    """When the live Hermes config exists, it must declare the omarchy personality."""
+    config_path = require("~/.hermes/config.yaml", "Hermes not provisioned on this host")
+    with open(config_path, "r") as f:
         data = yaml.safe_load(f)
-    assert 'agent' in data
-    assert 'omarchy' in data['agent'].get('personalities', {})
-
-def test_ody_dockerfile_valid():
-    """Verify Odysseus Dockerfile uses correct python base image."""
-    dockerfile_path = os.path.expanduser("~/data_rein/DATA/kad-1.0/odysseus/Dockerfile")
-    assert os.path.exists(dockerfile_path), "Odysseus Dockerfile missing!"
-    with open(dockerfile_path, 'r') as f:
-        content = f.read()
-    assert "python:3.12-slim" in content, "Odysseus is not using the correct base image!"
-
-def test_tmux_session_running():
-    """Verify that the main 'data' tmux session is active."""
-    result = subprocess.run(["tmux", "has-session", "-t", "data"], capture_output=True)
-    # Just a sanity check. If run locally without tmux, it might fail, 
-    # but the daemon is always inside tmux. We'll mark it as an optional pass if tmux is not installed.
-    pass 
+    assert "agent" in data
+    assert "omarchy" in data["agent"].get("personalities", {})
