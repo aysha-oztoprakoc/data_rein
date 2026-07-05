@@ -8,6 +8,8 @@ config/.secrets.env
 config/.secrets.enc
 config/.secrets.key
 .secrets.env
+api_keys.json
+vault.json
 ai_models/id_ed25519
 ai_models/id_ed25519.pub
 
