@@ -1,0 +1,11 @@
+{
+  "_comment": "User-editable known plan limits, checked by reins.services.token_ledger.budget_report(). Neither Anthropic nor Google expose an API to read back remaining account quota, so these numbers are whatever you know your own plan to be - fill in real values and the usage %% will compute against them. Units: 'requests' = call count, 'tokens' = input+output tokens. Omit a window/provider entirely to just show raw usage with no %%.",
+  "claude": {
+    "5h": {"requests": 0},
+    "week": {"requests": 0}
+  },
+  "gemini": {
+    "day": {"requests": 0, "tokens": 0},
+    "month": {"tokens": 0}
+  }
+}

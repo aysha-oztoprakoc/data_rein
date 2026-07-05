@@ -111,5 +111,10 @@
         {"model": "qwen2.5-coder:3b", "score": 96.1, "power": "low"}
       ]
     }
-  }
+  },
+  "remote_fallback": [
+    {"model": "claude-sonnet-5-20260514", "provider": "claude", "score": 100.0, "power": "extreme"},
+    {"model": "gemini-2.0-pro", "provider": "gemini", "score": 99.0, "power": "extreme"},
+    {"model": "gpt-4o", "provider": "openai", "score": 90.0, "power": "extreme"}
+  ]
 }

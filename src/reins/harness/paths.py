@@ -117,6 +117,16 @@ def task_trail() -> Path:
     return state_dir() / "task_trail.json"
 
 
+def token_usage() -> Path:
+    """Self-tracked cloud-provider token/request usage ledger (see token_ledger.py)."""
+    return state_dir() / "token_usage.json"
+
+
+def token_budgets() -> Path:
+    """User-editable known plan limits (5h/day/week/month) per cloud provider."""
+    return config_dir() / "token_budgets.json"
+
+
 def ensure_state_dir() -> Path:
     d = state_dir()
     d.mkdir(parents=True, exist_ok=True)
@@ -137,4 +147,6 @@ def summary() -> dict[str, str]:
         "model_router": str(model_router()),
         "obsidian_vault": str(obsidian_vault()),
         "task_trail": str(task_trail()),
+        "token_usage": str(token_usage()),
+        "token_budgets": str(token_budgets()),
     }

@@ -58,3 +58,19 @@ All core processes run via `data-harness-daemon.sh` inside a resilient `tmux` se
 * **Environment Adapters**: `CLAUDE.md`, root `AGENTS.md`, `.agents/AGENTS.md`,
   `data_rein.code-workspace`, and canonical `skills/data_rein/SKILL.md` all point to the Prime
   Directive + shared wiki. Harness core lives in `src/reins/harness/` (paths, wiki, models, cli).
+
+## OpenCode + LM Studio: interactive front end (2026-07-04)
+* **Status**: CONFIGURED (2026-07-04)
+* **Role**: OpenCode is now the harness's main interactive CLI, `AGENTS.md`-aware, default
+  model `lmstudio/qwen2.5-coder-7b-instruct` (LM Studio, JIT-loaded on port 1234, sharing amdy's
+  8GB VRAM slot with Ollama — never both resident at once).
+* **MCP bridge**: `reins mcp` (`src/reins/harness/mcp_server.py`) exposes wiki/trail/router
+  tools (`wiki_search`, `wiki_get`, `wiki_add_memory`, `trail_list`, `trail_create`,
+  `trail_update`, `agent_status`, `route_local`, `escalate_cloud`) registered in the project
+  `opencode.json`. `route_local` delegates menial subtasks to local Ollama models;
+  `escalate_cloud` is the **only** path from OpenCode to Claude/Gemini/OpenAI — explicit-request
+  only, always Task-Trail-logged (`task_type="opencode:cloud-escalation"`), reusing
+  `ModelRouter`'s vault-gated `_claude`/`_gemini`/`_openai` dispatch.
+* **Passive awareness**: `.opencode/plugin/reins-awareness.js` logs each session's start/end to
+  the Task Trail (`task_type="opencode:session"`) automatically via opencode's `event` hook, so
+  other agents see OpenCode activity without it having to call a tool.

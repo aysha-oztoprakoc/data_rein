@@ -56,3 +56,34 @@ amdy↔tell failover). Prefer local for trivial work; reserve cloud for heavy ta
 One canonical, tracked skills tree: `skills/` (see `skills/MANIFEST.md`). Edit
 skills there only; `reins skills install` symlinks them into each environment's
 scan path. Skills are also ingested into the wiki (`reins wiki search`).
+
+## OpenCode: the interactive front end
+
+OpenCode is the harness's main interactive CLI. Its default model is a local
+LM Studio model (Qwen2.5-Coder-7B, JIT-loaded on port 1234) — the same local-first
+policy as everything else here. It connects to the `reins` MCP server (registered
+in `opencode.json`, `python -m reins.harness.mcp_server`) for structured access to
+the shared state:
+
+- `wiki_search` / `wiki_get` / `wiki_add_memory` — the same monolith wiki everyone else uses.
+- `trail_list` / `trail_create` / `trail_update` / `agent_status` — the Universal Task Trail;
+  check `agent_status`/`trail_list` before systemic actions, per the Rule of Awareness.
+- `route_local` — delegate a menial subtask (summarize/classify/extract) to a cheap
+  local Ollama model instead of spending an agent turn on it. Never reaches cloud.
+- `escalate_cloud` — **the only** path to Claude/Gemini/OpenAI. Call it only when the
+  user explicitly asks for Claude or Gemini by name; never as a default or automatic
+  step. Every call is logged to the Task Trail (`task_type="opencode:cloud-escalation"`)
+  so it stays exactly as auditable as `reins run`'s own last-resort cloud fallback.
+- `token_usage_status` — self-tracked Claude/Gemini/OpenAI usage vs configured budgets
+  (`config/token_budgets.json`) over 5h/day/week/month rolling windows. Also reachable
+  from any shell via `reins tokens status`. Neither provider exposes a remaining-quota
+  API, so this is a local counter of every cloud call the harness itself makes — not
+  authoritative billing data, but the only complete picture available.
+
+**Autostart:** `systemd/lmstudio-harness.service` brings up LM Studio's local server
+at login (install like `ollama-harness.service` — see the file header). The tmux
+`data` session (`~/.local/bin/data-harness-windows.sh`) has a `data-code` window
+running `omni opencode --server "" --model lmstudio/qwen/qwen2.5-coder-7b --resume`
+— OpenCode driven through Omnigent exactly like `data-omni` drives Claude, so the
+user's main interactive session always resumes the last conversation, the same
+way `data-agy` (`-c`) and `data-omni` (`--resume`) do.

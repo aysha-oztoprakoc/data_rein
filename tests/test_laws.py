@@ -78,6 +78,7 @@ def test_law_graceful_router_degrades_not_raises(monkeypatch):
     r.table = {"x": {"amdy": [{"model": "claude-nope"}], "tell": [{"model": "gpt-nope"}]}}
     res = r.route("x", "hello", "amdy")  # must not raise
     assert res.ok is False and res.error
+    assert "cloud/" in res.error  # Tier-1 remote fallback attempted, not skipped
 
 
 def test_law_graceful_wiki_survives_bad_query(wiki):

@@ -111,7 +111,7 @@ def main() -> None:
 
     _harness_cmds = ('wiki', 'skills', 'directive', 'paths', 'local', 'run',
                      'batch', 'ask', 'summarize', 'classify', 'optimize', 'digest',
-                     'backup', 'secret')
+                     'backup', 'secret', 'mcp', 'tokens')
     if harness_cli is not None and args.command in _harness_cmds:
         if harness_cli.handle(args):
             return

@@ -99,6 +99,12 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     rs = bsub.add_parser("restore", help="Restore the workspace")
     rs.add_argument("--source", default="local", choices=["local", "github", "gcloud"])
 
+    # reins tokens ...  (self-tracked Claude/Gemini/OpenAI usage vs configured budgets)
+    tok = subparsers.add_parser("tokens", help="Show cloud token/request usage vs configured budgets")
+    tsub = tok.add_subparsers(dest="subcmd")
+    tsub.add_parser("status", help="Usage vs budget for every provider, per rolling window")
+    tsub.add_parser("clear", help="Wipe the usage ledger (does not touch config/token_budgets.json)")
+
     # reins secret <KEY>  (read one value from the encrypted vault)
     sec = subparsers.add_parser("secret", help="Print a secret value from the encrypted vault")
     sec.add_argument("key", help="secret name, e.g. GITHUB_TOKEN")
@@ -106,6 +112,9 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     # reins directive / paths
     subparsers.add_parser("directive", help="Print the Prime Directive")
     subparsers.add_parser("paths", help="Print canonical harness paths")
+
+    # reins mcp  (stdio MCP server for interactive front ends, e.g. OpenCode)
+    subparsers.add_parser("mcp", help="Run the reins MCP bridge (wiki/trail/router tools) over stdio")
 
 
 def handle(args: argparse.Namespace) -> bool:
@@ -122,6 +131,8 @@ def handle(args: argparse.Namespace) -> bool:
         return _handle_backup(args)
     if args.command == "secret":
         return _handle_secret(args)
+    if args.command == "tokens":
+        return _handle_tokens(args)
     if args.command == "directive":
         pd = paths.prime_directive()
         print(pd.read_text(encoding="utf-8") if pd.exists() else f"// missing: {pd}")
@@ -129,6 +140,11 @@ def handle(args: argparse.Namespace) -> bool:
     if args.command == "paths":
         for k, v in paths.summary().items():
             print(f"{k:20s} {v}")
+        return True
+    if args.command == "mcp":
+        from reins.harness.mcp_server import main as mcp_main
+
+        mcp_main()
         return True
     return False
 
@@ -306,6 +322,32 @@ def _handle_secret(args: argparse.Namespace) -> bool:
             print(f"// no such secret: {args.key}", file=__import__("sys").stderr)
     except Exception as e:
         print(f"// vault error: {e}", file=__import__("sys").stderr)
+    return True
+
+
+def _handle_tokens(args: argparse.Namespace) -> bool:
+    from reins.services.token_ledger import TokenLedger, budget_report
+
+    sub = getattr(args, "subcmd", None)
+    if sub == "clear":
+        TokenLedger().clear()
+        print("// token usage ledger cleared")
+        return True
+
+    report = budget_report()
+    if not report:
+        print("// no cloud usage recorded yet")
+        return True
+    print(f"// cloud usage vs budget -> {TokenLedger().path}")
+    for provider, windows in report.items():
+        print(f"  {provider}:")
+        for window, usage in windows.items():
+            line = f"    {window:6s} requests={usage['requests']:<4d} tokens={usage['total_tokens']}"
+            if "request_pct" in usage:
+                line += f"  ({usage['request_pct']}% of {usage['request_budget']} requests)"
+            if "token_pct" in usage:
+                line += f"  ({usage['token_pct']}% of {usage['token_budget']} tokens)"
+            print(line)
     return True
 
 

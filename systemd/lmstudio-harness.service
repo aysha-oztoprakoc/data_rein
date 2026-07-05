@@ -1,0 +1,33 @@
+# data_rein interactive-CLI model plane — brings up LM Studio's local OpenAI-
+# compatible server (127.0.0.1:1234) that OpenCode's default `lmstudio` provider
+# talks to (see opencode.json / ~/.config/opencode/opencode.json). Just-in-time
+# model loading is enabled in LM Studio's own settings, so Qwen2.5-Coder-7B loads
+# lazily on first request and shares amdy's 7-8B VRAM slot with Ollama rather than
+# staying resident - this unit only needs to ensure the *server* is reachable.
+#
+# `lms server start` is a control command to LM Studio's own background service
+# (llmster), not a foreground process - there is no long-lived binary for systemd
+# to supervise the way `ollama-harness.service` supervises `ollama serve`. This
+# unit is therefore best-effort: it brings the server up at login/boot. If
+# llmster itself crashes later, this unit will not notice (nothing to restart);
+# `reins local`/OpenCode calls against it will simply degrade gracefully like any
+# other unreachable provider.
+#
+# Install (user service):
+#   mkdir -p ~/.config/systemd/user
+#   ln -sf ~/data_rein/systemd/lmstudio-harness.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now lmstudio-harness
+
+[Unit]
+Description=data_rein LM Studio local model plane (OpenCode's interactive coding model)
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=%h/.lmstudio/bin/lms server start
+ExecStop=%h/.lmstudio/bin/lms server stop
+
+[Install]
+WantedBy=default.target

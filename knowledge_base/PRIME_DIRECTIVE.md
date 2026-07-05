@@ -2,9 +2,9 @@
 
 > This is the single master constitution for every intelligence operating under
 > the `data_rein` harness. It binds all environments — **Antigravity (data-agy)**,
-> **Hermes (data-hermes)**, **Odysseus (data-ody)**, **Claude Code**, and the
-> **VS Code** workspace — to one contract. If a rule here conflicts with a local
-> convention, this file wins. Load it first. Obey it always.
+> **Hermes (data-hermes)**, **Odysseus (data-ody)**, **Claude Code**, **OpenCode**,
+> and the **VS Code** workspace — to one contract. If a rule here conflicts with a
+> local convention, this file wins. Load it first. Obey it always.
 
 ---
 
@@ -34,7 +34,16 @@ Every environment is a *client* of the same harness. None of them owns the state
 | Claude Code    | `CLAUDE.md`                  | shell → `reins` CLI                    |
 | Odysseus       | `skills/data_rein/SKILL.md`  | shell / python `reins.harness`         |
 | Hermes         | `agents/hermes/SOUL.xml`     | python `reins.harness`                 |
+| OpenCode       | `AGENTS.md` + `opencode.json`| MCP (`reins.harness.mcp_server`) + shell |
 | VS Code        | `AGENTS.md` + `.vscode/`     | integrated terminal → `reins` CLI      |
+
+**OpenCode is the harness's interactive front end.** Its default model is a local
+LM Studio model (Qwen2.5-Coder-7B, JIT-loaded), sharing amdy's 8GB VRAM slot with
+Ollama the same way every other local model does. It reaches Claude/Gemini/OpenAI
+**only** through the `escalate_cloud` MCP tool, on explicit user request — never
+natively, so cloud access from an interactive session stays vault-gated and
+Task-Trail-logged exactly like the router's own last-resort `remote_fallback`
+(§3). Its trail entries appear under `task_type` prefix `opencode:`.
 
 All of them resolve the *same* canonical paths via `reins.harness.paths`. There is
 no per-environment copy of anything that matters.

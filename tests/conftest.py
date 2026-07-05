@@ -31,6 +31,24 @@ def wiki(tmp_path, monkeypatch):
         db.close()
 
 
+@pytest.fixture()
+def trail(tmp_path, monkeypatch):
+    """An isolated Task Trail, pointed away from the real one."""
+    monkeypatch.setenv("DATA_REIN_STATE_DIR", str(tmp_path / "state"))
+    from reins.services.task_trail import TaskTrail
+
+    return TaskTrail()
+
+
+@pytest.fixture()
+def token_ledger(tmp_path, monkeypatch):
+    """An isolated TokenLedger, pointed away from the real usage file."""
+    monkeypatch.setenv("DATA_REIN_STATE_DIR", str(tmp_path / "state"))
+    from reins.services.token_ledger import TokenLedger
+
+    return TokenLedger()
+
+
 def harness_source_files() -> list[Path]:
     """Every non-empty Python source file under src/reins (excludes caches/tests)."""
     files: list[Path] = []
