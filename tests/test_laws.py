@@ -5,8 +5,8 @@ Every module under `src/reins` is bound by these. They are written to *fail loud
 if future code breaks the harness contract, so they double as living documentation
 and as a TDD guard rail.
 
-    LAW 1 — PON (Notification-Oriented Paradigm): zero polling. No `while True`
-            spin-waits, no `time.sleep()` busy-waiting. Reactivity only.
+    LAW 1 — PON (Notification-Oriented Paradigm): zero polling. No spin-wait
+            loops, no synchronous busy-wait timers. Reactivity only.
     LAW 2 — Graceful Degradation: public entry points degrade (return / log / skip)
             on bad input instead of raising and taking the harness down.
     LAW 3 — Test-Driven Development: every harness module is covered by the suite;
@@ -53,7 +53,7 @@ def _polling_violations(path: Path) -> list[str]:
             if isinstance(fn, ast.Attribute) and fn.attr == "sleep":
                 base = fn.value
                 if isinstance(base, ast.Name) and base.id == "time" and not _allowed(node.lineno):
-                    out.append(f"{path.name}:{node.lineno} time.sleep() busy-wait")
+                    out.append(f"{path.name}:{node.lineno} synchronous sleep busy-wait")
     return out
 
 

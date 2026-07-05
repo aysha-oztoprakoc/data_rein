@@ -18,6 +18,7 @@ monolith wiki (`reins wiki search`) and `knowledge_base/**`, not embedded copies
 | `kad_pon`            | Concrete C++ PON engine patterns (SharedAttribute, Rules, inotify+MQTT flow). |
 | `hermes-persona`     | Assume the Data-Hermes orchestrator persona + mission. |
 | `omarchy-aesthetics` | Mandatory Omarchy Cyberpunk aesthetic for all generated output. |
+| `pon_testing_suite`  | Security/stability/PON static-analysis gate; wired into `.git/hooks/pre-push`. |
 
 ## How each environment picks these up
 

@@ -5,6 +5,7 @@ import platform
 import threading
 import subprocess
 import glob
+import paho.mqtt.client as mqtt
 from textual.app import App, ComposeResult
 from textual.containers import Grid, Vertical, Horizontal, VerticalScroll
 from textual.widgets import Header, Footer, RichLog, Static, Label, ProgressBar, Button, TabbedContent, TabPane, DataTable, Input
@@ -244,9 +245,14 @@ class SofiaDashboard(App):
     def on_mount(self) -> None:
         self.log_widget.write("[bold #ff4040]SOFIA PROTOCOL (KERNEL EDITION) ONLINE[/]")
         self.log_widget.write("[#ff3c3c]Monitoring data_rein universal harness...[/]")
-        
-        self.run_worker(self.health_check_worker, exclusive=True, thread=True)
-        self.run_worker(self.mqtt_listener_worker, exclusive=True, thread=True)
+
+        self._last_heal_dispatch = 0.0
+        self._heal_cooldown = 300.0
+        self._last_failure_dispatch = 0.0
+        self._failure_cooldown = 10.0
+
+        self.set_interval(60.0, self._trigger_health_check)
+        self.start_mqtt_listener()
 
     def log_event(self, message: str) -> None:
         if self._thread_id == threading.get_ident():
@@ -361,86 +367,106 @@ class SofiaDashboard(App):
         except Exception as e:
             self.log_event(f"[#5c5855]Error applying renice: {e}[/]")
 
-    def health_check_worker(self) -> None:
-        self.log_event("[bold #26bdfd]Starting periodic health and sanity checks...[/]")
-        while True:
-            time.sleep(60)
-            self.log_event("[bold #ffcf3d]Running sanity check suite...[/]")
-            result = subprocess.run(
-                ["uv", "run", "pytest", "tests/test_health_sanity.py"], 
-                cwd=os.path.expanduser("~/data_rein"),
-                capture_output=True, 
-                text=True
-            )
-            if result.returncode != 0:
-                self.log_event("[bold #ff1100]CRITICAL: Sanity check failed! Deploying auto-healer...[/]")
-                prompt = (
-                    "/goal SOFIA PROTOCOL HEALTH CHECK FAILED: The system sanity checks failed. "
-                    f"Here is the pytest output:\\n```\\n{result.stdout}\\n{result.stderr}\\n```\\n\\n"
-                    "Please fix the broken components or update the tests if the system architecture has changed. "
-                    "Ensure the data_rein harness runs stably 24/7./goal"
-                )
-                subprocess.Popen(
-                    ["bash", "scripts/launch_with_sudo.sh", "agy", "--dangerously-skip-permissions", "-c", prompt],
-                    cwd=os.path.expanduser("~/data_rein"),
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
-                time.sleep(300)
+    def _trigger_health_check(self) -> None:
+        """Fired by Textual's own reactive timer (set_interval) - no thread, no sleep-loop.
+        The actual pytest run is blocking I/O, so it's dispatched to a worker thread; the
+        interval callback itself just decides whether it's time to kick one off."""
+        self.run_worker(self._health_check_once, exclusive=True, thread=True)
 
-    def mqtt_listener_worker(self) -> None:
-        topic = "data_rein/alerts/failure"
-        process = subprocess.Popen(
-            ["mosquitto_sub", "-t", topic],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+    def _health_check_once(self) -> None:
+        self.log_event("[bold #ffcf3d]Running sanity check suite...[/]")
+        result = subprocess.run(
+            ["uv", "run", "pytest", "tests/test_health_sanity.py"],
+            cwd=os.path.expanduser("~/data_rein"),
+            capture_output=True,
             text=True
         )
-        self.log_event(f"Listening on MQTT topic: {topic}")
-        
-        while True:
-            line = process.stdout.readline()
-            if not line:
-                time.sleep(1)
-                continue
-                
-            line = line.strip()
-            if "CRITICAL: Agent" in line and "failed!" in line:
-                words = line.split()
-                try:
-                    agent_idx = words.index("Agent") + 1
-                    agent_name = words[agent_idx]
-                except ValueError:
-                    agent_name = "unknown"
-                
-                self.log_event(f"[bold #ff1100]Detected failure for {agent_name}![/]")
-                
-                try:
-                    self.call_from_thread(self._update_agent_status_ui, agent_name)
-                except Exception:
-                    pass
+        if result.returncode == 0:
+            return
 
-                log_file = os.path.expanduser(f"~/data_rein/logs/{agent_name}.log")
-                error_tail = tail(log_file)
-                
-                self.log_event("[bold #ffcf3d]Deploying Antigravity repair agent...[/]")
-                
-                prompt = (
-                    f"/goal SOFIA PROTOCOL ACTIVATED: The service {agent_name} just crashed. "
-                    f"Here is the tail of its log file:\\n```\\n{error_tail}\\n```\\n\\n"
-                    f"You must investigate this problem using the suite of tests (pytest). "
-                    f"Update the tests if needed, applying Test Driven Development (TDD), PON, and "
-                    f"graceful degradation principles. Your goal is to learn from this error, write "
-                    f"tests that catch it, fix the codebase, and ensure the service doesn't crash again./goal"
-                )
-                
-                subprocess.Popen(
-                    ["bash", "scripts/launch_with_sudo.sh", "agy", "--dangerously-skip-permissions", "-c", prompt],
-                    cwd=os.path.expanduser("~/data_rein"),
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
-                time.sleep(10)
+        now = time.monotonic()
+        if now - self._last_heal_dispatch < self._heal_cooldown:
+            self.log_event("[#5c5855]Sanity check still failing; auto-healer cooldown active.[/]")
+            return
+        self._last_heal_dispatch = now
+
+        self.log_event("[bold #ff1100]CRITICAL: Sanity check failed! Deploying auto-healer...[/]")
+        prompt = (
+            "/goal SOFIA PROTOCOL HEALTH CHECK FAILED: The system sanity checks failed. "
+            f"Here is the pytest output:\\n```\\n{result.stdout}\\n{result.stderr}\\n```\\n\\n"
+            "Please fix the broken components or update the tests if the system architecture has changed. "
+            "Ensure the data_rein harness runs stably 24/7./goal"
+        )
+        subprocess.Popen(
+            ["bash", "scripts/launch_with_sudo.sh", "agy", "--dangerously-skip-permissions", "-c", prompt],
+            cwd=os.path.expanduser("~/data_rein"),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+    def start_mqtt_listener(self) -> None:
+        """PON-compliant fleet failure feed: a persistent paho-mqtt client whose own
+        network thread blocks on the socket (loop_start()) and fires on_message
+        reactively - no subprocess, no readline polling, no sleep."""
+        topic = "data_rein/alerts/failure"
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+
+        def on_connect(c, userdata, flags, reason_code, properties=None):
+            c.subscribe(topic)
+            self.call_from_thread(self.log_event, f"Listening on MQTT topic: {topic}")
+
+        def on_message(c, userdata, msg):
+            self.call_from_thread(self._handle_failure_message, msg.payload.decode(errors="replace"))
+
+        client.on_connect = on_connect
+        client.on_message = on_message
+        try:
+            client.connect("localhost", 1883)
+            client.loop_start()
+            self.mqtt_client = client
+        except Exception as e:  # graceful degradation - no broker, no crash
+            self.log_event(f"[#5c5855]MQTT broker unreachable ({e}); fleet failure feed disabled.[/]")
+
+    def _handle_failure_message(self, line: str) -> None:
+        line = line.strip()
+        if not ("CRITICAL: Agent" in line and "failed!" in line):
+            return
+
+        words = line.split()
+        try:
+            agent_idx = words.index("Agent") + 1
+            agent_name = words[agent_idx]
+        except ValueError:
+            agent_name = "unknown"
+
+        now = time.monotonic()
+        if now - self._last_failure_dispatch < self._failure_cooldown:
+            return
+        self._last_failure_dispatch = now
+
+        self.log_event(f"[bold #ff1100]Detected failure for {agent_name}![/]")
+        self._update_agent_status_ui(agent_name)
+
+        log_file = os.path.expanduser(f"~/data_rein/logs/{agent_name}.log")
+        error_tail = tail(log_file)
+
+        self.log_event("[bold #ffcf3d]Deploying Antigravity repair agent...[/]")
+
+        prompt = (
+            f"/goal SOFIA PROTOCOL ACTIVATED: The service {agent_name} just crashed. "
+            f"Here is the tail of its log file:\\n```\\n{error_tail}\\n```\\n\\n"
+            f"You must investigate this problem using the suite of tests (pytest). "
+            f"Update the tests if needed, applying Test Driven Development (TDD), PON, and "
+            f"graceful degradation principles. Your goal is to learn from this error, write "
+            f"tests that catch it, fix the codebase, and ensure the service doesn't crash again./goal"
+        )
+
+        subprocess.Popen(
+            ["bash", "scripts/launch_with_sudo.sh", "agy", "--dangerously-skip-permissions", "-c", prompt],
+            cwd=os.path.expanduser("~/data_rein"),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
 
     def _update_agent_status_ui(self, agent_name: str) -> None:
         try:

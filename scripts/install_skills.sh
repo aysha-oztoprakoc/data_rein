@@ -15,7 +15,8 @@ mapfile -t SKILLS < <(find "$CANON" -mindepth 1 -maxdepth 1 -type d -printf '%f\
 TARGETS=(
   "$HOME_DIR/odysseus/data/skills"                       # Odysseus (SKILLS_DIR)
   "$HOME/.claude/skills"                                 # Claude Code
-  "$HOME_DIR/.agents/skills"                             # Antigravity
+  "$HOME_DIR/.agents/skills"                             # Antigravity, project-local scan path
+  "$HOME/.agents/skills"                                 # Antigravity, global scan path (git hooks etc. reference this)
   "$HOME_DIR/odysseus/integrations/codex/skills"         # Codex
 )
 

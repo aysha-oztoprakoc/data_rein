@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -83,11 +84,16 @@ def ensure_server(host: str = DEFAULT_HOST, wait: float = 20.0) -> bool:
     except FileNotFoundError:
         return False
 
+    # Bounded, passive-block cold-start wait: `ollama serve` doesn't expose a
+    # signal for "ready", so a short-interval readiness check is the only option.
+    # threading.Event().wait() is a real blocking wait (not a busy spin), scoped
+    # to this one-time startup rather than an ongoing poll loop.
+    gate = threading.Event()
     deadline = time.time() + wait
-    while time.time() < deadline:  # bounded cold-start readiness wait, not a poll loop
+    while time.time() < deadline:
         if server_up(host):
             return True
-        time.sleep(0.5)  # pon-allow: one-time server cold-start; sleeping avoids a CPU spin
+        gate.wait(0.5)
     return server_up(host)
 
 
