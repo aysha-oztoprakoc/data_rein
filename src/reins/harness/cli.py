@@ -43,6 +43,12 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     ssub.add_parser("list", help="List registered canonical skills")
     ssub.add_parser("install", help="Link skills into every environment")
 
+    # reins bin ...  (make every custom command runnable from any shell)
+    binp = subparsers.add_parser("bin", help="List/install harness commands on $PATH")
+    bsub2 = binp.add_subparsers(dest="subcmd")
+    bsub2.add_parser("list", help="List commands linked into ~/.local/bin")
+    bsub2.add_parser("install", help="Symlink/wrap every harness command into ~/.local/bin")
+
     # reins local ... (local model server lifecycle)
     local_p = subparsers.add_parser("local", help="Manage the local Ollama model plane")
     lsub = local_p.add_subparsers(dest="subcmd")
@@ -123,6 +129,8 @@ def handle(args: argparse.Namespace) -> bool:
         return _handle_wiki(args)
     if args.command == "skills":
         return _handle_skills(args)
+    if args.command == "bin":
+        return _handle_bin(args)
     if args.command in ("local", "run", "batch", "ask", "summarize", "classify", "optimize"):
         return _handle_workflow(args)
     if args.command == "digest":
@@ -386,6 +394,31 @@ def _handle_skills(args: argparse.Namespace) -> bool:
                 desc = s.split(":", 1)[1].strip().strip('">')
                 break
         print(f"  {name:20s} {desc[:80]}")
+    return True
+
+
+def _handle_bin(args: argparse.Namespace) -> bool:
+    sub = getattr(args, "subcmd", None)
+    bin_dir = Path("~/.local/bin").expanduser()
+
+    if sub == "install":
+        script = paths.home() / "scripts" / "install_bin.sh"
+        subprocess.run(["bash", str(script)], check=False)
+        return True
+
+    # default / list - anything in ~/.local/bin that symlinks/points into this repo
+    print(f"// harness commands -> {bin_dir}")
+    if not bin_dir.is_dir():
+        return True
+    home = str(paths.home())
+    for entry in sorted(bin_dir.iterdir()):
+        try:
+            target = str(entry.resolve()) if entry.is_symlink() else ""
+            text = entry.read_text(encoding="utf-8", errors="replace") if entry.is_file() and not entry.is_symlink() else ""
+        except Exception:
+            target = text = ""
+        if home in target or home in text:
+            print(f"  {entry.name}")
     return True
 
 

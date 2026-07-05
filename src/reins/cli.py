@@ -109,7 +109,7 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    _harness_cmds = ('wiki', 'skills', 'directive', 'paths', 'local', 'run',
+    _harness_cmds = ('wiki', 'skills', 'bin', 'directive', 'paths', 'local', 'run',
                      'batch', 'ask', 'summarize', 'classify', 'optimize', 'digest',
                      'backup', 'secret', 'mcp', 'tokens')
     if harness_cli is not None and args.command in _harness_cmds:

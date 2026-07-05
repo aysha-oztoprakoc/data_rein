@@ -36,6 +36,8 @@ reins directive             # print the Prime Directive
 reins wiki search "<q>"     # search unified knowledge
 reins skills list           # canonical harness skills (source: skills/)
 reins skills install        # link skills into every environment
+reins bin list               # harness commands linked into ~/.local/bin
+reins bin install            # symlink/wrap every harness command onto $PATH
 reins trail list            # shared task state machine
 ```
 
@@ -56,6 +58,15 @@ amdy↔tell failover). Prefer local for trivial work; reserve cloud for heavy ta
 One canonical, tracked skills tree: `skills/` (see `skills/MANIFEST.md`). Edit
 skills there only; `reins skills install` symlinks them into each environment's
 scan path. Skills are also ingested into the wiki (`reins wiki search`).
+
+## Commands on $PATH
+
+`reins bin install` (`scripts/install_bin.sh`) symlinks every installed
+console-script (`reins` itself) and wraps every custom dashboard/TUI script
+(currently `sofia` → `scripts/sofia_protocol.py`) into `~/.local/bin`, so they
+run from any shell without `cd`ing into the repo or typing `.venv/bin/<x>`.
+Adding a new custom command: add one `wrapper <name> <path>` line to
+`scripts/install_bin.sh`, then re-run `reins bin install` (idempotent).
 
 ## OpenCode: the interactive front end
 
