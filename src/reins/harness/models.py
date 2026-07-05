@@ -129,7 +129,24 @@ class ModelRouter:
         specs = [ModelSpec.from_entry(e) for e in entries]
         if not specs:
             specs = [ModelSpec(model=self.FALLBACK_MODEL)]
+        if node == "amdy":
+            specs.extend(self._extra_local_candidates(specs))
         return specs
+
+    def _extra_local_candidates(self, known: list[ModelSpec]) -> list[ModelSpec]:
+        """Any locally-installed Ollama model not already ranked for this
+        category, appended as a low-score last resort - so a freshly
+        `ollama pull`-ed model is reachable without editing model_router.json.
+        Never raises: degrades to an empty list if the local server is down."""
+        try:
+            from reins.harness import local
+
+            known_names = {s.model for s in known}
+            installed = local.list_models()
+        except Exception:
+            return []
+        return [ModelSpec(model=name, score=1.0, power="unknown")
+                for name in installed if name not in known_names]
 
     def optimal(self, category: str, node: str = "amdy") -> ModelSpec:
         return self.candidates(category, node)[0]
@@ -202,10 +219,32 @@ class ModelRouter:
             error="; ".join(f"{n}/{m}: {e}" for n, m, e in tried) or "no remote_fallback configured",
         )
 
+    def generate_image(self, category: str, prompt: str, node: str = "amdy") -> RouteResult:
+        """
+        Image/audio generation entry point - deliberately separate from
+        ``route()``/``route_cloud()`` since comfyui backends aren't chat (see
+        module docstring). Walks ``candidates(category, node)`` but only
+        considers comfyui-backed specs.
+        """
+        tried: list[tuple[str, str, str]] = []
+        for spec in self.candidates(category, node):
+            if spec.resolved_provider != "comfyui":
+                continue
+            text, err = self._dispatch("comfyui", spec.model, prompt, node)
+            if text is not None:
+                return RouteResult(text, spec.model, "comfyui", node, ok=True)
+            tried.append((node, spec.model, err or "empty"))
+        return RouteResult(
+            None, tried[-1][1] if tried else "none", "comfyui", node, ok=False,
+            error="; ".join(f"{n}/{m}: {e}" for n, m, e in tried) or f"no comfyui candidates for {category!r}",
+        )
+
     def _dispatch(self, provider: str, model: str, prompt: str, node: str):
         try:
             if provider == "ollama":
                 return self._ollama(model, prompt, node), None
+            if provider == "comfyui":
+                return self._comfyui(model, prompt, node), None
             if provider in ("gemini", "claude", "openai"):
                 self._last_usage = None
                 text = getattr(self, f"_{provider}")(model, prompt)
@@ -231,6 +270,38 @@ class ModelRouter:
             pass
 
     # -- providers ----------------------------------------------------------
+    def _comfyui(self, model: str, prompt: str, node: str) -> Optional[str]:
+        """Submit a txt2img job to a local ComfyUI instance and return the
+        generated image's path (relative to ComfyUI's output/ directory) once
+        rendering completes. `node` is unused (comfyui runs on amdy only
+        today) but kept for signature parity with the other providers."""
+        import asyncio
+
+        from reins.harness.comfyui_client import ComfyUIClient, build_txt2img_workflow
+
+        base_url = os.environ.get("COMFYUI_BASE_URL", "http://127.0.0.1:8188")
+
+        async def _run() -> Optional[str]:
+            client = ComfyUIClient(base_url=base_url)
+            try:
+                if not await client.check_health():
+                    raise RuntimeError(f"ComfyUI unreachable at {base_url}")
+                workflow = build_txt2img_workflow(prompt)
+                prompt_id = await client.queue_prompt(workflow)
+                if not prompt_id:
+                    raise RuntimeError("ComfyUI rejected the prompt (no prompt_id)")
+                entry = await client.wait_for_result(prompt_id)
+                if entry is None:
+                    raise RuntimeError(f"ComfyUI job {prompt_id} timed out")
+                image_path = ComfyUIClient.extract_image_path(entry)
+                if not image_path:
+                    raise RuntimeError(f"ComfyUI job {prompt_id} produced no image output")
+                return image_path
+            finally:
+                await client.close()
+
+        return asyncio.run(_run())
+
     def _ollama(self, model: str, prompt: str, node: str) -> Optional[str]:
         # Local node: use the clean HTTP API (no TUI spinner artifacts), starting
         # the harness model server on demand.

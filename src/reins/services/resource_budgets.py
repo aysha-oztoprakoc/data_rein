@@ -97,6 +97,7 @@ def apply_cpu_budget(agent_name: str, cpu_pct: int, pids: list[int]) -> tuple[bo
     group = CGROUP_ROOT / agent_name
     script_lines = [
         f"mkdir -p {group}",
+        "echo '+cpu' > /sys/fs/cgroup/cgroup.subtree_control 2>/dev/null || true",
         f"echo '+cpu' > {CGROUP_ROOT}/cgroup.subtree_control 2>/dev/null || true",
         f"echo '{quota} {CPU_PERIOD_US}' > {group}/cpu.max",
     ]

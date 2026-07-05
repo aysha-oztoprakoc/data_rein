@@ -51,6 +51,9 @@ class OdysseusAgent(HarnessAgent):
         task (marked 'failed') without aborting the drain or crashing the daemon.
         """
         acted: List[Dict[str, Any]] = []
+        if self.trail is None:
+            logger.warning("OdysseusAgent.process_pending: trail unavailable, skipping")
+            return acted
         pending = self.trail.by_status("pending", "running")
 
         for task in pending:

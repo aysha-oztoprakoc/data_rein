@@ -92,9 +92,28 @@ class ReasoningEngine(HarnessAgent):
             f"Context:\n{context}\n\n"
             "Provide your insight in Markdown format."
         )
+        # Log to the shared Task Trail so this reasoning pass is visible to
+        # `agent_status()`/`trail_list()`/the Sofia dashboard, mirroring
+        # subagent_manager.py's _execute_subagent. Never blocks/raises - trail
+        # may be unavailable (HarnessAgent sets it to None on init failure).
+        task_id = None
+        if self.trail is not None:
+            try:
+                task_id = self.trail.create_task(f"{self.role}:optimization", prompt, "amdy")
+                self.trail.set_status(task_id, "running")
+            except Exception:
+                task_id = None
+
         # One gateway: routes to the best local model with amdy<->tell failover,
         # never raises (graceful degradation is built into workflow.run).
         res = self.infer("data processing", prompt, node="amdy")
+
+        if task_id is not None:
+            try:
+                self.trail.set_status(task_id, "success" if res.ok else "failed")
+            except Exception:
+                pass
+
         if res.ok:
             logger.info(f"Nexus insight generated on {res.model} ({res.node}).")
             return res.text

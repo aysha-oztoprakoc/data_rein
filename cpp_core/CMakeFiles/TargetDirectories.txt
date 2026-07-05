@@ -1,7 +1,0 @@
-/home/amdy/data_rein/cpp_core/CMakeFiles/pon_engine.dir
-/home/amdy/data_rein/cpp_core/CMakeFiles/test_performance.dir
-/home/amdy/data_rein/cpp_core/CMakeFiles/test_safety_security.dir
-/home/amdy/data_rein/cpp_core/CMakeFiles/test_stability.dir
-/home/amdy/data_rein/cpp_core/CMakeFiles/test.dir
-/home/amdy/data_rein/cpp_core/CMakeFiles/edit_cache.dir
-/home/amdy/data_rein/cpp_core/CMakeFiles/rebuild_cache.dir

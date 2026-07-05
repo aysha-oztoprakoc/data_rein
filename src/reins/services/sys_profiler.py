@@ -18,6 +18,7 @@ import os
 import re
 import json
 import glob
+import shutil
 import threading
 import subprocess
 from datetime import datetime, timezone
@@ -190,12 +191,13 @@ class SysProfiler:
 
     def process_node(self, node_name: str, host: Optional[str] = None) -> dict:
         vram = self.get_vram(host)
-        reachable = vram > 0.0 or host is None
-        if reachable:
+        reachable = host is None or vram > 0.0
+        if vram > 0.0:
             sizes = self._local_model_sizes() if host is None else self._remote_model_sizes(host)
             hardware = {"vram_gb": vram, "ram_gb": self.get_ram_gb(host), "cpu": self.get_cpu(host)}
         else:
-            # Node offline: fall back to documented last-known specs, no model scan.
+            # VRAM detection failed (offline node, or local detection genuinely
+            # failed): fall back to documented last-known specs, no model scan.
             sizes = {}
             hardware = dict(self.LAST_KNOWN.get(node_name, {"vram_gb": 0.0, "ram_gb": 0.0, "cpu": {}}))
             vram = hardware.get("vram_gb", 0.0)
@@ -261,6 +263,119 @@ class SysProfiler:
                 db.add_memory(fact, category="system", source="getinfo", owner="data-hermes")
         except Exception as e:
             logger.warning(f"Could not mirror hardware memory into wiki: {e}")
+
+    # -- model-gap advisor -----------------------------------------------------
+    # Disk headroom kept free below the raw free-space number when judging fit.
+    DISK_HEADROOM_GB = 5.0
+
+    def _load_catalog(self) -> list[dict]:
+        try:
+            data = json.loads(paths.model_catalog().read_text(encoding="utf-8"))
+            return data.get("candidates", [])
+        except Exception as e:
+            logger.warning(f"Could not read model_catalog.json: {e}")
+            return []
+
+    def _is_installed(self, candidate: dict, installed_ollama: dict) -> bool:
+        backend = candidate.get("backend", "")
+        name = candidate.get("model", "")
+        if backend == "ollama":
+            base = name.split(":")[0]
+            return any(installed.split(":")[0] == base for installed in installed_ollama)
+        if backend == "piper":
+            return shutil.which("piper") is not None
+        if backend == "faster-whisper":
+            try:
+                import faster_whisper  # noqa: F401
+                return True
+            except ImportError:
+                return False
+        # comfyui / none / anything else: no execution path exists, so it's
+        # never "installed" in a way that's actually usable.
+        return False
+
+    def gap_report(self) -> dict:
+        """
+        Cross-reference config/model_catalog.json against what's actually present
+        and what this machine can actually run, and report:
+          - ready: not installed, has a working backend, fits VRAM/disk budget
+          - blocked_backend: not installed, would fit, but no execution backend exists
+          - over_budget: not installed, has a backend, but doesn't fit VRAM/disk
+          - installed: already present
+        Never raises - a missing/corrupt catalog just yields an empty report.
+        """
+        vram = self.get_vram(None)
+        if vram <= 0.0:
+            vram = self.LAST_KNOWN.get("amdy", {}).get("vram_gb", 0.0)
+        _, _, free_bytes = shutil.disk_usage(str(paths.home()))
+        free_disk_gb = round(free_bytes / (1024 ** 3), 1)
+        installed_ollama = self._local_model_sizes()
+
+        ready, blocked_backend, over_budget, installed = [], [], [], []
+        for c in self._load_catalog():
+            if c.get("backend") == "none":
+                blocked_backend.append(c)
+                continue
+            if self._is_installed(c, installed_ollama):
+                installed.append(c)
+                continue
+            fits_vram = c.get("vram_gb", 0.0) + self.VRAM_HEADROOM_GB <= vram
+            fits_disk = c.get("disk_gb", 0.0) + self.DISK_HEADROOM_GB <= free_disk_gb
+            has_backend = c.get("backend") in ("ollama", "piper", "faster-whisper")
+            if not has_backend:
+                blocked_backend.append(c)
+            elif fits_vram and fits_disk:
+                ready.append(c)
+            else:
+                over_budget.append(c)
+
+        return {
+            "scanned_at": datetime.now(timezone.utc).isoformat(),
+            "hardware": {"vram_gb": vram, "free_disk_gb": free_disk_gb},
+            "ready": ready,
+            "blocked_backend": blocked_backend,
+            "over_budget": over_budget,
+            "installed": installed,
+        }
+
+    def write_gap_manifest(self, report: dict) -> None:
+        """Write knowledge_base/MODEL_GAPS.md, same style as HARDWARE.md."""
+        ts = report.get("scanned_at", "")
+        hw = report.get("hardware", {})
+        lines = [
+            "# // MODEL GAP ADVISOR — data_rein",
+            "",
+            "> Not-yet-installed local models that fit this machine's real budget.",
+            "> Auto-generated by `reins hardware gaps`. Do not hand-edit - re-run the scan.",
+            "",
+            f"**Last scan:** {ts}",
+            f"**Budget:** {hw.get('vram_gb', 0.0)} GB VRAM (amdy), "
+            f"{hw.get('free_disk_gb', 0.0)} GB free disk",
+            "",
+            "## Ready to install now",
+            "",
+        ]
+        for c in report.get("ready", []):
+            lines.append(f"- **{c['model']}** ({c['category']}, {c.get('disk_gb', 0)}GB disk, "
+                         f"{c.get('vram_gb', 0)}GB VRAM) — {c.get('note', '')}")
+        if not report.get("ready"):
+            lines.append("- (none right now)")
+        lines += ["", "## Over budget (won't fit today)", ""]
+        for c in report.get("over_budget", []):
+            lines.append(f"- **{c['model']}** ({c['category']}, needs {c.get('vram_gb', 0)}GB VRAM / "
+                         f"{c.get('disk_gb', 0)}GB disk) — {c.get('note', '')}")
+        if not report.get("over_budget"):
+            lines.append("- (none)")
+        lines += ["", "## Gaps with no execution backend yet", ""]
+        for c in report.get("blocked_backend", []):
+            lines.append(f"- **{c['model']}** ({c['category']}) — {c.get('note', '')}")
+        if not report.get("blocked_backend"):
+            lines.append("- (none)")
+        try:
+            paths.model_gaps_manifest().write_text("\n".join(lines) + "\n")
+            logger.info(f"Model-gap report written -> {paths.model_gaps_manifest()}")
+        except Exception as e:
+            logger.error(f"Could not write model-gap manifest: {e}")
 
     # -- entrypoint -----------------------------------------------------------
     def profile_cluster(self, publish: bool = True) -> dict:

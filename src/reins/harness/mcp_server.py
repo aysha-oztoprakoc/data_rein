@@ -89,12 +89,31 @@ def trail_update(task_id: str, status: str) -> str:
 
 
 @mcp.tool()
-def agent_status() -> str:
+def agent_budgets() -> str:
+    """Show every known agent's CPU%/GPU-VRAM-GB resource budget."""
+    from reins.services.resource_budgets import load_budgets
+
+    return json.dumps(load_budgets())
+
+
+@mcp.tool()
+def set_agent_budget(agent_name: str, cpu_pct: int = -1, gpu_vram_gb: float = -1.0) -> str:
     """
-    Summarize what every agent identity (data-agy/data-hermes/data-ody/opencode)
-    has been doing recently, per the Prime Directive's Rule of Awareness - check
-    this before any systemic action to see what's running/pending/failed.
+    Update one agent's resource budget. Pass only the field(s) you want to
+    change; leave the other at its sentinel default (-1 / -1.0) to leave it
+    untouched. Returns the full updated budgets dict.
     """
+    from reins.services.resource_budgets import save_budget
+
+    budgets = save_budget(
+        agent_name,
+        cpu_pct=cpu_pct if cpu_pct >= 0 else None,
+        gpu_vram_gb=gpu_vram_gb if gpu_vram_gb >= 0 else None,
+    )
+    return json.dumps(budgets)
+
+
+def _agent_status_payload() -> dict:
     trail = TaskTrail()
     tasks = trail.all_tasks()
     by_owner: dict[str, dict[str, int]] = {}
@@ -104,11 +123,21 @@ def agent_status() -> str:
         status = t.get("status", "unknown")
         bucket[status] = bucket.get(status, 0) + 1
     failed = trail.get_failed_tasks()
-    return json.dumps({
+    return {
         "by_owner": by_owner,
         "failed_tasks": failed[-10:],
         "total_tasks": len(tasks),
-    })
+    }
+
+
+@mcp.tool()
+def agent_status() -> str:
+    """
+    Summarize what every agent identity (data-agy/data-hermes/data-ody/opencode)
+    has been doing recently, per the Prime Directive's Rule of Awareness - check
+    this before any systemic action to see what's running/pending/failed.
+    """
+    return json.dumps(_agent_status_payload())
 
 
 @mcp.tool()
@@ -161,8 +190,20 @@ def token_usage_status(provider: str = "") -> str:
     return json.dumps(report)
 
 
-def main() -> None:
-    mcp.run()
+def main(http: bool = False, host: str = "127.0.0.1", port: int = 8765) -> None:
+    """
+    Default (``http=False``): stdio transport, unchanged - what Claude Code,
+    OpenCode, and Antigravity already use. ``http=True`` instead serves the
+    same tools over streamable-HTTP, the transport a Docker container (e.g.
+    the Odysseus dashboard, which can't share a stdio pipe with the host)
+    needs to reach this server as a network client.
+    """
+    if http:
+        mcp.settings.host = host
+        mcp.settings.port = port
+        mcp.run(transport="streamable-http")
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":

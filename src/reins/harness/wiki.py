@@ -227,6 +227,44 @@ class WikiDB:
         cur = self.conn.execute("SELECT * FROM pages WHERE slug = ?", (slug,))
         return cur.fetchone()
 
+    def list_pages(
+        self,
+        *,
+        category: Optional[str] = None,
+        owner: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
+        order: str = "recent",
+    ) -> list[sqlite3.Row]:
+        """Browse pages (not full-text search) with optional category/owner
+        filters, paginated. `order`: "recent" (updated_at DESC, default) or
+        "title" (title ASC)."""
+        where, params = [], []
+        if category:
+            where.append("category = ?")
+            params.append(category)
+        if owner:
+            where.append("owner = ?")
+            params.append(owner)
+        clause = f"WHERE {' AND '.join(where)}" if where else ""
+        order_sql = "title ASC" if order == "title" else "updated_at DESC"
+        cur = self.conn.execute(
+            f"SELECT * FROM pages {clause} ORDER BY {order_sql} LIMIT ? OFFSET ?",
+            (*params, limit, offset),
+        )
+        return cur.fetchall()
+
+    def count_pages(self, *, category: Optional[str] = None, owner: Optional[str] = None) -> int:
+        where, params = [], []
+        if category:
+            where.append("category = ?")
+            params.append(category)
+        if owner:
+            where.append("owner = ?")
+            params.append(owner)
+        clause = f"WHERE {' AND '.join(where)}" if where else ""
+        return int(self.conn.execute(f"SELECT COUNT(*) FROM pages {clause}", params).fetchone()[0])
+
     def search_pages(self, query: str, limit: int = 10) -> list[sqlite3.Row]:
         cur = self.conn.execute(
             """

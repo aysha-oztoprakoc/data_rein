@@ -84,6 +84,34 @@ def test_router_reads_real_config():
     assert spec.model
 
 
+def test_router_appends_unlisted_local_models_for_amdy(monkeypatch):
+    """A model not in model_router.json but installed locally should still be
+    reachable as a low-priority last resort, so newly-pulled models work
+    without editing config."""
+    r = ModelRouter()
+    r.table = {"x": {"amdy": [{"model": "qwen2.5-coder:7b", "score": 90.0}]}}
+    monkeypatch.setattr(
+        "reins.harness.local.list_models",
+        lambda *a, **k: ["qwen2.5-coder:7b", "brand-new-model:latest"],
+    )
+    specs = r.candidates("x", "amdy")
+    names = [s.model for s in specs]
+    assert names == ["qwen2.5-coder:7b", "brand-new-model:latest"]
+    assert specs[-1].score == 1.0
+
+
+def test_router_extra_local_candidates_skipped_for_tell(monkeypatch):
+    """The dynamic fallback tier only applies to amdy; tell keeps the static list."""
+    r = ModelRouter()
+    r.table = {"x": {"tell": [{"model": "qwen2.5-coder:3b", "score": 96.1}]}}
+    monkeypatch.setattr(
+        "reins.harness.local.list_models",
+        lambda *a, **k: ["some-other-model:latest"],
+    )
+    specs = r.candidates("x", "tell")
+    assert [s.model for s in specs] == ["qwen2.5-coder:3b"]
+
+
 def test_router_degrades_without_crashing(monkeypatch):
     """A category with only an unreachable provider returns ok=False, not an exception."""
     r = ModelRouter()
@@ -355,3 +383,48 @@ def test_subagent_manager_logs_spawn_to_trail(monkeypatch, trail):
     assert len(tasks) == 1
     assert tasks[0]["task_type"] == "data-hermes:subagent:General Chatting"
     assert tasks[0]["status"] == "success"
+
+
+def test_comfyui_build_txt2img_workflow_shape():
+    from reins.harness.comfyui_client import build_txt2img_workflow
+
+    wf = build_txt2img_workflow("a red fox in snow", checkpoint="sd_xl_turbo_1.0_fp16.safetensors")
+    assert wf["4"]["inputs"]["ckpt_name"] == "sd_xl_turbo_1.0_fp16.safetensors"
+    assert wf["6"]["inputs"]["text"] == "a red fox in snow"
+    assert wf["3"]["class_type"] == "KSampler"
+    assert wf["9"]["class_type"] == "SaveImage"
+
+
+def test_comfyui_extract_image_path_from_history():
+    from reins.harness.comfyui_client import ComfyUIClient
+
+    entry = {"outputs": {"9": {"images": [{"filename": "reins_00001_.png", "subfolder": "sub"}]}}}
+    assert ComfyUIClient.extract_image_path(entry) == "sub/reins_00001_.png"
+
+    entry_no_subfolder = {"outputs": {"9": {"images": [{"filename": "reins_00001_.png", "subfolder": ""}]}}}
+    assert ComfyUIClient.extract_image_path(entry_no_subfolder) == "reins_00001_.png"
+
+    assert ComfyUIClient.extract_image_path({"outputs": {}}) is None
+
+
+def test_generate_image_degrades_when_comfyui_unreachable(monkeypatch):
+    """ComfyUI down (or not installed) must return ok=False, never raise."""
+    r = ModelRouter()
+    monkeypatch.setenv("COMFYUI_BASE_URL", "http://127.0.0.1:1")  # nothing listens here
+    res = r.generate_image("image generation", "a red fox in snow")
+    assert res.ok is False
+    assert res.error
+
+
+def test_route_skips_comfyui_candidates_for_chat(monkeypatch):
+    """route() must never try to dispatch chat prompts to a comfyui backend."""
+    r = ModelRouter()
+    r.table = {"x": {"amdy": [{"model": "comfyui_sdxl_base", "backend": "comfyui"}]}}
+    monkeypatch.setattr(
+        "reins.harness.local.list_models", lambda *a, **k: []
+    )
+    monkeypatch.setattr("reins.harness.models._get_secret", lambda *_: None)
+    res = r.route("x", "hello", "amdy")
+    assert res.ok is False
+    # comfyui was skipped entirely, not "tried and failed"
+    assert "comfyui" not in res.error

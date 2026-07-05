@@ -18,11 +18,20 @@ dependencies = [
     "duckduckgo-search>=8.1.1",
     "textual>=8.2.8",
     "mcp>=1.28.1",
+    "openpyxl>=3.1.0",
+    "python-pptx>=1.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest-mock>=3.12.0"
+]
+# Heavy (~8.8GB incl. opencv/modelscope/huggingface-hub) layout-aware PDF
+# extraction. MinerUPDFExtractor uses it as the default PDF path when
+# installed, degrading gracefully to PyMuPDF/pdftotext when it's not - so
+# this is opt-in rather than a base dependency every `uv sync` pulls in.
+ingestion = [
+    "mineru>=3.4.0"
 ]
 
 [build-system]

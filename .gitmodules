@@ -1,0 +1,3 @@
+[submodule "DATA"]
+	path = DATA
+	url = git@github.com:aysha-oztoprakoc/DATA.git

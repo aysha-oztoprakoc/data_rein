@@ -1,0 +1,53 @@
+{
+  "_comment": "Candidate models NOT yet installed, considered by `reins hardware gaps`. Sizes are approximate download/disk footprint; vram_gb is the approximate working-set requirement (not just weight size). 'backend' notes what execution path a model needs - 'ollama' entries can be pulled and used today; other backends are candidates only until that execution path is built (see knowledge_base/MODEL_GAPS.md notes).",
+  "candidates": [
+    {
+      "category": "embeddings",
+      "model": "nomic-embed-text",
+      "backend": "ollama",
+      "disk_gb": 0.3,
+      "vram_gb": 0.5,
+      "note": "Wiki/RAG search quality is currently pure FTS5 keyword match; a local embedding model is a cheap, high-value gap to fill."
+    },
+    {
+      "category": "audio_tts",
+      "model": "piper (en_US voice pack)",
+      "backend": "piper",
+      "disk_gb": 0.1,
+      "vram_gb": 0.0,
+      "note": "CPU-only text-to-speech, no GPU needed. Zero coverage today - only speech-to-text (Whisper) exists."
+    },
+    {
+      "category": "audio_stt",
+      "model": "faster-whisper (small/base)",
+      "backend": "faster-whisper",
+      "disk_gb": 0.5,
+      "vram_gb": 1.0,
+      "note": "Lighter, in-process alternative to the current whisper-CLI-over-SSH-to-tell path used by the digest pipeline; would let audio/video ingestion run on amdy without depending on tell being online."
+    },
+    {
+      "category": "image_generation",
+      "model": "sd-turbo",
+      "backend": "comfyui",
+      "disk_gb": 2.5,
+      "vram_gb": 6.0,
+      "note": "Smallest realistic fit for 8GB VRAM. No execution backend exists yet - ModelRouter._dispatch has no comfyui branch. Install only once a ComfyUI/diffusers backend is built; tracked as a future-work gap, not actionable today."
+    },
+    {
+      "category": "image_generation",
+      "model": "sdxl-turbo",
+      "backend": "comfyui",
+      "disk_gb": 6.9,
+      "vram_gb": 7.5,
+      "note": "Tight fit at 8GB VRAM (leaves ~0.5GB headroom) - only consider after sd-turbo is validated. Same backend gap as sd-turbo."
+    },
+    {
+      "category": "video_generation",
+      "model": "(none recommended)",
+      "backend": "none",
+      "disk_gb": 0.0,
+      "vram_gb": 0.0,
+      "note": "Not realistically installable on 8GB VRAM with no execution backend today. Recorded as an open gap, not a recommendation - revisit if a higher-VRAM node is added to the cluster."
+    }
+  ]
+}

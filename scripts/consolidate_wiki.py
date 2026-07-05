@@ -23,6 +23,7 @@ import argparse
 import sqlite3
 import sys
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Allow running straight from the repo without installation.
@@ -30,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from reins.harness import paths  # noqa: E402
 from reins.harness.wiki import WikiDB, slugify  # noqa: E402
+from reins.services.task_trail import TaskTrail  # noqa: E402
 
 PAGE_EXTS = {".md", ".xml", ".txt"}
 SKIP_DIRS = {".git", ".obsidian", "node_modules", "__pycache__", ".venv"}
@@ -123,6 +125,51 @@ def find_app_dbs(home: Path) -> list[Path]:
     return sorted({p.resolve() for p in home.rglob("app.db") if ".git" not in p.parts})
 
 
+def ingest_trail(db: WikiDB, dry: bool) -> int:
+    """
+    Materialize completed Task Trail activity into per-agent, per-day wiki
+    pages (category="changelog") - documentation of what every agent actually
+    did, not just what pages/notes it authored. Idempotent: one page per
+    (owner, date), re-generated in full each run, keyed by slug so re-running
+    replaces rather than duplicates.
+    """
+    trail = TaskTrail()
+    tasks = [t for t in trail.all_tasks() if t.get("status") not in (None, "pending")]
+    by_bucket: dict[tuple[str, str], list[dict]] = {}
+    for t in tasks:
+        task_type = str(t.get("task_type", "generic"))
+        owner = task_type.split(":", 1)[0]
+        ts = t.get("timestamp")
+        try:
+            date = datetime.fromtimestamp(float(ts), tz=timezone.utc).strftime("%Y-%m-%d")
+        except (TypeError, ValueError):
+            date = "unknown-date"
+        by_bucket.setdefault((owner, date), []).append(t)
+
+    n = 0
+    for (owner, date), bucket in sorted(by_bucket.items()):
+        lines = [f"# Changelog — {owner} — {date}", ""]
+        for t in sorted(bucket, key=lambda t: t.get("timestamp", 0)):
+            prompt_snip = str(t.get("prompt", ""))[:120].replace("\n", " ")
+            lines.append(
+                f"- `{t.get('status')}` **{t.get('task_type')}** "
+                f"(node={t.get('target_node')}, attempts={t.get('attempts', 0)}): {prompt_snip}"
+            )
+        content = "\n".join(lines)
+        if not dry:
+            db.upsert_page(
+                title=f"Changelog: {owner} ({date})",
+                content=content,
+                slug=slugify(f"changelog-{owner}-{date}"),
+                source_path=f"task_trail:{owner}:{date}",
+                category="changelog",
+                fmt="md",
+                owner=owner,
+            )
+        n += 1
+    return n
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Consolidate all knowledge into the monolith Wiki DB")
     ap.add_argument("--dry-run", action="store_true", help="report counts without writing")
@@ -157,6 +204,9 @@ def main() -> int:
             if c:
                 log(f"  [mem]   {app_db.relative_to(home) if str(app_db).startswith(str(home)) else app_db} : {c}")
             mem_total += c
+
+        changelog = ingest_trail(db, dry=args.dry_run)
+        log(f"  [pages] task trail changelog : {changelog}")
 
         stats = db.stats()
         log("// ------------------------------------------------------------")

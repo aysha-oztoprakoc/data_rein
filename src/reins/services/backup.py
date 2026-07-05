@@ -382,11 +382,19 @@ class BackupService:
         return 1
 
     def _notify_blocked(self, report: HealthReport) -> None:
+        msg = f"{len(report.failures)} check(s) failed. Shutdown blocked to protect the workspace."
+        self._notify("data_rein BAK — shutdown blocked", msg)
+
+    def _notify_unhealthy_backup(self, report: HealthReport) -> None:
+        msg = (f"{len(report.failures)} check(s) failed — failsafe snapshot saved; "
+               "review the workspace after boot.")
+        self._notify("data_rein BAK — unhealthy at shutdown", msg)
+
+    def _notify(self, title: str, msg: str) -> None:
         if not shutil.which("notify-send"):
             return
-        msg = f"{len(report.failures)} check(s) failed. Shutdown blocked to protect the workspace."
         try:
-            subprocess.run(["notify-send", "-u", "critical", "data_rein BAK — shutdown blocked", msg],
+            subprocess.run(["notify-send", "-u", "critical", title, msg],
                            check=False, capture_output=True, timeout=5)
         except Exception:
             pass
@@ -400,7 +408,7 @@ class BackupService:
         venv_py = _expand(self.config.get("harness", {}).get("root", "~/data_rein")) / ".venv/bin/python"
         wrapper = _expand("~/.local/bin/omarchy-safe-power.sh")
         wrapper_body = _POWER_WRAPPER.format(python=venv_py)
-        alias_block = _ALIAS_BLOCK.format(mark=self._MARK, wrapper=wrapper)
+        alias_block = _ALIAS_BLOCK.format(mark=self._MARK, wrapper=wrapper, python=venv_py)
         user_unit = _USER_SHUTDOWN_UNIT.format(python=venv_py)
         system_unit = _SYSTEM_SHUTDOWN_UNIT.format(python=venv_py)
         return {
@@ -617,7 +625,7 @@ _ALIAS_BLOCK = r"""# {mark}: intercept power commands + `bak` helper (edit via `
 reboot()   {{ "{wrapper}" reboot "$@"; }}
 poweroff() {{ "{wrapper}" poweroff "$@"; }}
 shutdown() {{ "{wrapper}" poweroff "$@"; }}
-bak()      {{ ( cd ~/data_rein && .venv/bin/python -m reins.cli backup "$@" ); }}"""
+bak()      {{ ( "{python}" -m reins.cli backup "$@" ); }}"""
 
 # User-session unit: best-effort backup when the user session goes down (no root).
 _USER_SHUTDOWN_UNIT = """[Unit]

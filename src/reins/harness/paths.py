@@ -70,6 +70,11 @@ def hardware_manifest() -> Path:
     return _resolve("DATA_REIN_HARDWARE", "knowledge_base", "HARDWARE.md")
 
 
+def model_gaps_manifest() -> Path:
+    """Model-gap advisor report (written by `reins hardware gaps`)."""
+    return _resolve("DATA_REIN_MODEL_GAPS", "knowledge_base", "MODEL_GAPS.md")
+
+
 def wiki_db() -> Path:
     """The single shared monolith Wiki database (derived, rebuildable)."""
     return _resolve("DATA_REIN_WIKI_DB", "knowledge_base", "wiki.db")
@@ -85,6 +90,16 @@ def model_router() -> Path:
 
 def model_registry() -> Path:
     return config_dir() / "model_registry.json"
+
+
+def model_catalog() -> Path:
+    """Static candidate-model catalog consulted by the model-gap advisor."""
+    return config_dir() / "model_catalog.json"
+
+
+def digest_watch_dirs() -> Path:
+    """List of directories `reins digest`'s pending-extraction view watches."""
+    return config_dir() / "digest_watch_dirs.json"
 
 
 def backup_config() -> Path:

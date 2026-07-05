@@ -52,6 +52,17 @@ reins batch "data processing" prompts.txt   # unattended bulk run, logged to tra
 All of this routes through `reins.harness.workflow`, inherits graceful failover,
 and logs batch work to the shared Task Trail.
 
+### Claude Code: delegate menial coding to local models
+
+The `reins` MCP server (`.mcp.json`, `reins mcp`) exposes `route_local` and
+`escalate_cloud`. For test-writing, boilerplate, and other small/fast/short
+code changes, call `route_local("coding: menial", ...)` by default — it
+reaches `qwen2.5-coder:7b` first, with automatic fallback to any other
+locally-installed model, and never touches a cloud provider. Write such code
+yourself, or call `escalate_cloud`, only when the user explicitly asks for
+Claude/Gemini specifically. Reserve direct Claude Code involvement for
+design/judgment work, review, and anything the user asked for by name.
+
 ## Skills
 
 Canonical harness skills live in `skills/` (tracked, indexed by

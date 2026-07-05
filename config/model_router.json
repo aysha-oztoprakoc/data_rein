@@ -51,6 +51,15 @@
         {"model": "gemma2:2b", "score": 97.4, "power": "low"}
       ]
     },
+    "coding: menial": {
+      "amdy": [
+        {"model": "qwen2.5-coder:7b", "score": 95.0, "power": "high"},
+        {"model": "codegemma:7b", "score": 90.0, "power": "high"}
+      ],
+      "tell": [
+        {"model": "qwen2.5-coder:3b", "score": 96.1, "power": "low"}
+      ]
+    },
     "data organizing": {
       "amdy": [
         {"model": "qwen2.5-coder:7b", "score": 90.8, "power": "high"},

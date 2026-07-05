@@ -65,6 +65,79 @@ def sync_trail():
     bridge.scan_and_sync()
     print("Sync complete.")
 
+
+def _port_open(host: str, port: int, timeout: float = 0.5) -> bool:
+    import socket
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def _ensure_reins_mcp_http(port: int = 8765, wait: float = 10.0) -> bool:
+    """The Odysseus dashboard (running in Docker) reaches the harness over
+    streamable-HTTP MCP, not stdio - ensure that server is up before bringing
+    Odysseus's containers up. Detached, idempotent, never raises."""
+    import subprocess
+    import threading
+    import time
+
+    if _port_open("127.0.0.1", port):
+        return True
+    print(f"Starting reins mcp --http on port {port}...")
+    try:
+        subprocess.Popen(
+            ["reins", "mcp", "--http", "--port", str(port)],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
+        )
+    except FileNotFoundError:
+        print("Warning: `reins` not found on PATH; run `reins bin install` first.")
+        return False
+
+    gate = threading.Event()
+    deadline = time.time() + wait
+    while time.time() < deadline:
+        if _port_open("127.0.0.1", port):
+            return True
+        gate.wait(0.5)
+    print(f"Warning: reins mcp --http did not come up on port {port} within {wait}s.")
+    return False
+
+
+def _ensure_comfyui(port: int = 8188, wait: float = 10.0) -> bool:
+    """Best-effort: start ComfyUI if it's not already serving. Its own Python
+    environment (torch/ROCm) is a separate manual setup step this does not
+    perform - degrades to a warning, never blocks `ody start`."""
+    import os
+    import subprocess
+    import threading
+    import time
+
+    if _port_open("127.0.0.1", port):
+        return True
+    comfy_dir = "/home/amdy/data_rein/ComfyUI"
+    if not os.path.isdir(comfy_dir):
+        return False
+    print(f"Starting ComfyUI on port {port}...")
+    try:
+        subprocess.Popen(
+            ["python3", "main.py", "--port", str(port)],
+            cwd=comfy_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
+        )
+    except FileNotFoundError:
+        return False
+
+    gate = threading.Event()
+    deadline = time.time() + wait
+    while time.time() < deadline:
+        if _port_open("127.0.0.1", port):
+            return True
+        gate.wait(0.5)
+    print(f"Warning: ComfyUI did not come up on port {port} within {wait}s "
+          "(likely missing its own Python env - torch/ROCm - see D in the harness plan).")
+    return False
+
 def main() -> None:
     try:
         from reins.services.harness_bootstrapper import HarnessBootstrapper
@@ -111,7 +184,7 @@ def main() -> None:
 
     _harness_cmds = ('wiki', 'skills', 'bin', 'directive', 'paths', 'local', 'run',
                      'batch', 'ask', 'summarize', 'classify', 'optimize', 'digest',
-                     'backup', 'secret', 'mcp', 'tokens')
+                     'backup', 'secret', 'mcp', 'tokens', 'hardware')
     if harness_cli is not None and args.command in _harness_cmds:
         if harness_cli.handle(args):
             return
@@ -156,6 +229,12 @@ def main() -> None:
                     print("Repair successful.")
             except Exception as e:
                 print(f"Warning: Failed to auto-repair settings.yml: {e}")
+
+            # The Odysseus dashboard reaches the harness over HTTP-MCP (it's in
+            # Docker, no stdio pipe to share) and can render generated images
+            # via ComfyUI - ensure both are up before the containers start.
+            _ensure_reins_mcp_http()
+            _ensure_comfyui()
 
             # Attempt to start the actual docker containers if they exist
             try:

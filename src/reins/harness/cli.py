@@ -87,6 +87,7 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     dig.add_argument("--recursive", action="store_true", help="recurse into subdirectories")
     dig.add_argument("--no-enrich", action="store_true", help="skip local-model fact enrichment (faster)")
     dig.add_argument("--no-trail", action="store_true", help="do not log to the Task Trail")
+    dig.add_argument("--force", action="store_true", help="re-digest files even if unchanged since last run")
 
     # reins backup ...  (omarchy/workspace backup + shutdown guard)
     bak = subparsers.add_parser("backup", help="Backup + shutdown-guard for omarchy/workspace")
@@ -119,8 +120,18 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     subparsers.add_parser("directive", help="Print the Prime Directive")
     subparsers.add_parser("paths", help="Print canonical harness paths")
 
-    # reins mcp  (stdio MCP server for interactive front ends, e.g. OpenCode)
-    subparsers.add_parser("mcp", help="Run the reins MCP bridge (wiki/trail/router tools) over stdio")
+    # reins mcp  (stdio MCP server for interactive front ends, e.g. OpenCode;
+    # --http for network clients that can't share a stdio pipe, e.g. Odysseus in Docker)
+    mcp_p = subparsers.add_parser("mcp", help="Run the reins MCP bridge (wiki/trail/router tools)")
+    mcp_p.add_argument("--http", action="store_true", help="serve over streamable-HTTP instead of stdio")
+    mcp_p.add_argument("--host", default="127.0.0.1")
+    mcp_p.add_argument("--port", type=int, default=8765)
+
+    # reins hardware ...  (hardware scan + model-gap advisor)
+    hw = subparsers.add_parser("hardware", help="Hardware scan + local-model gap advisor")
+    hwsub = hw.add_subparsers(dest="subcmd")
+    hwsub.add_parser("scan", help="Re-run the getinfo hardware scan (HARDWARE.md + model_registry.json)")
+    hwsub.add_parser("gaps", help="Recommend not-yet-installed models that fit this machine (MODEL_GAPS.md)")
 
 
 def handle(args: argparse.Namespace) -> bool:
@@ -152,9 +163,30 @@ def handle(args: argparse.Namespace) -> bool:
     if args.command == "mcp":
         from reins.harness.mcp_server import main as mcp_main
 
-        mcp_main()
+        mcp_main(http=args.http, host=args.host, port=args.port)
         return True
+    if args.command == "hardware":
+        return _handle_hardware(args)
     return False
+
+
+def _handle_hardware(args: argparse.Namespace) -> bool:
+    from reins.services.sys_profiler import SysProfiler
+
+    sub = getattr(args, "subcmd", None)
+    sp = SysProfiler()
+    if sub == "gaps":
+        report = sp.gap_report()
+        sp.write_gap_manifest(report)
+        print(f"// model-gap report -> {paths.model_gaps_manifest()}")
+        print(f"   budget: {report['hardware']['vram_gb']}GB VRAM, "
+              f"{report['hardware']['free_disk_gb']}GB free disk")
+        print(f"   ready to install: {', '.join(c['model'] for c in report['ready']) or '(none)'}")
+        return True
+    # default / "scan"
+    result = sp.profile_cluster(publish=False)
+    print(f"// hardware scan -> {paths.hardware_manifest()}")
+    return True
 
 
 def _read_text_arg(value: Optional[str]) -> str:
@@ -250,17 +282,20 @@ def _handle_digest(args: argparse.Namespace) -> bool:
     print(f"// digesting {p} -> wiki (enrich={not args.no_enrich})")
 
     def _emit(item: "digest.DigestItem") -> None:
-        if item.ok:
+        if item.skipped:
+            print(f"  [skip] unchanged  <- {item.path}")
+        elif item.ok:
             print(f"  [ok ] {item.node}: {item.slug} (+{item.facts} facts)  <- {item.path}")
         else:
             print(f"  [ERR] {item.path}: {item.error}")
 
     results = digest.digest_path(
         str(p), recursive=args.recursive, enrich=not args.no_enrich,
-        on_result=_emit, log_trail=not args.no_trail,
+        on_result=_emit, log_trail=not args.no_trail, force=args.force,
     )
-    ok = sum(1 for r in results if r.ok)
-    print(f"// digested {ok}/{len(results)} file(s) into the wiki")
+    ok = sum(1 for r in results if r.ok and not r.skipped)
+    skipped = sum(1 for r in results if r.skipped)
+    print(f"// digested {ok}/{len(results)} file(s) into the wiki ({skipped} unchanged, skipped)")
     return True
 
 
@@ -283,6 +318,7 @@ def _handle_backup(args: argparse.Namespace) -> bool:
             print(f"// health FAILED ({len(rep.failures)}); refusing to overwrite the good backup. "
                   "Run `reins backup check`.")
             svc.failsafe_backup()
+            svc._notify_unhealthy_backup(rep)
             return True
         out = svc.backup_now()
         print(f"// backup OK -> rescue={out['emergency_script']} dotfiles_pushed={out['dotfiles_pushed']}")

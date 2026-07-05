@@ -40,7 +40,7 @@ class CookbookEvaluator:
             start = time.time()
             if node == "amdy":
                 local.ensure_server()
-                output = local.generate(model, prompt)  # raises on failure
+                output = local.generate(model, prompt, timeout=25)  # raises on failure
             else:
                 res = subprocess.run(
                     ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=3", node, "ollama", "run", model],
