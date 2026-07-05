@@ -1,7 +1,7 @@
 [project]
 name = "data_rein"
 version = "0.1.0"
-description = "Sovereign AI Data Harness and PON Data Extraction Pipeline"
+description = "Universal AI harness: shared wiki, model-agnostic router, and task trail for a fleet of local-first coding agents (PON architecture)"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
