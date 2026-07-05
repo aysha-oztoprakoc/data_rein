@@ -1,0 +1,19 @@
+{
+  "_comment": "Per-agent resource budgets, read/written by reins.services.resource_budgets and editable from the Sofia dashboard's Agent Center. cpu_pct is enforced via a cgroup v2 cpu.max quota; gpu_vram_gb is a soft/advisory allocation.",
+  "data-agy": {
+    "cpu_pct": 100,
+    "gpu_vram_gb": 8.0
+  },
+  "data-hermes": {
+    "cpu_pct": 60,
+    "gpu_vram_gb": 2.0
+  },
+  "data-ody": {
+    "cpu_pct": 60,
+    "gpu_vram_gb": 4.0
+  },
+  "data-sofia": {
+    "cpu_pct": 20,
+    "gpu_vram_gb": 0.0
+  }
+}

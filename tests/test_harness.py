@@ -291,3 +291,67 @@ def test_router_records_usage_on_successful_cloud_call(monkeypatch, token_ledger
     usage = token_ledger.usage_in(3600, provider="claude")
     assert usage["requests"] == 1
     assert usage["total_tokens"] == 50
+
+
+# --- per-agent resource budgets ---------------------------------------------
+def test_resource_budgets_default_to_unrestricted(isolated_config_dir):
+    from reins.services import resource_budgets as rb
+
+    budgets = rb.load_budgets()
+    assert set(budgets) == {"data-agy", "data-hermes", "data-ody", "data-sofia"}
+    assert all(b == {"cpu_pct": 100, "gpu_vram_gb": 0.0} for b in budgets.values())
+
+
+def test_resource_budgets_save_persists_and_clamps(isolated_config_dir):
+    from reins.services import resource_budgets as rb
+
+    rb.save_budget("data-hermes", cpu_pct=250, gpu_vram_gb=-3)  # out-of-range input
+    budgets = rb.load_budgets()
+    assert budgets["data-hermes"]["cpu_pct"] == 100  # clamped to the [1, 100] range
+    assert budgets["data-hermes"]["gpu_vram_gb"] == 0.0  # clamped to >= 0
+
+    rb.save_budget("data-hermes", cpu_pct=40, gpu_vram_gb=2.5)
+    assert rb.load_budgets()["data-hermes"] == {"cpu_pct": 40, "gpu_vram_gb": 2.5}
+    # unrelated agents keep their defaults across the partial update
+    assert rb.load_budgets()["data-ody"]["cpu_pct"] == 100
+
+
+def test_apply_cpu_budget_degrades_without_cgroup_v2(monkeypatch):
+    from reins.services import resource_budgets as rb
+
+    monkeypatch.setattr(rb, "cgroup_available", lambda: False)
+    ok, msg = rb.apply_cpu_budget("data-hermes", 50, pids=[1234])
+    assert ok is False
+    assert "cgroup" in msg
+
+
+def test_apply_cpu_budget_degrades_on_sudo_failure(monkeypatch):
+    from reins.services import resource_budgets as rb
+
+    monkeypatch.setattr(rb, "cgroup_available", lambda: True)
+    monkeypatch.setattr(
+        rb, "run_sudo_cmd",
+        lambda cmd: type("R", (), {"returncode": 1, "stderr": "permission denied"})(),
+    )
+    ok, msg = rb.apply_cpu_budget("data-hermes", 50, pids=[1234])
+    assert ok is False
+    assert "permission denied" in msg
+
+
+def test_subagent_manager_logs_spawn_to_trail(monkeypatch, trail):
+    from reins.services.subagent_manager import SubagentManager
+
+    mgr = SubagentManager.__new__(SubagentManager)  # skip MQTT subscribe in __init__
+    mgr.role = "data-hermes"
+    mgr.trail = trail
+    mgr.mqtt = type("M", (), {"publish": lambda self, topic, payload: None})()
+    monkeypatch.setattr(mgr, "infer", lambda category, prompt, node="amdy": type(
+        "Res", (), {"ok": True, "node": node, "model": "llama3.1:8b", "text": "hi", "error": None},
+    )())
+
+    mgr._execute_subagent({"task_type": "General Chatting", "prompt": "hello", "node": "amdy"})
+
+    tasks = trail.all_tasks()
+    assert len(tasks) == 1
+    assert tasks[0]["task_type"] == "data-hermes:subagent:General Chatting"
+    assert tasks[0]["status"] == "success"

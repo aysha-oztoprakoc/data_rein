@@ -127,6 +127,11 @@ def token_budgets() -> Path:
     return config_dir() / "token_budgets.json"
 
 
+def agent_budgets() -> Path:
+    """Per-agent CPU cgroup quota / soft GPU-VRAM allocation (see resource_budgets.py)."""
+    return config_dir() / "agent_budgets.json"
+
+
 def ensure_state_dir() -> Path:
     d = state_dir()
     d.mkdir(parents=True, exist_ok=True)
@@ -149,4 +154,5 @@ def summary() -> dict[str, str]:
         "task_trail": str(task_trail()),
         "token_usage": str(token_usage()),
         "token_budgets": str(token_budgets()),
+        "agent_budgets": str(agent_budgets()),
     }

@@ -12,6 +12,13 @@ from textual.widgets import Header, Footer, RichLog, Static, Label, ProgressBar,
 from textual.reactive import reactive
 from textual.coordinate import Coordinate
 
+from reins.harness.agents import KNOWN_AGENTS
+from reins.services import resource_budgets as rb
+from reins.services.sudo_exec import run_sudo_cmd
+from reins.services.task_trail import TaskTrail
+
+AGENT_SIGNATURES = {a["name"]: a["signature"] for a in KNOWN_AGENTS}
+
 def tail(filename, n=50):
     try:
         with open(filename, "r") as f:
@@ -20,10 +27,15 @@ def tail(filename, n=50):
     except Exception:
         return "Log file not found or unreadable."
 
-def run_sudo_cmd(cmd_list):
-    sudo_script = os.path.expanduser("~/data_rein/scripts/launch_with_sudo.sh")
-    full_cmd = ["bash", sudo_script, "sudo"] + cmd_list
-    return subprocess.run(full_cmd, capture_output=True, text=True)
+def find_agent_pids(agent_name: str) -> list[int]:
+    """PIDs of every running process matching this agent's cmdline signature."""
+    sig = AGENT_SIGNATURES.get(agent_name, agent_name)
+    pids = []
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        cmd = proc.info.get('cmdline')
+        if cmd and sig in ' '.join(cmd) and 'tmux' not in proc.info.get('name', ''):
+            pids.append(proc.info['pid'])
+    return pids
 
 TRUE_RED = "#ff4040"
 BRIGHT_RED = "#ff1100"
@@ -147,19 +159,22 @@ class SystemMetrics(Static):
 class AgentCommandCenter(Static):
     def compose(self) -> ComposeResult:
         yield Label("OMARCHY AGENT COMMAND CENTER [dim](TAB to navigate, ENTER to execute)[/]", classes="panel-title")
-        agents = [
-            ("data-agy", "CLOUD/CORE"),
-            ("data-hermes", "HUB"),
-            ("data-ody", "LOCAL FAILSAFE"),
-            ("data-sofia", "AUTO-HEALER")
-        ]
-        for agent, role in agents:
-            with Horizontal(id=f"row_{agent.replace('-', '_')}"):
-                yield Label(f"🟢 {agent}", classes="status-active", id=f"status_{agent.replace('-', '_')}")
-                if agent != "data-sofia":
-                    yield Button("TERMINATE", id=f"kill_{agent}", classes="btn-terminate")
-                yield Button("+ CPU", id=f"prio_up_{agent}", classes="btn-prio-up")
-                yield Button("- CPU", id=f"prio_down_{agent}", classes="btn-prio-down")
+        budgets = rb.load_budgets()
+        for agent in KNOWN_AGENTS:
+            name = agent["name"]
+            budget = budgets.get(name, {"cpu_pct": 100, "gpu_vram_gb": 0})
+            with Horizontal(id=f"row_{name.replace('-', '_')}"):
+                yield Label(f"🟢 {name} [dim]({agent['role']})[/]", classes="status-active", id=f"status_{name.replace('-', '_')}")
+                if name != "data-sofia":
+                    yield Button("TERMINATE", id=f"kill_{name}", classes="btn-terminate")
+                yield Button("+ CPU", id=f"prio_up_{name}", classes="btn-prio-up")
+                yield Button("- CPU", id=f"prio_down_{name}", classes="btn-prio-down")
+            with Horizontal(id=f"budget_row_{name.replace('-', '_')}"):
+                yield Label("CPU %:", classes="metric-label")
+                yield Input(value=str(budget["cpu_pct"]), id=f"cpu_input_{name}")
+                yield Label("GPU GB:", classes="metric-label")
+                yield Input(value=str(budget["gpu_vram_gb"]), id=f"gpu_input_{name}")
+                yield Button("APPLY BUDGET", id=f"apply_budget_{name}", classes="btn-tune")
 
 class ProcessMonitor(Static):
     def compose(self) -> ComposeResult:
@@ -199,6 +214,99 @@ class ProcessMonitor(Static):
                 cmd
             )
             
+class TaskTrailPanel(Static):
+    """Live view of every task/agent/subagent in the Universal Task Trail.
+
+    Refreshed on Textual's own reactive timer (set_interval), matching the
+    idiom already used by SystemMetrics/ProcessMonitor in this file - the
+    trail read is dispatched to a worker thread so a slow disk never stalls
+    the UI loop."""
+
+    def compose(self) -> ComposeResult:
+        yield Label("UNIVERSAL TASK TRAIL [dim](all tasks, agents & subagents)[/]", classes="panel-title")
+        yield Static(id="trail_summary")
+        yield DataTable(id="trail_table")
+
+    def on_mount(self) -> None:
+        table = self.query_one("#trail_table", DataTable)
+        table.cursor_type = "row"
+        table.add_columns("OWNER", "TASK TYPE", "STATUS", "NODE", "ATTEMPTS", "AGE", "PROMPT")
+        self.refresh_trail()
+        self.set_interval(3.0, self.refresh_trail)
+
+    def refresh_trail(self) -> None:
+        self.run_worker(self._load_trail, exclusive=True, thread=True)
+
+    def _load_trail(self) -> None:
+        try:
+            tasks = TaskTrail().all_tasks()
+        except Exception:
+            tasks = []
+        self.app.call_from_thread(self._render_trail, tasks)
+
+    def _render_trail(self, tasks: list) -> None:
+        by_owner: dict[str, dict[str, int]] = {}
+        for t in tasks:
+            owner = str(t.get("task_type", "generic")).split(":", 1)[0]
+            bucket = by_owner.setdefault(owner, {})
+            status = t.get("status", "unknown")
+            bucket[status] = bucket.get(status, 0) + 1
+
+        summary_parts = [
+            f"[bold]{owner}[/]: " + ", ".join(f"{s}={n}" for s, n in statuses.items())
+            for owner, statuses in sorted(by_owner.items())
+        ]
+        try:
+            self.query_one("#trail_summary", Static).update(
+                "  |  ".join(summary_parts) if summary_parts else "[dim]no tasks recorded yet[/]"
+            )
+        except Exception:
+            pass
+
+        try:
+            table = self.query_one("#trail_table", DataTable)
+        except Exception:
+            return
+        table.clear()
+        now = time.time()
+        for t in sorted(tasks, key=lambda x: x.get("timestamp", 0), reverse=True)[:200]:
+            owner = str(t.get("task_type", "generic")).split(":", 1)[0]
+            age_s = max(0, now - t.get("timestamp", now))
+            age = f"{age_s:.0f}s" if age_s < 60 else f"{age_s / 60:.0f}m" if age_s < 3600 else f"{age_s / 3600:.1f}h"
+            table.add_row(
+                owner,
+                str(t.get("task_type", "")),
+                str(t.get("status", "")),
+                str(t.get("target_node", "")),
+                str(t.get("attempts", 0)),
+                age,
+                str(t.get("prompt", ""))[:60],
+            )
+
+
+class TerminalPanel(Static):
+    """Placeholder for the embedded meta-harness terminal.
+
+    Textual has no built-in PTY/terminal widget; wiring the openclaude CLI,
+    the Odysseus graphical suite, and the Omnigent GUI in here needs either
+    the third-party `textual-terminal` package or a hand-rolled PTY (none of
+    which exist in this repo yet). Left as an explicit stub so this tab's
+    presence documents the intended integration point without pretending
+    it's wired up."""
+
+    def compose(self) -> ComposeResult:
+        yield Label("META-HARNESS TERMINAL [dim](coming soon)[/]", classes="panel-title")
+        yield Label(
+            "Planned integration points, not yet wired:\n"
+            "  - openclaude CLI\n"
+            "  - Odysseus graphical suite\n"
+            "  - Omnigent GUI\n\n"
+            "Needs a PTY-backed Textual widget (e.g. the `textual-terminal` package,\n"
+            "or a hand-rolled os.forkpty() + Log widget) - none of that exists in this\n"
+            "repo yet, so this tab is a marked placeholder rather than a fake control."
+        )
+
+
 class KernelTuning(Static):
     def compose(self) -> ComposeResult:
         yield Label("KERNEL TUNING & OVERCLOCKING [dim](DANGER ZONE)[/]", classes="panel-title")
@@ -231,12 +339,18 @@ class SofiaDashboard(App):
             with TabPane("Process Monitor"):
                 with VerticalScroll():
                     yield ProcessMonitor(classes="panel")
+            with TabPane("Task Trail"):
+                with VerticalScroll():
+                    yield TaskTrailPanel(classes="panel")
             with TabPane("Hardware Info"):
                 with VerticalScroll():
                     yield SystemInfo(classes="panel")
             with TabPane("Kernel Tuning"):
                 with VerticalScroll():
                     yield KernelTuning(classes="panel")
+            with TabPane("Terminal"):
+                with VerticalScroll():
+                    yield TerminalPanel(classes="panel")
                     
         self.log_widget = RichLog(highlight=True, markup=True, id="event-log")
         yield self.log_widget
@@ -316,6 +430,17 @@ class SofiaDashboard(App):
             except Exception as e:
                 self.log_event(f"Error: {e}")
 
+        elif button_id.startswith("apply_budget_"):
+            agent_name = button_id[len("apply_budget_"):]
+            try:
+                cpu_pct = int(self.query_one(f"#cpu_input_{agent_name}", Input).value)
+                gpu_gb = float(self.query_one(f"#gpu_input_{agent_name}", Input).value)
+            except Exception as e:
+                self.log_event(f"[#5c5855]Invalid budget input for {agent_name}: {e}[/]")
+                return
+            self.log_event(f"[bold #ffcf3d][SUDO][/] Applying budget for {agent_name}: {cpu_pct}% CPU, {gpu_gb}GB GPU (soft)...")
+            self.run_worker(lambda a=agent_name, c=cpu_pct, g=gpu_gb: self._apply_agent_budget(a, c, g), exclusive=False, thread=True)
+
     def _set_cpu_governor(self, gov: str) -> None:
         script = f"for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo {gov} > $f; done"
         res = run_sudo_cmd(["bash", "-c", script])
@@ -340,32 +465,35 @@ class SofiaDashboard(App):
             self.log_event(f"[bold #ff4040]Tmux window data:{agent_name} destroyed.[/]")
         else:
             try:
-                sig_map = {"data-agy": "agy ", "data-hermes": "hermes-agent", "data-ody": "reins.cli ody", "data-sofia": "sofia_protocol"}
-                sig = sig_map.get(agent_name, agent_name)
-                for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                    cmd = proc.info.get('cmdline')
-                    if cmd and sig in ' '.join(cmd):
-                        run_sudo_cmd(["kill", "-9", str(proc.info['pid'])])
-                        self.log_event(f"[bold #ff4040]Process {proc.info['pid']} hard-killed.[/]")
+                for pid in find_agent_pids(agent_name):
+                    run_sudo_cmd(["kill", "-9", str(pid)])
+                    self.log_event(f"[bold #ff4040]Process {pid} hard-killed.[/]")
             except Exception as e:
                 self.log_event(f"[#5c5855]Error finding/killing process: {e}[/]")
 
     def _renice_agent(self, agent_name: str, niceness: int) -> None:
-        found = False
         try:
-            sig_map = {"data-agy": "agy ", "data-hermes": "hermes-agent", "data-ody": "reins.cli ody", "data-sofia": "sofia_protocol"}
-            sig = sig_map.get(agent_name, agent_name)
-            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                cmd = proc.info.get('cmdline')
-                if cmd and sig in ' '.join(cmd) and 'tmux' not in proc.info.get('name', ''):
-                    pid = proc.info['pid']
-                    res = run_sudo_cmd(["renice", "-n", str(niceness), "-p", str(pid)])
-                    self.log_event(f"Renice applied to PID {pid}: {res.stdout.strip()}")
-                    found = True
-            if not found:
+            pids = find_agent_pids(agent_name)
+            if not pids:
                 self.log_event(f"[#5c5855]Could not find running process for {agent_name} to renice.[/]")
+                return
+            for pid in pids:
+                res = run_sudo_cmd(["renice", "-n", str(niceness), "-p", str(pid)])
+                self.log_event(f"Renice applied to PID {pid}: {res.stdout.strip()}")
         except Exception as e:
             self.log_event(f"[#5c5855]Error applying renice: {e}[/]")
+
+    def _apply_agent_budget(self, agent_name: str, cpu_pct: int, gpu_vram_gb: float) -> None:
+        rb.save_budget(agent_name, cpu_pct=cpu_pct, gpu_vram_gb=gpu_vram_gb)
+        self.log_event(f"[#5c5855]Budget saved: {agent_name} -> {cpu_pct}% CPU, {gpu_vram_gb}GB GPU (advisory).[/]")
+
+        pids = find_agent_pids(agent_name)
+        if not pids:
+            self.log_event(f"[#5c5855]{agent_name} has no running process right now; CPU quota will apply once it starts and is re-applied.[/]")
+            return
+        ok, msg = rb.apply_cpu_budget(agent_name, cpu_pct, pids)
+        color = "#ff4040" if ok else "#5c5855"
+        self.log_event(f"[{color}]{msg}[/]")
 
     def _trigger_health_check(self) -> None:
         """Fired by Textual's own reactive timer (set_interval) - no thread, no sleep-loop.

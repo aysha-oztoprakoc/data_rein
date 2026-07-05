@@ -19,6 +19,21 @@ from typing import Optional
 
 from reins.harness.models import ModelRouter, RouteResult
 
+# Single source of truth for the fixed fleet of long-running harness agents
+# (tmux windows in the `data` session). Consumed by the Sofia dashboard for
+# process lookup (kill/renice/cgroup) and by anything else that needs to know
+# "what agents exist" without hardcoding the list a second time.
+#
+#   name       - tmux window / process identity
+#   role       - human-readable role shown in the dashboard
+#   signature  - substring matched against a process's cmdline to find its PID(s)
+KNOWN_AGENTS: list[dict] = [
+    {"name": "data-agy", "role": "CLOUD/CORE", "signature": "agy "},
+    {"name": "data-hermes", "role": "HUB", "signature": "hermes-agent"},
+    {"name": "data-ody", "role": "LOCAL FAILSAFE", "signature": "reins.cli ody"},
+    {"name": "data-sofia", "role": "AUTO-HEALER", "signature": "sofia_protocol"},
+]
+
 
 class HarnessAgent:
     """Base identity shared by every agent operating under data_rein."""

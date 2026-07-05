@@ -49,6 +49,13 @@ def token_ledger(tmp_path, monkeypatch):
     return TokenLedger()
 
 
+@pytest.fixture()
+def isolated_config_dir(tmp_path, monkeypatch):
+    """Points reins.harness.paths.config_dir() (and everything under it) at an isolated dir."""
+    monkeypatch.setenv("DATA_REIN_CONFIG_DIR", str(tmp_path / "config"))
+    return tmp_path / "config"
+
+
 def harness_source_files() -> list[Path]:
     """Every non-empty Python source file under src/reins (excludes caches/tests)."""
     files: list[Path] = []

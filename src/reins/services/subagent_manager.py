@@ -51,11 +51,29 @@ class SubagentManager(HarnessAgent):
         if not prompt:
             logger.error("Subagent spawned with empty prompt.")
             return
-            
+
         logger.info(f"Spawning '{task_type}' subagent on node '{node}'...")
+
+        # Log to the shared Task Trail so this ephemeral subagent is visible
+        # to `agent_status()`/`trail_list()` and the Sofia dashboard, under
+        # owner `self.role` (data-hermes). Never blocks/raises - trail may be
+        # unavailable (HarnessAgent sets it to None on init failure).
+        task_id = None
+        if self.trail is not None:
+            try:
+                task_id = self.trail.create_task(f"{self.role}:subagent:{task_type}", prompt, node)
+                self.trail.set_status(task_id, "running")
+            except Exception:
+                task_id = None
 
         # Route through the single model-agnostic harness router.
         res = self.infer(task_type, prompt, node=node)
+
+        if task_id is not None:
+            try:
+                self.trail.set_status(task_id, "success" if res.ok else "failed")
+            except Exception:
+                pass
 
         # Publish result back
         if res.ok:
