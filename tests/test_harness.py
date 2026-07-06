@@ -428,3 +428,52 @@ def test_route_skips_comfyui_candidates_for_chat(monkeypatch):
     assert res.ok is False
     # comfyui was skipped entirely, not "tried and failed"
     assert "comfyui" not in res.error
+
+
+def test_get_secret_vault_failure_falls_back_to_env_with_warning(monkeypatch, caplog):
+    """GD-3: a broken vault must degrade to the env var, never fail silently."""
+    import logging
+
+    from reins.harness.models import _get_secret
+
+    def _boom(_name):
+        raise RuntimeError("vault locked")
+
+    monkeypatch.setitem(
+        __import__("sys").modules, "scripts.get_secrets",
+        type("m", (), {"get_secret": staticmethod(_boom)}),
+    )
+    monkeypatch.setenv("SOME_KEY", "env-value")
+    with caplog.at_level(logging.WARNING):
+        assert _get_secret("SOME_KEY") == "env-value"
+    assert "vault lookup failed" in caplog.text
+
+
+def test_record_usage_failure_is_logged_not_silent(monkeypatch, caplog):
+    """GD-3: a broken ledger must warn, never a bare `except: pass`."""
+    import logging
+
+    r = ModelRouter()
+
+    class _BoomLedger:
+        def record(self, *a, **k):
+            raise RuntimeError("ledger unreachable")
+
+    monkeypatch.setattr("reins.services.token_ledger.TokenLedger", _BoomLedger)
+    with caplog.at_level(logging.WARNING):
+        r._record_usage("claude", "claude-sonnet-5", {"input_tokens": 1, "output_tokens": 2})
+    assert "token usage not recorded" in caplog.text
+
+
+def test_record_usage_records_on_ledger(monkeypatch):
+    """The happy path: usage really lands in the TokenLedger."""
+    r = ModelRouter()
+    calls = []
+
+    class _FakeLedger:
+        def record(self, provider, model, in_tok, out_tok):
+            calls.append((provider, model, in_tok, out_tok))
+
+    monkeypatch.setattr("reins.services.token_ledger.TokenLedger", _FakeLedger)
+    r._record_usage("claude", "claude-sonnet-5", {"input_tokens": 3, "output_tokens": 4})
+    assert calls == [("claude", "claude-sonnet-5", 3, 4)]

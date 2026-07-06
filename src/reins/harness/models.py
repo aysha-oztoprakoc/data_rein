@@ -42,15 +42,18 @@ from reins.harness import paths  # noqa: E402
 
 
 def _get_secret(name: str) -> Optional[str]:
-    """Fetch a secret from the encrypted vault, falling back to env vars."""
+    """Fetch a secret from the encrypted vault, falling back to env vars.
+    GD-3: a vault miss degrades to the env fallback but is never silent."""
     try:
         from scripts.get_secrets import get_secret  # type: ignore
 
         val = get_secret(name)
         if val:
             return val
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+
+        logging.getLogger(__name__).warning("vault lookup failed for %s: %s", name, e)
     return os.environ.get(name)
 
 
@@ -256,7 +259,8 @@ class ModelRouter:
             return None, str(e)
 
     def _record_usage(self, provider: str, model: str, usage: Optional[dict]) -> None:
-        """Log a cloud call to the shared TokenLedger. Never raises."""
+        """Log a cloud call to the shared TokenLedger. Never raises, but a
+        metering failure is a warning, never a silent no-op (GD-3)."""
         if not usage:
             return
         try:
@@ -266,8 +270,12 @@ class ModelRouter:
                 provider, model,
                 usage.get("input_tokens", 0), usage.get("output_tokens", 0),
             )
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "token usage not recorded (%s/%s): %s", provider, model, e
+            )
 
     # -- providers ----------------------------------------------------------
     def _comfyui(self, model: str, prompt: str, node: str) -> Optional[str]:

@@ -57,6 +57,60 @@ def list_models(host: str = DEFAULT_HOST) -> list[str]:
         return []
 
 
+def _inotify_wait_ready(host: str, log_path: Path, deadline: float) -> bool:
+    """PON-1: block on inotify IN_MODIFY events against the `ollama serve` log
+    instead of polling server_up on a fixed interval. Each time the log is
+    written to, check readiness once; `select` bounds the total wait by
+    `deadline` without spinning. Raises if inotify is unavailable (caller
+    degrades to `_fallback_wait_ready`, GD-3)."""
+    import ctypes
+    import ctypes.util
+    import select
+
+    libc_name = ctypes.util.find_library("c") or "libc.so.6"
+    libc = ctypes.CDLL(libc_name, use_errno=True)
+    IN_MODIFY = 0x00000002
+
+    fd = libc.inotify_init1(os.O_NONBLOCK)
+    if fd < 0:
+        raise OSError(ctypes.get_errno(), "inotify_init1 failed")
+    try:
+        wd = libc.inotify_add_watch(fd, str(log_path).encode(), IN_MODIFY)
+        if wd < 0:
+            raise OSError(ctypes.get_errno(), "inotify_add_watch failed")
+        remaining = deadline - time.time()
+        while remaining > 0:
+            ready, _, _ = select.select([fd], [], [], remaining)
+            if ready:
+                try:
+                    os.read(fd, 4096)
+                except OSError:
+                    pass
+            if server_up(host):
+                return True
+            remaining = deadline - time.time()
+        return server_up(host)
+    finally:
+        os.close(fd)
+
+
+def _fallback_wait_ready(
+    host: str,
+    deadline: float,
+    wait=None,
+    clock=time.time,
+) -> bool:
+    """GD-3 fallback when inotify is unavailable (non-Linux, sandboxed FS,
+    ...): a bounded blocking wait — threading.Event().wait() is a real block,
+    not a busy spin — scoped to this one-time cold start."""
+    wait = wait or threading.Event().wait
+    while clock() < deadline:
+        if server_up(host):
+            return True
+        wait(0.5)
+    return server_up(host)
+
+
 def ensure_server(host: str = DEFAULT_HOST, wait: float = 20.0) -> bool:
     """
     Ensure an Ollama server is up and serving the harness model store.
@@ -71,6 +125,7 @@ def ensure_server(host: str = DEFAULT_HOST, wait: float = 20.0) -> bool:
     env["OLLAMA_HOST"] = host
     log = paths.home() / "logs" / "ollama_serve.log"
     log.parent.mkdir(parents=True, exist_ok=True)
+    log.touch(exist_ok=True)  # inotify needs an existing inode to watch
 
     try:
         with open(log, "ab") as lf:
@@ -84,17 +139,11 @@ def ensure_server(host: str = DEFAULT_HOST, wait: float = 20.0) -> bool:
     except FileNotFoundError:
         return False
 
-    # Bounded, passive-block cold-start wait: `ollama serve` doesn't expose a
-    # signal for "ready", so a short-interval readiness check is the only option.
-    # threading.Event().wait() is a real blocking wait (not a busy spin), scoped
-    # to this one-time startup rather than an ongoing poll loop.
-    gate = threading.Event()
     deadline = time.time() + wait
-    while time.time() < deadline:
-        if server_up(host):
-            return True
-        gate.wait(0.5)
-    return server_up(host)
+    try:
+        return _inotify_wait_ready(host, log, deadline)
+    except Exception:
+        return _fallback_wait_ready(host, deadline)
 
 
 def generate(
