@@ -33,6 +33,16 @@ dev = [
 ingestion = [
     "mineru>=3.4.0"
 ]
+# QLoRA fine-tuning (reins.training). Heavy GPU stack, opt-in only - the
+# harness core never imports torch; capability.probe() degrades gracefully
+# when this extra isn't installed or the hardware can't support it.
+train = [
+    "torch>=2.4.0",
+    "transformers>=4.44.0",
+    "peft>=0.12.0",
+    "datasets>=2.20.0",
+    "bitsandbytes>=0.43.0",
+]
 
 [build-system]
 requires = ["hatchling"]

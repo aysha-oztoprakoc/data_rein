@@ -1,0 +1,16 @@
+{
+  "_comment": "Runtime budget law for the amdy model plane. NF4 spirit = GGUF q4 for serving; literal NF4 lives in reins.training. KV quant needs flash attention; degrades to f16 silently.",
+  "vram_budget_gb": 7.2,
+  "defaults": { "num_ctx": 2048, "num_thread": 8 },
+  "server_env": {
+    "OLLAMA_KV_CACHE_TYPE": "q8_0",
+    "OLLAMA_FLASH_ATTENTION": "1",
+    "OLLAMA_MAX_LOADED_MODELS": "1",
+    "OLLAMA_NUM_PARALLEL": "1"
+  },
+  "kv_overhead_gb": 0.6,
+  "load_headroom_factor": 1.10,
+  "keep_alive": "10m",
+  "model_overrides": { "bakllava:latest": { "num_ctx": 1024 } },
+  "ipc": { "socket": null, "mmap_path": null, "mmap_size": 4096 }
+}

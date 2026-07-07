@@ -1,5 +1,9 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "knowledge_base/SHARED_CONTEXT.md",
+    "skills/MANIFEST.md"
+  ],
   "mcp": {
     "reins": {
       "type": "local",

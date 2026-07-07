@@ -316,6 +316,15 @@ class ModelRouter:
         if node != "tell":
             from reins.harness import local
 
+            try:
+                from reins.harness.coordinator import get_coordinator
+
+                res = get_coordinator().generate(model, prompt)
+                if res is not None and res.ok:
+                    return res.text
+            except Exception:
+                pass  # coordinator unavailable/erroring: fall through to direct path
+
             local.ensure_server()
             return local.generate(model, prompt)
 

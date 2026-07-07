@@ -107,6 +107,38 @@ def backup_config() -> Path:
     return config_dir() / "backup_config.json"
 
 
+def coordinator_config() -> Path:
+    """Runtime budget law for the amdy model plane (see ModelCoordinator)."""
+    return config_dir() / "coordinator.json"
+
+
+def ipc_socket() -> Path:
+    """Unix domain socket for the same-node IPC fast path."""
+    override = os.environ.get("DATA_REIN_IPC_SOCK")
+    if override:
+        return Path(override).expanduser().resolve()
+    return state_dir() / "reins_ipc.sock"
+
+
+def shared_state() -> Path:
+    """Seqlock mmap segment for coordinator state broadcast (see harness.ipc)."""
+    override = os.environ.get("DATA_REIN_SHM")
+    if override:
+        return Path(override).expanduser().resolve()
+    shm = Path("/dev/shm/data_rein_state")
+    if shm.parent.is_dir():
+        return shm
+    return state_dir() / "shared_state.mmap"
+
+
+def training_config() -> Path:
+    return config_dir() / "training.json"
+
+
+def training_runs_dir() -> Path:
+    return home() / "ai_models" / "finetunes"
+
+
 def obsidian_vault() -> Path:
     """The human-facing 'oby' Obsidian vault."""
     return _resolve("DATA_REIN_OBY", "data-oby")
@@ -170,4 +202,9 @@ def summary() -> dict[str, str]:
         "token_usage": str(token_usage()),
         "token_budgets": str(token_budgets()),
         "agent_budgets": str(agent_budgets()),
+        "coordinator_config": str(coordinator_config()),
+        "ipc_socket": str(ipc_socket()),
+        "shared_state": str(shared_state()),
+        "training_config": str(training_config()),
+        "training_runs_dir": str(training_runs_dir()),
     }

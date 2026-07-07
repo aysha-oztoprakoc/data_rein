@@ -18,6 +18,8 @@ def test_digest_text_file_creates_page(wiki, tmp_path):
     assert page is not None
     assert page["title"] == "note.txt"
     assert "degradation" in page["content"]
+    assert page["category"] == "digested/text"
+    assert items[0].modality == "text"
 
 
 def test_digest_unsupported_extension_degrades(wiki, tmp_path):

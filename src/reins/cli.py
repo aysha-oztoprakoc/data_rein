@@ -166,6 +166,17 @@ def main() -> None:
     trail_sub.add_parser('list', help='List trail tasks')
     trail_sub.add_parser('clear', help='Clear trail')
     trail_sub.add_parser('sync', help='Sync AGY tasks into Hermes trail')
+    queue_parser = trail_sub.add_parser('queue', help='Queue a chunked task for local-model pickup')
+    queue_parser.add_argument('goal', help='task goal/prompt')
+    queue_parser.add_argument('--type', dest='task_type', default='generic')
+    queue_parser.add_argument('--context', action='append', default=[],
+                               help='context file path (repeatable)')
+    queue_parser.add_argument('--node', default='amdy')
+    queue_parser.add_argument('--model', default=None,
+                               help='local model name to size chunks for (default qwen2.5-coder:7b)')
+    pickup_parser = trail_sub.add_parser('pickup', help='Execute one chunk of the oldest queued task')
+    pickup_parser.add_argument('--category', default='coding: menial')
+    pickup_parser.add_argument('--node', default='amdy')
 
     # Odysseus commands
     ody_parser = subparsers.add_parser('ody', help='Manage Odysseus AI daemon')
@@ -184,7 +195,7 @@ def main() -> None:
 
     _harness_cmds = ('wiki', 'skills', 'bin', 'directive', 'paths', 'local', 'run',
                      'batch', 'ask', 'summarize', 'classify', 'optimize', 'digest',
-                     'backup', 'secret', 'mcp', 'tokens', 'hardware')
+                     'backup', 'secret', 'mcp', 'tokens', 'hardware', 'coord', 'dataset', 'train')
     if harness_cli is not None and args.command in _harness_cmds:
         if harness_cli.handle(args):
             return
@@ -207,6 +218,27 @@ def main() -> None:
             clear_trail()
         elif args.subcmd == 'sync':
             sync_trail()
+        elif args.subcmd == 'queue':
+            from reins.harness.handoff import queue_chunked_task
+
+            context_blocks = []
+            for p in args.context:
+                try:
+                    with open(p, encoding="utf-8") as f:
+                        context_blocks.append(f.read())
+                except Exception as e:
+                    print(f"Warning: could not read context file {p}: {e}")
+            task_id = queue_chunked_task(args.task_type, args.goal, context_blocks,
+                                         node=args.node, model=args.model)
+            print(f"Queued task {task_id}" if task_id else "Failed to queue task (see logs).")
+        elif args.subcmd == 'pickup':
+            from reins.harness.handoff import pickup_next
+
+            result = pickup_next(category=args.category, node=args.node)
+            if result is None:
+                print("No queued chunked tasks for this node.")
+            else:
+                print(json.dumps(result, indent=2))
         else:
             trail_parser.print_help()
     elif args.command == 'ody':

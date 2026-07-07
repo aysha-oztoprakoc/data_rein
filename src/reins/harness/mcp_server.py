@@ -190,6 +190,103 @@ def token_usage_status(provider: str = "") -> str:
     return json.dumps(report)
 
 
+@mcp.tool()
+def trail_queue(goal: str, context: str = "", task_type: str = "generic", node: str = "amdy") -> str:
+    """
+    Queue a chunked task on the Task Trail for local-model (maestro) pickup -
+    ``goal``+``context`` are split to fit qwen2.5-coder:7b's window and
+    executed one chunk at a time via ``trail_pickup``, so long work can
+    continue on the local node between OpenCode turns.
+    """
+    from reins.harness.handoff import queue_chunked_task
+
+    context_blocks = [context] if context else []
+    task_id = queue_chunked_task(task_type, goal, context_blocks, node=node)
+    return json.dumps({"task_id": task_id})
+
+
+@mcp.tool()
+def trail_pickup(category: str = "coding: menial", node: str = "amdy") -> str:
+    """Execute exactly one queued chunk (maestro fast-path, ModelRouter fallback)."""
+    from reins.harness.handoff import pickup_next
+
+    result = pickup_next(category=category, node=node)
+    return json.dumps(result if result is not None else {"status": "empty"})
+
+
+@mcp.tool()
+def coord_status() -> str:
+    """Show the local model-residency coordinator's slot state (loaded/loading/busy models, VRAM budget)."""
+    from reins.harness.coordinator import get_coordinator
+
+    return json.dumps(get_coordinator().status())
+
+
+@mcp.tool()
+def coord_load(model: str) -> str:
+    """Warm-load a model into the coordinator's residency plane (admits against the VRAM budget, may evict LRU)."""
+    from dataclasses import asdict
+
+    from reins.harness.coordinator import get_coordinator
+
+    slot = get_coordinator().load(model)
+    return json.dumps(asdict(slot), default=str)
+
+
+@mcp.tool()
+def coord_unload(model: str) -> str:
+    """Unload a model from the coordinator's residency plane, freeing its VRAM budget."""
+    from dataclasses import asdict
+
+    from reins.harness.coordinator import get_coordinator
+
+    slot = get_coordinator().unload(model)
+    return json.dumps(asdict(slot), default=str)
+
+
+@mcp.tool()
+def dataset_export(out_path: str, categories: str = "", modality: str = "", kind: str = "completion",
+                    min_chars: int = 64, limit: int = 0) -> str:
+    """
+    Export the wiki into a JSONL training/eval dataset for local fine-tuning.
+    ``categories`` is a comma-separated list; ``modality`` filters e.g. text/image/audio.
+    """
+    from dataclasses import asdict
+
+    from reins.harness.dataset import export_jsonl
+
+    cats = [c.strip() for c in categories.split(",") if c.strip()] or None
+    stats = export_jsonl(out_path, categories=cats, modality=modality or None, kind=kind,
+                          min_chars=min_chars, limit=limit)
+    return json.dumps(asdict(stats))
+
+
+@mcp.tool()
+def hardware_scan() -> str:
+    """Profile the local hardware cluster (VRAM/RAM/CPU, model fit scoring) without publishing to MQTT."""
+    from reins.services.sys_profiler import SysProfiler
+
+    return json.dumps(SysProfiler().profile_cluster(publish=False))
+
+
+@mcp.tool()
+def hardware_gaps() -> str:
+    """Report hardware capability gaps (e.g. missing quantization/ROCm support) against the harness's needs."""
+    from reins.services.sys_profiler import SysProfiler
+
+    return json.dumps(SysProfiler().gap_report())
+
+
+@mcp.tool()
+def train_status() -> str:
+    """Probe local QLoRA/LoRA fine-tuning capability (NF4/fp16/CPU degradation chain) without starting a run."""
+    from dataclasses import asdict
+
+    from reins.training import capability
+
+    return json.dumps(asdict(capability.probe()))
+
+
 def main(http: bool = False, host: str = "127.0.0.1", port: int = 8765) -> None:
     """
     Default (``http=False``): stdio transport, unchanged - what Claude Code,

@@ -127,6 +127,42 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     mcp_p.add_argument("--host", default="127.0.0.1")
     mcp_p.add_argument("--port", type=int, default=8765)
 
+    # reins coord ...  (model residency coordinator / IPC server)
+    coord = subparsers.add_parser("coord", help="Manage the model residency coordinator (VRAM budget)")
+    csub = coord.add_subparsers(dest="subcmd")
+    csub.add_parser("status", help="Show slot state + VRAM usage vs budget")
+    cl = csub.add_parser("load", help="Warm-load a model into residency")
+    cl.add_argument("model")
+    cu = csub.add_parser("unload", help="Evict a model immediately")
+    cu.add_argument("model")
+    csub.add_parser("serve", help="Run the same-node UDS IPC server in the foreground")
+
+    # reins dataset export <out.jsonl>  (wiki -> training JSONL)
+    ds = subparsers.add_parser("dataset", help="Export training datasets from the wiki")
+    dsub = ds.add_subparsers(dest="subcmd")
+    de = dsub.add_parser("export", help="Export wiki pages/memories to JSONL")
+    de.add_argument("out", help="output .jsonl path")
+    de.add_argument("--modality", help="filter to digested/<modality>")
+    de.add_argument("--category", action="append", help="filter to this category prefix (repeatable)")
+    de.add_argument("--kind", default="completion", choices=["completion", "memories"])
+    de.add_argument("--min-chars", type=int, default=64)
+    de.add_argument("--limit", type=int, default=0)
+
+    # reins train ...  (QLoRA fine-tuning; optional `train` extras group)
+    train = subparsers.add_parser("train", help="Fine-tune a local model on digested wiki data (QLoRA)")
+    tsub = train.add_subparsers(dest="subcmd")
+    tp = tsub.add_parser("prepare", help="Export a training JSONL (alias for `dataset export`)")
+    tp.add_argument("out", help="output .jsonl path")
+    tp.add_argument("--modality", help="filter to digested/<modality>")
+    tr = tsub.add_parser("run", help="Run a fine-tune")
+    tr.add_argument("--dataset", help="override dataset_path from config/training.json")
+    tr.add_argument("--name", help="run name (defaults to a timestamp)")
+    tr.add_argument("--dry-run", action="store_true", help="probe capability + validate config, don't train")
+    te = tsub.add_parser("export", help="Merge adapter + convert to GGUF + `ollama create`")
+    te.add_argument("run_dir")
+    te.add_argument("tag", help="ollama model tag to create")
+    tsub.add_parser("status", help="Show capability probe result")
+
     # reins hardware ...  (hardware scan + model-gap advisor)
     hw = subparsers.add_parser("hardware", help="Hardware scan + local-model gap advisor")
     hwsub = hw.add_subparsers(dest="subcmd")
@@ -167,7 +203,107 @@ def handle(args: argparse.Namespace) -> bool:
         return True
     if args.command == "hardware":
         return _handle_hardware(args)
+    if args.command == "coord":
+        return _handle_coord(args)
+    if args.command == "dataset":
+        return _handle_dataset(args)
+    if args.command == "train":
+        return _handle_train(args)
     return False
+
+
+def _handle_coord(args: argparse.Namespace) -> bool:
+    from reins.harness.coordinator import get_coordinator
+
+    sub = getattr(args, "subcmd", None)
+    coord = get_coordinator()
+
+    if sub == "load":
+        slot = coord.load(args.model)
+        print(f"// load {args.model}: {slot.state.value}" + (f" ({slot.error})" if slot.error else ""))
+        return True
+    if sub == "unload":
+        slot = coord.unload(args.model)
+        print(f"// unload {args.model}: {slot.state.value}")
+        return True
+    if sub == "serve":
+        from reins.harness.ipc import IPCServer
+        import signal
+
+        server = IPCServer()
+        signal.signal(signal.SIGTERM, lambda *_: server.stop())
+        signal.signal(signal.SIGINT, lambda *_: server.stop())
+        print(f"// IPC server listening on {server.socket_path}")
+        server.serve_forever()
+        return True
+
+    # default / status
+    st = coord.status()
+    print(f"// coordinator: {st['used_gb']}/{st['vram_budget_gb']}GB")
+    for name, info in st["slots"].items():
+        line = f"  {name:30s} {info['state']:10s} {info['est_gb']}GB"
+        if info["error"]:
+            line += f"  ({info['error']})"
+        print(line)
+    return True
+
+
+def _handle_dataset(args: argparse.Namespace) -> bool:
+    from reins.harness.dataset import export_jsonl
+
+    sub = getattr(args, "subcmd", None)
+    if sub != "export":
+        print("usage: reins dataset export <out.jsonl> [--modality M] [--category C] [--kind completion|memories]")
+        return True
+
+    stats = export_jsonl(
+        args.out, categories=args.category, modality=args.modality,
+        kind=args.kind, min_chars=args.min_chars, limit=args.limit,
+    )
+    print(f"// exported {stats.written} record(s) -> {stats.out_path} ({stats.skipped} skipped)")
+    return True
+
+
+def _handle_train(args: argparse.Namespace) -> bool:
+    from reins.training.capability import probe
+
+    sub = getattr(args, "subcmd", None)
+
+    if sub == "prepare":
+        from reins.harness.dataset import export_jsonl
+
+        stats = export_jsonl(args.out, modality=getattr(args, "modality", None))
+        print(f"// exported {stats.written} record(s) -> {stats.out_path} ({stats.skipped} skipped)")
+        return True
+
+    if sub == "run":
+        from reins.training.qlora import run_finetune
+
+        backend = probe()
+        if args.dry_run:
+            print(f"// capability probe: mode={backend.mode} device={backend.device} "
+                  f"base={backend.base_model_key} - {backend.reason}")
+            return True
+        config = {"dataset_path": args.dataset} if args.dataset else None
+        result = run_finetune(config, run_name=args.name)
+        if result.ok:
+            print(f"// training run '{result.run_dir}' complete ({result.backend}, {result.steps} steps)")
+        else:
+            print(f"// training run failed ({result.backend}): {result.error}")
+        return True
+
+    if sub == "export":
+        from reins.training.export import to_ollama
+
+        ok = to_ollama(args.run_dir, args.tag)
+        print(f"// export {'succeeded' if ok else 'needs manual steps (see above)'} -> tag '{args.tag}'")
+        return True
+
+    # default / "status"
+    backend = probe()
+    print(f"// capability: mode={backend.mode} device={backend.device} "
+          f"base={backend.base_model_key} - {backend.reason}")
+    return True
 
 
 def _handle_hardware(args: argparse.Namespace) -> bool:

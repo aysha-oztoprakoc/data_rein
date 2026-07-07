@@ -28,6 +28,24 @@ from reins.harness import paths
 DEFAULT_HOST = os.environ.get("OLLAMA_HOST", "127.0.0.1:11434").replace("http://", "")
 
 
+def _coordinator_config() -> dict:
+    """Tolerant read of coordinator.json. Returns {} on missing/corrupt config."""
+    try:
+        return json.loads(paths.coordinator_config().read_text())
+    except Exception:
+        return {}
+
+
+def _coordinator_env() -> dict:
+    """server_env overrides from coordinator.json, merged into the Ollama spawn env."""
+    return dict(_coordinator_config().get("server_env", {}))
+
+
+def default_options() -> dict:
+    """ctx/thread budget law, from coordinator.json with a hardcoded fallback."""
+    return dict(_coordinator_config().get("defaults") or {"num_ctx": 2048, "num_thread": 8})
+
+
 def model_store() -> Path:
     """Canonical local Ollama model store (override with $OLLAMA_MODELS)."""
     env = os.environ.get("OLLAMA_MODELS")
@@ -55,6 +73,46 @@ def list_models(host: str = DEFAULT_HOST) -> list[str]:
         return [m["name"] for m in data.get("models", [])]
     except Exception:
         return []
+
+
+def list_models_detailed(host: str = DEFAULT_HOST) -> list[dict]:
+    """Like list_models() but keeps name + size from /api/tags. Degrades to []."""
+    try:
+        with urllib.request.urlopen(f"{_base_url(host)}/api/tags", timeout=5) as r:
+            data = json.load(r)
+        return [{"name": m["name"], "size": m.get("size", 0)} for m in data.get("models", [])]
+    except Exception:
+        return []
+
+
+def loaded_models(host: str = DEFAULT_HOST) -> list[dict]:
+    """Currently resident models via /api/ps, incl. size_vram. Degrades to []."""
+    try:
+        with urllib.request.urlopen(f"{_base_url(host)}/api/ps", timeout=5) as r:
+            data = json.load(r)
+        return data.get("models", [])
+    except Exception:
+        return []
+
+
+def load_model(model: str, host: str = DEFAULT_HOST, keep_alive: str = "10m") -> bool:
+    """Warm-load `model` via an empty-prompt generate. Blocks until loaded or errors."""
+    payload = {"model": model, "prompt": "", "stream": False, "keep_alive": keep_alive}
+    req = urllib.request.Request(
+        f"{_base_url(host)}/api/generate",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            return r.status == 200
+    except Exception:
+        return False
+
+
+def unload_model(model: str, host: str = DEFAULT_HOST) -> bool:
+    """Evict `model` immediately (keep_alive: 0)."""
+    return load_model(model, host=host, keep_alive="0")
 
 
 def _inotify_wait_ready(host: str, log_path: Path, deadline: float) -> bool:
@@ -123,13 +181,14 @@ def ensure_server(host: str = DEFAULT_HOST, wait: float = 20.0) -> bool:
     env = dict(os.environ)
     env["OLLAMA_MODELS"] = str(store)
     env["OLLAMA_HOST"] = host
+    env.update(_coordinator_env())
     log = paths.home() / "logs" / "ollama_serve.log"
     log.parent.mkdir(parents=True, exist_ok=True)
     log.touch(exist_ok=True)  # inotify needs an existing inode to watch
 
     try:
         with open(log, "ab") as lf:
-            subprocess.Popen(
+            proc = subprocess.Popen(
                 ["ollama", "serve"],
                 env=env,
                 stdout=lf,
@@ -138,6 +197,15 @@ def ensure_server(host: str = DEFAULT_HOST, wait: float = 20.0) -> bool:
             )
     except FileNotFoundError:
         return False
+
+    try:
+        from reins.services.resource_budgets import apply_cpu_budget
+
+        num_thread = default_options().get("num_thread", 8)
+        cpu_pct = min(100, num_thread * 100 // (os.cpu_count() or num_thread))
+        apply_cpu_budget("ollama_serve", cpu_pct, [proc.pid])
+    except Exception:
+        pass  # cgroup cap is best-effort; absence degrades to a log line only
 
     deadline = time.time() + wait
     try:
@@ -159,8 +227,7 @@ def generate(
     graceful-degradation layer (ModelRouter) can fall through to the next candidate.
     """
     payload = {"model": model, "prompt": prompt, "stream": False}
-    if options:
-        payload["options"] = options
+    payload["options"] = {**default_options(), **(options or {})}
     req = urllib.request.Request(
         f"{_base_url(host)}/api/generate",
         data=json.dumps(payload).encode("utf-8"),

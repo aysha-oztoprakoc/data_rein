@@ -41,6 +41,7 @@ class RemoteMediaExtractor(BaseExtractor):
 
 class ImageOCRExtractor(RemoteMediaExtractor):
     SUPPORTED_FORMATS = [".png", ".jpg", ".jpeg", ".tiff", ".bmp"]
+    MODALITY = "image"
 
     def extract(self, filepath: str, output_dir: str) -> Dict[str, Any]:
         expected_out = f"{os.path.basename(filepath)}.ocr.txt"
@@ -50,6 +51,7 @@ class ImageOCRExtractor(RemoteMediaExtractor):
 
 class ConvertImageOCRExtractor(RemoteMediaExtractor):
     SUPPORTED_FORMATS = [".gif", ".webp"]
+    MODALITY = "image"
 
     def extract(self, filepath: str, output_dir: str) -> Dict[str, Any]:
         expected_out = f"{os.path.basename(filepath)}.ocr.txt"
@@ -59,6 +61,7 @@ class ConvertImageOCRExtractor(RemoteMediaExtractor):
 
 class SVGOCRExtractor(RemoteMediaExtractor):
     SUPPORTED_FORMATS = [".svg"]
+    MODALITY = "image"
 
     def extract(self, filepath: str, output_dir: str) -> Dict[str, Any]:
         expected_out = f"{os.path.basename(filepath)}.ocr.txt"
@@ -69,6 +72,7 @@ class SVGOCRExtractor(RemoteMediaExtractor):
 class AudioWhisperExtractor(RemoteMediaExtractor):
     SUPPORTED_FORMATS = [".mp3", ".wav", ".flac",
                          ".ogg", ".aac", ".m4a", ".wma", ".opus"]
+    MODALITY = "audio"
 
     def extract(self, filepath: str, output_dir: str) -> Dict[str, Any]:
         expected_out = f"{os.path.basename(filepath)}.transcript.txt"
@@ -82,6 +86,7 @@ class VideoWhisperExtractor(RemoteMediaExtractor):
         ".mp4", ".avi", ".mkv", ".mov", ".wmv",
         ".flv", ".webm", ".m4v", ".mpg", ".mpeg"
     ]
+    MODALITY = "audio"
 
     def extract(self, filepath: str, output_dir: str) -> Dict[str, Any]:
         expected_out = f"{os.path.basename(filepath)}.transcript.txt"

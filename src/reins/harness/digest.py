@@ -40,6 +40,7 @@ class DigestItem:
     facts: int = 0
     error: Optional[str] = None
     skipped: bool = False
+    modality: str = "text"
 
 
 def _cache_path() -> Path:
@@ -192,6 +193,7 @@ def _digest_one(f: Path, registry, db: WikiDB, staging: Path, enrich: bool, trai
         return DigestItem(str(f), False, error=f"no extractor for '{ext}'")
 
     node = getattr(extractor, "NODE", "amdy")
+    modality = getattr(extractor, "MODALITY", "text")
     task_id = None
     if trail is not None:
         task_id = trail.create_task("digest", str(f), node)
@@ -206,18 +208,18 @@ def _digest_one(f: Path, registry, db: WikiDB, staging: Path, enrich: bool, trai
 
         slug = slugify(str(f))
         db.upsert_page(f.name, content, slug=slug, source_path=str(f),
-                       category="digested", owner="digest")
+                       category=f"digested/{modality}", owner="digest")
         facts = _enrich_facts(content, str(f), node, db) if enrich else 0
 
         if trail is not None and task_id:
             trail.set_status(task_id, "success")
-        _notify({"filepath": str(f), "status": "success", "slug": slug, "node": node})
-        return DigestItem(str(f), True, slug=slug, node=node, facts=facts)
+        _notify({"filepath": str(f), "status": "success", "slug": slug, "node": node, "modality": modality})
+        return DigestItem(str(f), True, slug=slug, node=node, facts=facts, modality=modality)
     except Exception as e:  # graceful degradation: one bad file never aborts the batch
         if trail is not None and task_id:
             trail.set_status(task_id, "failed")
-        _notify({"filepath": str(f), "status": "error", "error": str(e)})
-        return DigestItem(str(f), False, node=node, error=str(e))
+        _notify({"filepath": str(f), "status": "error", "error": str(e), "modality": modality})
+        return DigestItem(str(f), False, node=node, error=str(e), modality=modality)
 
 
 def digest_path(

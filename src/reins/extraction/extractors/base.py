@@ -7,6 +7,7 @@ class BaseExtractor:
     """
     SUPPORTED_FORMATS: list[str] = []
     NODE: str = "amdy"
+    MODALITY: str = "text"
 
     def extract(self, filepath: str, output_dir: str) -> Dict[str, Any]:
         """Extract data from file.
