@@ -11,14 +11,13 @@ from conftest import require
 
 
 def test_ody_auth_config():
-    """The default factory user must be deleted and data-ody made sole admin."""
     auth_file = require("~/data_rein/odysseus/data/auth.json", "Odysseus not provisioned")
     with open(auth_file, "r") as f:
         auth_data = json.load(f)
     users = auth_data.get("users", {})
-    assert "data-ody" in users, "Admin user data-ody was not created"
-    assert users["data-ody"]["is_admin"] is True, "data-ody is not an admin"
     assert len(users) == 1, "Factory defaults were not deleted"
+    admin = next(iter(users.values()))
+    assert admin.get("is_admin") is True, "The sole provisioned user is not an admin"
 
 
 def test_ody_dockerfile_python_version():

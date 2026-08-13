@@ -1,11 +1,8 @@
-import os
-import glob
 from pathlib import Path
 try:
     import fitz  # PyMuPDF
 except ImportError:
     fitz = None
-from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 
 downloads_dir = Path('/home/amdy/Downloads')
@@ -13,7 +10,8 @@ target_dir = Path('/home/amdy/data_rein/data-oby/TrainingData/Downloads_Ingested
 target_dir.mkdir(parents=True, exist_ok=True)
 
 def extract_pdf(file_path):
-    if not fitz: return "PyMuPDF not installed."
+    if not fitz:
+        return "PyMuPDF not installed."
     doc = fitz.open(file_path)
     text = f"# {file_path.name}\n\n"
     for page in doc:
@@ -31,7 +29,8 @@ def extract_md(file_path):
 
 count = 0
 for file_path in downloads_dir.rglob('*'):
-    if not file_path.is_file(): continue
+    if not file_path.is_file():
+        continue
     
     ext = file_path.suffix.lower()
     content = ""
@@ -45,7 +44,8 @@ for file_path in downloads_dir.rglob('*'):
         else:
             continue
             
-        if not content.strip(): continue
+        if not content.strip():
+            continue
         
         # Avoid extremely long names or collisions
         target_name = file_path.stem[:100].replace(' ', '_').replace('/', '_') + '.md'

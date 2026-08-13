@@ -20,12 +20,11 @@ import json
 import glob
 import shutil
 import threading
-import subprocess
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from reins.services.logger import get_logger
-from reins.harness import paths
+from reins.services.logger import get_logger, log_degradation
+from reins.harness import external_io, paths
 
 logger = get_logger("sys_profiler")
 
@@ -39,10 +38,10 @@ class SysProfiler:
         self.min_model_score = 85
 
         if self.mqtt is not None:
-            self.mqtt.subscribe("data_rein/getinfo/trigger")
+            _ = external_io.mqtt_subscribe(self.mqtt, "data_rein/getinfo/trigger")
             self.mqtt.message_callback_add("data_rein/getinfo/trigger", self.on_trigger)
             # Back-compat alias.
-            self.mqtt.subscribe("data_rein/sys_profiler/trigger")
+            _ = external_io.mqtt_subscribe(self.mqtt, "data_rein/sys_profiler/trigger")
             self.mqtt.message_callback_add("data_rein/sys_profiler/trigger", self.on_trigger)
         logger.info("SysProfiler (getinfo) online. Ready for cluster telemetry scans.")
 
@@ -55,10 +54,11 @@ class SysProfiler:
         if host:
             cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=3", host] + cmd
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            res = external_io.run(cmd, capture_output=True, text=True, timeout=timeout)
             if res.returncode == 0:
                 return res.stdout.strip()
         except Exception:
+            log_degradation(__name__)
             pass
         return None
 
@@ -72,6 +72,7 @@ class SysProfiler:
                     mb = int(open(path).read().strip()) / (1024 * 1024)
                     best_mb = max(best_mb, mb)
                 except Exception:
+                    log_degradation(__name__)
                     continue
             if best_mb:
                 return round(best_mb / 1024, 1)
@@ -88,6 +89,7 @@ class SysProfiler:
             try:
                 return round(int(out.splitlines()[0].strip()) / 1024, 1)
             except Exception:
+                log_degradation(__name__)
                 pass
         return 0.0
 
@@ -97,6 +99,7 @@ class SysProfiler:
             try:
                 out = open("/proc/meminfo").read()
             except Exception:
+                log_degradation(__name__)
                 out = None
         if out:
             m = re.search(r"MemTotal:\s*(\d+)\s*kB", out)
@@ -139,6 +142,7 @@ class SysProfiler:
             from reins.harness import local
             store = local.model_store()
         except Exception:
+            log_degradation(__name__)
             store = None
         base = (store / "manifests") if store else None
         if not base or not base.exists():
@@ -154,10 +158,11 @@ class SysProfiler:
             name = ":".join(parts[i + 1:])
             try:
                 d = json.loads(mf.read_text())
-                total = sum(l.get("size", 0) for l in d.get("layers", []))
+                total = sum(layer.get("size", 0) for layer in d.get("layers", []))
                 total += d.get("config", {}).get("size", 0)
                 sizes[name] = round(total / 1e9, 1)
             except Exception:
+                log_degradation(__name__)
                 continue
         return sizes
 
@@ -390,13 +395,21 @@ class SysProfiler:
                 json.dump(result, f, indent=2)
             self.write_hardware_manifest(result)
             if publish and self.mqtt is not None:
-                self.mqtt.publish("data_rein/getinfo/result", json.dumps({"status": "success", "registry": result}))
+                _ = external_io.mqtt_publish(
+                    self.mqtt,
+                    "data_rein/getinfo/result",
+                    json.dumps({"status": "success", "registry": result}),
+                )
             logger.info("Cluster profile + hardware manifest updated.")
             return result
         except Exception as e:  # graceful degradation
             logger.error(f"Failed to profile cluster: {e}")
             if publish and self.mqtt is not None:
-                self.mqtt.publish("data_rein/getinfo/result", json.dumps({"status": "error", "error": str(e)}))
+                _ = external_io.mqtt_publish(
+                    self.mqtt,
+                    "data_rein/getinfo/result",
+                    json.dumps({"status": "error", "error": str(e)}),
+                )
             return {"status": "error", "error": str(e)}
 
 

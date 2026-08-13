@@ -16,8 +16,9 @@ import os
 import sys
 import json
 import subprocess
+import tempfile
 import paho.mqtt.client as mqtt
-from datetime import datetime, timezone
+from datetime import datetime
 
 try:
     from paho.mqtt.client import CallbackAPIVersion
@@ -102,7 +103,8 @@ class PON_Method:
     @staticmethod
     def LocalIsolatedBackup():
         print("[PON Method] LocalIsolatedBackup -> Criando backup isolado local no amdy...")
-        backup_name = f"/tmp/BAK_1.0_Failsafe_{int(datetime.now(timezone.utc).timestamp())}.tar.gz"
+        backup_fd, backup_name = tempfile.mkstemp(prefix="BAK_1.0_Failsafe_", suffix=".tar.gz")
+        os.close(backup_fd)
         subprocess.run(["tar", "-czf", backup_name, f"{HOME_DIR}/.config/hypr"])
         print(f"[PON Method] Backup salvo em {backup_name}")
 

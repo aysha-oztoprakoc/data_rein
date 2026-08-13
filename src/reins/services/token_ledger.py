@@ -5,15 +5,16 @@ Anthropic/Google do not expose an API to read back your account's remaining
 Pro/Max session quota or Gemini free-tier quota, so this is a local counter of
 every cloud call the harness itself makes - the only complete picture available
 without screen-scraping a billing dashboard. It logs one event per successful
-``ModelRouter`` cloud dispatch (see ``ModelRouter._record_usage``), whether that
-call came from `reins run`'s last-resort ``remote_fallback`` or from OpenCode's
-``escalate_cloud`` MCP tool - one ledger, every cloud call, no blind spots.
+explicit ``ModelRouter.route_cloud`` dispatch (see ``ModelRouter._record_usage``),
+including OpenCode's ``escalate_cloud`` MCP tool - one ledger for every authorized
+cloud call made through the harness.
 
 Same hardening as ``TaskTrail``: ``fcntl`` advisory lock + atomic temp-file
 ``os.replace``, safe for concurrent agents.
 """
 
 from __future__ import annotations
+from reins.services.logger import log_degradation
 
 import fcntl
 import json
@@ -61,6 +62,7 @@ class TokenLedger:
             with open(self.path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
+            log_degradation(__name__)
             return []
 
     def _atomic_write(self, data: List[Dict[str, Any]]) -> None:
@@ -96,6 +98,7 @@ class TokenLedger:
                 })
                 self._atomic_write(events)
         except Exception:
+            log_degradation(__name__)
             pass
 
     # -- read -----------------------------------------------------------------
@@ -134,6 +137,7 @@ def load_budgets() -> Dict[str, Any]:
     try:
         return json.loads(paths.token_budgets().read_text(encoding="utf-8"))
     except Exception:
+        log_degradation(__name__)
         return {}
 
 

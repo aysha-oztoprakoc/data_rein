@@ -3,6 +3,7 @@ import json
 import threading
 from typing import Any
 from reins.services.logger import get_logger
+from reins.harness import external_io
 
 logger = get_logger("vault_manager")
 
@@ -18,7 +19,7 @@ class VaultManager:
         
         os.makedirs(self.wiki_dir, exist_ok=True)
         
-        self.mqtt.subscribe("data_rein/vault/save")
+        _ = external_io.mqtt_subscribe(self.mqtt, "data_rein/vault/save")
         self.mqtt.message_callback_add("data_rein/vault/save", self.on_save_memory)
         logger.info("Vault Manager online. Ready to forge Wiki documentations.")
 

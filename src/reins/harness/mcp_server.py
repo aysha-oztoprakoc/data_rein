@@ -1,38 +1,72 @@
-"""
-The reins MCP bridge - gives an interactive front end (OpenCode) first-class,
-structured access to the same shared state every other harness agent uses:
-the monolith Wiki DB, the Universal Task Trail, and the local-first ModelRouter.
+"""MCP access to the shared Wiki, Task Trail, and model-agnostic router.
 
-No new state is introduced here. Every tool is a thin wrapper over
-``reins.harness.wiki.WikiDB``, ``reins.services.task_trail.TaskTrail``, and
-``reins.harness.models.ModelRouter`` - the same objects ``reins`` itself uses,
-so an OpenCode session and a `reins run`/`reins trail list` call see one
-consistent picture.
-
-Policy encoded here, not just in prompts:
-* ``route_local``     - only ever reaches local (Ollama) candidates; cloud is
-  never a side effect of a "menial subtask" delegation.
-* ``escalate_cloud``   - the only path from OpenCode to Claude/Gemini/OpenAI.
-  Always logs a Task Trail entry so a cloud call from OpenCode is exactly as
-  auditable as ``reins run``'s own last-resort ``remote_fallback``.
+``route_local`` remains on the local plane. ``escalate_cloud`` is the explicit,
+trail-logged cloud boundary. The bridge creates no state of its own.
 """
 
 from __future__ import annotations
 
 import json
+import sqlite3
+from typing import Literal, Protocol
 
+from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
+from pydantic import AnyHttpUrl
 
-from reins.harness.models import ModelRouter
+from reins.harness.action_gate import ActionArgs, gate_call
+from reins.harness.coordinator import CoordinatorStatus as CoordinatorStatusPayload
+from reins.harness.dispatch import dispatch_cloud_generate, dispatch_local_generate
+from reins.harness.inference_mcp import register_inference_tools
+from reins.harness.mcp_security import (
+    BearerTokenVerifier,
+    McpHttpConfigurationError,
+    SecretLoader,
+    configure_http_security,
+    is_loopback_host,
+    load_http_token,
+)
+from reins.harness.provider_protocols import JsonValue
 from reins.harness.wiki import WikiDB
 from reins.services.task_trail import TaskTrail
 from reins.services.token_ledger import budget_report
 
-mcp = FastMCP("reins")
+_http_token_verifier = BearerTokenVerifier()
+mcp = FastMCP(
+    "reins",
+    token_verifier=_http_token_verifier,
+    auth=AuthSettings(
+        issuer_url=AnyHttpUrl("http://127.0.0.1"),
+        resource_server_url=None,
+    ),
+)
+register_inference_tools(mcp)
 
 
-def _row_to_dict(row) -> dict:
-    return {k: row[k] for k in row.keys()}
+class CoordinatorStatus(Protocol):
+    def status(self) -> "CoordinatorStatusPayload": ...
+
+
+class HardwareStatus(Protocol):
+    def profile_cluster(self, publish: bool = True) -> JsonValue: ...
+
+    def gap_report(self) -> JsonValue: ...
+
+
+def _coordinator_status(coordinator: CoordinatorStatus) -> CoordinatorStatusPayload:
+    return coordinator.status()
+
+
+def _hardware_profile(profiler: HardwareStatus) -> JsonValue:
+    return profiler.profile_cluster(publish=False)
+
+
+def _hardware_gaps(profiler: HardwareStatus) -> JsonValue:
+    return profiler.gap_report()
+
+
+def _row_to_json(row: sqlite3.Row) -> str:
+    return json.dumps({key: row[key] for key in row.keys()})
 
 
 @mcp.tool()
@@ -40,10 +74,9 @@ def wiki_search(query: str, limit: int = 8) -> str:
     """Full-text search the shared wiki (pages + memories) for ``query``."""
     with WikiDB() as db:
         res = db.search(query, limit)
-    return json.dumps({
-        "pages": [_row_to_dict(r) for r in res["pages"]],
-        "memories": [_row_to_dict(r) for r in res["memories"]],
-    })
+    pages = ",".join(_row_to_json(row) for row in res["pages"])
+    memories = ",".join(_row_to_json(row) for row in res["memories"])
+    return f'{{"pages":[{pages}],"memories":[{memories}]}}'
 
 
 @mcp.tool()
@@ -53,7 +86,7 @@ def wiki_get(slug: str) -> str:
         row = db.get_page(slug)
     if not row:
         return json.dumps({"error": f"no such page: {slug}"})
-    return json.dumps(_row_to_dict(row))
+    return _row_to_json(row)
 
 
 @mcp.tool()
@@ -113,23 +146,6 @@ def set_agent_budget(agent_name: str, cpu_pct: int = -1, gpu_vram_gb: float = -1
     return json.dumps(budgets)
 
 
-def _agent_status_payload() -> dict:
-    trail = TaskTrail()
-    tasks = trail.all_tasks()
-    by_owner: dict[str, dict[str, int]] = {}
-    for t in tasks:
-        owner = str(t.get("task_type", "generic")).split(":", 1)[0]
-        bucket = by_owner.setdefault(owner, {})
-        status = t.get("status", "unknown")
-        bucket[status] = bucket.get(status, 0) + 1
-    failed = trail.get_failed_tasks()
-    return {
-        "by_owner": by_owner,
-        "failed_tasks": failed[-10:],
-        "total_tasks": len(tasks),
-    }
-
-
 @mcp.tool()
 def agent_status() -> str:
     """
@@ -137,7 +153,19 @@ def agent_status() -> str:
     has been doing recently, per the Prime Directive's Rule of Awareness - check
     this before any systemic action to see what's running/pending/failed.
     """
-    return json.dumps(_agent_status_payload())
+    trail = TaskTrail()
+    tasks = trail.all_tasks()
+    by_owner: dict[str, dict[str, int]] = {}
+    for task in tasks:
+        owner = str(task.get("task_type", "generic")).split(":", 1)[0]
+        status = str(task.get("status", "unknown"))
+        bucket = by_owner.setdefault(owner, {})
+        bucket[status] = bucket.get(status, 0) + 1
+    return json.dumps({
+        "by_owner": by_owner,
+        "failed_tasks": trail.get_failed_tasks()[-10:],
+        "total_tasks": len(tasks),
+    })
 
 
 @mcp.tool()
@@ -146,10 +174,15 @@ def route_local(category: str, prompt: str, node: str = "amdy") -> str:
     Delegate a menial subtask (summarize/classify/extract/etc.) to a local Ollama
     model instead of spending an OpenCode agent turn on it. Never reaches cloud -
     for that, the caller must use ``escalate_cloud`` only when the user asked.
+
+    Routed through the action_gate (blueprint.yaml action_gates): the proposed
+    call is allowlist/schema/sanitize-checked before ModelRouter.route ever runs.
     """
-    router = ModelRouter()
-    res = router.route(category, prompt, node, allow_fallback=True, allow_cloud=False)
-    return json.dumps({"ok": res.ok, "model": res.model, "node": res.node, "text": res.text, "error": res.error})
+    args: ActionArgs = {"prompt": prompt, "category": category, "node": node}
+    gated = gate_call("route_local", "local_generate", args, dispatch_local_generate)
+    if not gated["accepted"]:
+        return json.dumps({"ok": False, "model": None, "node": node, "text": None, "error": gated["reason"]})
+    return json.dumps(gated["result"])
 
 
 @mcp.tool()
@@ -158,32 +191,36 @@ def escalate_cloud(prompt: str, provider: str = "") -> str:
     Explicit, user-requested Claude/Gemini/OpenAI call. Only call this tool when
     the user has explicitly asked to use Claude or Gemini - never as a default or
     automatic step. Every call is logged to the Task Trail for auditability.
+
+    Routed through the action_gate (blueprint.yaml action_gates): calling this
+    tool at all is the explicit user authorization the billing guard requires.
     """
-    trail = TaskTrail()
-    task_id = trail.create_task("opencode:cloud-escalation", prompt, "cloud")
-    trail.update_task(task_id, "running")
+    args: ActionArgs = {
+        "prompt": prompt,
+        "provider": provider,
+        "task_type": "opencode:cloud-escalation",
+    }
+    gated = gate_call("escalate_cloud", "cloud_generate", args, dispatch_cloud_generate, authorized=True)
+    if not gated["accepted"]:
+        return json.dumps({
+            "ok": False, "model": None, "provider": provider or None,
+            "text": None, "error": gated["reason"], "task_id": None, "usage": {},
+        })
+    return json.dumps(gated["result"])
 
-    router = ModelRouter()
-    res = router.route_cloud(prompt, provider=provider or None)
 
-    trail.update_task(task_id, "success" if res.ok else "failed")
-    return json.dumps({
-        "ok": res.ok, "model": res.model, "provider": res.provider,
-        "text": res.text, "error": res.error, "task_id": task_id,
-        "usage": budget_report().get(res.provider, {}) if res.ok else {},
-    })
+@mcp.tool()
+def judge_submit_graph(graph_id: str, nodes: str, edges: str = "[]") -> str:
+    """Validate and judge a model-proposed dependency graph before dispatch."""
+    from reins.harness.judge import execute_graph_json
+
+    outcome = execute_graph_json(graph_id, nodes, edges)
+    return json.dumps(outcome)
 
 
 @mcp.tool()
 def token_usage_status(provider: str = "") -> str:
-    """
-    Show self-tracked Claude/Gemini/OpenAI usage vs configured budgets across the
-    5-hour, daily, weekly, and monthly rolling windows - answers "how much of my
-    quota have I used right now?" Call this any time the user asks about usage or
-    before an escalate_cloud call if you want to warn them they're close to a limit.
-    Budgets come from config/token_budgets.json (user-editable; unset = 0 = no %%
-    shown, just raw counts) since neither provider exposes a remaining-quota API.
-    """
+    """Show self-tracked cloud usage and configured rolling-window budgets."""
     report = budget_report()
     if provider:
         report = {provider: report.get(provider, {})}
@@ -192,12 +229,7 @@ def token_usage_status(provider: str = "") -> str:
 
 @mcp.tool()
 def trail_queue(goal: str, context: str = "", task_type: str = "generic", node: str = "amdy") -> str:
-    """
-    Queue a chunked task on the Task Trail for local-model (maestro) pickup -
-    ``goal``+``context`` are split to fit qwen2.5-coder:7b's window and
-    executed one chunk at a time via ``trail_pickup``, so long work can
-    continue on the local node between OpenCode turns.
-    """
+    """Queue a chunked Task Trail job for local-model pickup."""
     from reins.harness.handoff import queue_chunked_task
 
     context_blocks = [context] if context else []
@@ -219,7 +251,7 @@ def coord_status() -> str:
     """Show the local model-residency coordinator's slot state (loaded/loading/busy models, VRAM budget)."""
     from reins.harness.coordinator import get_coordinator
 
-    return json.dumps(get_coordinator().status())
+    return json.dumps(_coordinator_status(get_coordinator()))
 
 
 @mcp.tool()
@@ -245,7 +277,8 @@ def coord_unload(model: str) -> str:
 
 
 @mcp.tool()
-def dataset_export(out_path: str, categories: str = "", modality: str = "", kind: str = "completion",
+def dataset_export(out_path: str, categories: str = "", modality: str = "",
+                    kind: Literal["completion", "memories"] = "completion",
                     min_chars: int = 64, limit: int = 0) -> str:
     """
     Export the wiki into a JSONL training/eval dataset for local fine-tuning.
@@ -266,7 +299,7 @@ def hardware_scan() -> str:
     """Profile the local hardware cluster (VRAM/RAM/CPU, model fit scoring) without publishing to MQTT."""
     from reins.services.sys_profiler import SysProfiler
 
-    return json.dumps(SysProfiler().profile_cluster(publish=False))
+    return json.dumps(_hardware_profile(SysProfiler()))
 
 
 @mcp.tool()
@@ -274,7 +307,7 @@ def hardware_gaps() -> str:
     """Report hardware capability gaps (e.g. missing quantization/ROCm support) against the harness's needs."""
     from reins.services.sys_profiler import SysProfiler
 
-    return json.dumps(SysProfiler().gap_report())
+    return json.dumps(_hardware_gaps(SysProfiler()))
 
 
 @mcp.tool()
@@ -287,7 +320,14 @@ def train_status() -> str:
     return json.dumps(asdict(capability.probe()))
 
 
-def main(http: bool = False, host: str = "127.0.0.1", port: int = 8765) -> None:
+def main(
+    http: bool = False,
+    host: str = "127.0.0.1",
+    port: int = 8765,
+    *,
+    allow_remote_http: bool = False,
+    secret_loader: SecretLoader | None = None,
+) -> None:
     """
     Default (``http=False``): stdio transport, unchanged - what Claude Code,
     OpenCode, and Antigravity already use. ``http=True`` instead serves the
@@ -296,9 +336,19 @@ def main(http: bool = False, host: str = "127.0.0.1", port: int = 8765) -> None:
     needs to reach this server as a network client.
     """
     if http:
+        if not is_loopback_host(host) and not allow_remote_http:
+            raise McpHttpConfigurationError(
+                "non-loopback HTTP MCP requires --allow-remote-http"
+            )
+        token = load_http_token(secret_loader)
+        _http_token_verifier.configure(token)
+        _ = configure_http_security(mcp, host)
         mcp.settings.host = host
         mcp.settings.port = port
-        mcp.run(transport="streamable-http")
+        try:
+            mcp.run(transport="streamable-http")
+        except KeyboardInterrupt:
+            return
     else:
         mcp.run()
 

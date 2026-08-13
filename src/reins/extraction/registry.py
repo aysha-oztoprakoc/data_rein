@@ -1,5 +1,3 @@
-from typing import Any
-from typing import Type
 from .extractors.base import BaseExtractor
 
 
@@ -7,9 +5,9 @@ class ExtractorRegistry:
     """FBE: Registry of all available extractors."""
 
     def __init__(self) -> None:
-        self._registry: dict[str, Type[BaseExtractor]] = {}
+        self._registry: dict[str, type[BaseExtractor]] = {}
 
-    def register(self, extractor_class: Type[BaseExtractor]) -> Any:
+    def register(self, extractor_class: type[BaseExtractor]) -> None:
         for ext in extractor_class.SUPPORTED_FORMATS:
             self._registry[ext.lower()] = extractor_class
 

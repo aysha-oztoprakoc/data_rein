@@ -1,0 +1,218 @@
+# Deterministic Execution Blueprint — data_rein
+# Generated per ORCHESTRATION_GOAL.md. Values traced to:
+#   - knowledge_base/HARDWARE.md (cluster hardware, last scan 2026-07-04)
+#   - config/coordinator.json (amdy runtime budget law)
+# Do not hand-edit hardware numbers; re-run the getinfo/SysProfiler scan and
+# regenerate instead.
+
+local_model_rules:
+  nodes:
+    amdy:
+      role: primary
+      status: online
+      last_scan: "2026-07-04T12:31:00Z"
+      gpu_vram_gb: 8.0
+      system_ram_gb: 14.7
+      cpu: "AMD Ryzen 7 7700 (8c/8t)"
+      budget:
+        vram_budget_gb: 7.2
+        kv_overhead_gb: 0.6
+        load_headroom_factor: 1.10
+        defaults:
+          num_ctx: 2048
+          num_thread: 8
+        server_env:
+          OLLAMA_KV_CACHE_TYPE: q8_0
+          OLLAMA_FLASH_ATTENTION: "1"
+          OLLAMA_MAX_LOADED_MODELS: "1"
+          OLLAMA_NUM_PARALLEL: "1"
+        keep_alive: "10m"
+        model_overrides:
+          "bakllava:latest":
+            num_ctx: 1024
+      serving_strategy:
+        format: gguf_q4
+        kv_cache: quantized_q8_0
+        note: >
+          KV quantization requires flash attention; if unavailable, degrades
+          silently to f16 (GD-3: this degradation must be logged, not silent,
+          at the harness layer even though Ollama itself is silent).
+        single_model_residency: true  # OLLAMA_MAX_LOADED_MODELS=1
+      models_fitting_vram:
+        - bakllava:latest
+        - codegemma:7b
+        - llama3.1:8b
+        - qwen2.5-coder:7b
+
+    tell:
+      role: failover
+      status: unreachable
+      last_scan: "last-known, unverified"
+      gpu_vram_gb: 6.0
+      gpu_class: "NVIDIA Pascal-class (last-known)"
+      system_ram_gb: 16.0
+      cpu: "Intel Core i5 7th-gen (4c/4t)"
+      treat_as: degraded_smaller_model_path
+      activation_rule: >
+        Do not route load to tell until a fresh getinfo/SysProfiler scan
+        confirms it is reachable and specs match knowledge_base/HARDWARE.md.
+      budget:
+        vram_budget_gb: 5.4        # derived: 6.0 * ~0.90 safety margin, provisional until live scan
+        kv_overhead_gb: 0.5        # derived: proportional to amdy's 0.6/8.0 ratio, provisional
+        load_headroom_factor: 1.10 # inherited policy from amdy; re-validate on scan
+      serving_strategy:
+        format: gguf_q4
+        kv_cache: quantized_q8_0_if_supported_else_f16
+        single_model_residency: true
+        note: >
+          Pascal-class GPUs may lack flash-attention support; KV quant path
+          must fall back to f16 with an explicit logged degradation (GD-3),
+          not the silent Ollama default.
+      models_fitting_vram: []  # none / node offline — do not populate until live scan
+
+  fit_check_rule: >
+    A model may be loaded on a node only if:
+      node.budget.vram_budget_gb >= (model_size_gb * node.budget.load_headroom_factor)
+                                     + node.budget.kv_overhead_gb
+    This mirrors SysProfiler.fit_score() (src/reins/services/sys_profiler.py).
+    Violates → reject load, degrade to next-tier model or node, log via GD-3.
+
+  layer_offloading_policy:
+    primary_target: amdy
+    strategy: >
+      Offload as many transformer layers to GPU VRAM as fit within
+      vram_budget_gb after reserving kv_overhead_gb; remaining layers run on
+      CPU (num_thread: 8). Single loaded model at a time
+      (OLLAMA_MAX_LOADED_MODELS=1) to avoid VRAM contention.
+    degraded_target: tell
+    strategy_degraded: >
+      Same offload math against tell's smaller vram_budget_gb once reachable;
+      expect a higher CPU-layer fraction given the 6GB ceiling and older
+      Pascal architecture (no flash attention guarantee).
+
+action_gates:
+  # Enforces: lesser (local/remote-fallback) models never execute tool calls
+  # directly. Grounded in the existing MCP boundary
+  # (src/reins/harness/mcp_server.py): route_local() stays local-only,
+  # escalate_cloud() and compile_prompt_remote() are explicit and trail-logged,
+  # and run_prompt_local() stays local-only. No model output reaches a
+  # real effect without passing this gate.
+
+  principle: >
+    A model's output is a proposal, never an instruction. Every tool-call
+    proposal from a lesser model must pass through the deterministic gate
+    below before any real effect (filesystem write, shell exec, network call,
+    wiki/trail mutation) occurs. The gate — not the model — decides.
+
+  pipeline:
+    - stage: capture
+      description: >
+        Lesser-model output is captured as structured text/JSON, never
+        eval'd or executed inline. No direct string-to-shell interpolation.
+    - stage: allowlist_check
+      description: >
+        Proposed tool name must match a pre-registered allowlist for the
+        calling context (e.g. route_local may only request local-model
+        generation calls; it may never request escalate_cloud, filesystem
+        writes, or trail mutations directly).
+      reject_action: drop proposal, log to Task Trail with reason "not_allowlisted"
+    - stage: schema_validation
+      description: >
+        Proposed arguments must validate against a JSON Schema for that tool.
+        Missing/extra/mistyped fields reject at this stage before any
+        sanitization is attempted.
+      reject_action: drop proposal, log to Task Trail with reason "schema_invalid"
+    - stage: sanitize
+      description: >
+        Path arguments resolved and checked against an allowed-root allowlist
+        (no traversal outside the harness working tree); command/string
+        arguments checked against a deny-list of shell metacharacters where
+        the target tool ever reaches a shell.
+      reject_action: drop proposal, log to Task Trail with reason "sanitize_failed"
+    - stage: idempotency_and_billing_guard
+      description: >
+        Mirrors GD-2 (Disciplined Retry): non-idempotent or billable calls
+        (e.g. escalate_cloud or compile_prompt_remote to a paid provider) are never auto-retried and
+        require the gate to have seen an explicit, single, user- or
+        orchestrator-authorized request — not a model-initiated retry loop.
+      reject_action: drop proposal, log to Task Trail with reason "billing_or_idempotency_guard"
+    - stage: dispatch
+      description: >
+        Only after all prior stages pass does the deterministic dispatcher
+        execute the real tool call, wrapped in the Resilience core breaker +
+        retry (src/data_workspace/resilience.py) at the external I/O boundary.
+
+  honest_failure_rule: >
+    Every rejection at any stage (GD-3) writes a diagnostic Task Trail entry:
+    { stage, tool_name, reason, timestamp, calling_model }. Silent
+    `except: pass` swallowing of a rejected proposal is forbidden — the
+    proposer must observe that its call did not happen and why.
+
+  scope:
+    lesser_models:
+      - any model routed via route_local() (src/reins/harness/mcp_server.py)
+      - any remote_fallback tier model in config/model_router.json
+      - any prompt compiler routed through compile_prompt_remote()
+    exempt:
+      - direct Claude Code / Lead Agent tool calls (already gated by the
+        harness's own permission system, not this blueprint's action_gates)
+
+agent_as_a_judge:
+  # Claude Opus / the Lead Agent evaluates hierarchical task-dependency graphs
+  # proposed by lesser models (post-action_gates, pre-execution), mapping the
+  # judge role onto the KAD constitution personas in tulpas/KAD/.
+
+  judge: "Claude Opus (or the Lead Agent for the active session)"
+
+  persona_roles:
+    ARCHIMEDES:
+      source: "tulpas/KAD/ARCHIMEDES, tulpas/data-archimedes - NotebookLM_files/"
+      role: >
+        Orchestration/decomposition judge. Owns the "10 Leis" generator
+        perspective: checks that a proposed dependency graph actually
+        decomposes the task, that each node maps to a real action_gates-scoped
+        tool call, and that the decomposition doesn't silently reintroduce
+        polling or reach-through (PON-1/PON-2).
+    SOCRATES_PROTOCOL:
+      source: "tulpas/KAD/SOCRATES_PROTOCOL"
+      role: >
+        Interrogative validation. Challenges each proposed dependency edge
+        with a "why must B follow A" probe; an edge that can't answer the
+        probe is flagged as unjustified and cut or demoted to parallel.
+    SOFIA_PROTOCOL:
+      source: "tulpas/KAD/SOFIA_PROTOCOL"
+      role: >
+        Knowledge/wisdom grounding. Cross-checks proposed steps against
+        wiki.db (facts, prior trail outcomes) so the judge doesn't approve a
+        plan that contradicts recorded system state or past failures.
+
+  judge_loop:
+    - step: receive_proposal
+      description: >
+        Lesser model (or orchestrator) submits a hierarchical dependency
+        graph of proposed actions, each action already action_gates-scoped
+        (allowlisted tool + validated schema) but not yet dispatched.
+    - step: map_to_personas
+      description: >
+        Each node/edge in the graph is routed to the persona best suited to
+        critique it: decomposition validity → ARCHIMEDES, edge justification
+        → SOCRATES_PROTOCOL, factual/historical grounding → SOFIA_PROTOCOL.
+    - step: verify_dag
+      checks:
+        - no_cycles: "the dependency graph must be a DAG"
+        - each_edge_justified: "every edge has a SOCRATES_PROTOCOL-passed rationale"
+        - leaves_are_gate_approved: "every leaf action already cleared action_gates"
+    - step: verdict
+      description: >
+        Judge emits accept/reject per node and overall. Rejected nodes are
+        returned to the proposer with the specific persona's objection
+        attached (GD-3: honest failure, not silent drop).
+      logging: >
+        Full verdict (graph id, per-node accept/reject, persona objections)
+        is written to the Task Trail before any accepted node proceeds to
+        action_gates dispatch.
+
+  final_success_message: >
+    Deterministic Execution Blueprint complete. local_model_rules,
+    action_gates, and agent_as_a_judge sections are live in blueprint.yaml.
+    All 5 orchestration phases closed out in ORCHESTRATION_GOAL.md.

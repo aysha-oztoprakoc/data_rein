@@ -14,7 +14,7 @@ import json
 import time
 from typing import Optional
 
-from reins.services.logger import get_logger
+from reins.services.logger import get_logger, log_degradation
 from reins.harness import paths
 from reins.harness.agents import HarnessAgent
 
@@ -40,6 +40,7 @@ class ReasoningEngine(HarnessAgent):
             with open(self.state_file, "r") as f:
                 return json.load(f).get("last_run", 0.0)
         except Exception:
+            log_degradation(__name__)
             return 0.0
 
     def update_last_run_timestamp(self, ts: float) -> None:
@@ -60,6 +61,7 @@ class ReasoningEngine(HarnessAgent):
                     if os.path.getmtime(fpath) > last_run:
                         modified.append(fpath)
                 except Exception:
+                    log_degradation(__name__)
                     pass
         if not modified:
             return ""
@@ -102,6 +104,7 @@ class ReasoningEngine(HarnessAgent):
                 task_id = self.trail.create_task(f"{self.role}:optimization", prompt, "amdy")
                 self.trail.set_status(task_id, "running")
             except Exception:
+                log_degradation(__name__)
                 task_id = None
 
         # One gateway: routes to the best local model with amdy<->tell failover,
@@ -112,6 +115,7 @@ class ReasoningEngine(HarnessAgent):
             try:
                 self.trail.set_status(task_id, "success" if res.ok else "failed")
             except Exception:
+                log_degradation(__name__)
                 pass
 
         if res.ok:

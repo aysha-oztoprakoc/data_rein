@@ -33,13 +33,15 @@ In Python: `from reins.harness.wiki import WikiDB`. Do not create a second store
 
 Route by task category, never by hard-coded model, via
 `from reins.harness.models import ModelRouter`. Config lives in
-`config/model_router.json`. Local-first; cloud (Gemini/Claude/OpenAI) only for
-explicit/heavy tasks; secrets only via `scripts.get_secrets.get_secret`.
+`config/model_router.json`. Ordinary category routing is local-only with amdy/tell
+failover. Cloud (Gemini/Claude/OpenAI) requires a separate, explicitly authorized
+`route_cloud`/`escalate_cloud` call; secrets only via `scripts.get_secrets.get_secret`.
 
 ### Leverage local models (offload low-effort work here first)
 
-The 13 local models in `ai_models/models/` are served by an on-demand Ollama
-server (`reins local up` / auto-started). Prefer them for trivial work:
+Models under `ai_models/models/` are served by an on-demand Ollama server
+(`reins local up` / auto-started). Use the live inventory for availability and
+prefer hardware-admitted local models for trivial work:
 
 ```bash
 reins local status                 # server + model store + count
@@ -67,9 +69,10 @@ design/judgment work, review, and anything the user asked for by name.
 
 Canonical harness skills live in `skills/` (tracked, indexed by
 `skills/MANIFEST.md`): `data_rein`, `agy-pon-compliance`, `kad_pon`,
-`hermes-persona`, `omarchy-aesthetics`. `reins skills install` symlinks them into
-`~/.claude/skills/` (and every other environment). Edit only the source in
-`skills/<name>/SKILL.md`, then re-install. List: `reins skills list`.
+`hermes-persona`, `omarchy-aesthetics`, `pon_testing_suite`, and
+`prompt-optimizer`. `reins skills install` symlinks them into `~/.claude/skills/`
+(and every other environment). Edit only the source in `skills/<name>/SKILL.md`,
+then re-install. List: `reins skills list`.
 
 ## Non-negotiables (from the Prime Directive)
 
@@ -77,6 +80,20 @@ Canonical harness skills live in `skills/` (tracked, indexed by
 - **Graceful degradation:** degrade to a lesser model/node; never crash.
 - **Aesthetic:** all generated text/UI/images obey `knowledge_base/AESTHETIC_DIRECTIVE.md`
   (Blood Red `#ff4040` on Black `#200000`, gritty synthetic voice).
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (`gh` CLI); external PRs are also triaged as a request surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) — no repo-specific remapping. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
 ## Repo conventions
 

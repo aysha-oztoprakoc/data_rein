@@ -3,6 +3,7 @@ from typing import Any, List, Dict
 from reins.services.logger import get_logger
 from reins.services.harness_bootstrapper import HarnessBootstrapper
 from reins.harness.agents import HarnessAgent
+from reins.harness import external_io
 
 logger = get_logger("odysseus_agent")
 
@@ -54,12 +55,12 @@ class OdysseusAgent(HarnessAgent):
         if self.trail is None:
             logger.warning("OdysseusAgent.process_pending: trail unavailable, skipping")
             return acted
-        pending = self.trail.by_status("pending", "running")
+        pending = self.trail.fallback_candidates()
 
         for task in pending:
             task_id = task.get("task_id")
             try:
-                self.trail.update_task(task_id, "running")
+                self.trail.update_task(task_id, "running_fallback")
                 logger.info(f"[Odysseus] Processing task {task_id}: {task.get('prompt', '')[:50]}...")
                 result = self.query_ollama(task.get("prompt", ""))
 
@@ -73,8 +74,11 @@ class OdysseusAgent(HarnessAgent):
                 logger.error(f"[Odysseus] Task {task_id} crashed, degrading to failed: {e}")
                 try:
                     self.trail.update_task(task_id, "failed")
-                except Exception:
-                    pass
+                except Exception as status_error:
+                    logger.error(
+                        f"[Odysseus] Could not record failed status for task {task_id}: "
+                        f"{status_error}"
+                    )
             acted.append(task)
         return acted
 
@@ -101,9 +105,11 @@ class OdysseusAgent(HarnessAgent):
             import paho.mqtt.client as mqtt
 
             client = mqtt.Client()
-            client.on_connect = lambda c, u, f, rc: c.subscribe(TRAIL_EVENT_TOPIC)
+            client.on_connect = lambda c, u, f, rc: external_io.mqtt_subscribe(
+                c, TRAIL_EVENT_TOPIC
+            )
             client.message_callback_add(TRAIL_EVENT_TOPIC, self._on_trail_event)
-            client.connect("localhost", 1883, 60)
+            _ = external_io.mqtt_connect(client, "localhost", 1883, 60)
             client.loop_forever()  # blocking, epoll-based — PON-compliant, 0% idle CPU
         except KeyboardInterrupt:
             logger.info("Odysseus daemon shutting down gracefully.")

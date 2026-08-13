@@ -1,12 +1,11 @@
 import os
 import json
 import time
-import subprocess
 import threading
 from typing import Any, Optional
 
 from reins.services.logger import get_logger
-from reins.harness import paths, local
+from reins.harness import external_io, paths, local
 
 logger = get_logger("cookbook_evaluator")
 
@@ -26,7 +25,7 @@ class CookbookEvaluator:
         self.mqtt = mqtt_client
         self.registry_path = str(paths.model_registry())
         if self.mqtt is not None:
-            self.mqtt.subscribe("data_rein/cookbook/trigger")
+            _ = external_io.mqtt_subscribe(self.mqtt, "data_rein/cookbook/trigger")
             self.mqtt.message_callback_add("data_rein/cookbook/trigger", self.on_trigger)
         logger.info("Cookbook Evaluator online. Ready to benchmark.")
 
@@ -42,10 +41,8 @@ class CookbookEvaluator:
                 local.ensure_server()
                 output = local.generate(model, prompt, timeout=25)  # raises on failure
             else:
-                res = subprocess.run(
-                    ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=3", node, "ollama", "run", model],
-                    input=prompt.encode("utf-8"), capture_output=True, timeout=25,
-                )
+                res = external_io.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=3", node, "ollama", "run", model],
+                input=prompt.encode("utf-8"), capture_output=True, timeout=25,)
                 if res.returncode != 0:
                     return 0
                 output = res.stdout.decode("utf-8")
@@ -86,5 +83,9 @@ class CookbookEvaluator:
                     logger.warning(f"{name} FAILED cookbook (score {score}).")
 
         if self.mqtt is not None:
-            self.mqtt.publish("data_rein/cookbook/result", json.dumps({"status": "success", "evaluations": results}))
+            _ = external_io.mqtt_publish(
+                self.mqtt,
+                "data_rein/cookbook/result",
+                json.dumps({"status": "success", "evaluations": results}),
+            )
         return results

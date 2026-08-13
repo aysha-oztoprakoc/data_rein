@@ -17,8 +17,7 @@ done
 
 echo "[2/3] Running Python AI Pedantic Tests..."
 cd /home/amdy/data_rein
-source .venv/bin/activate || true
-PYTHONPATH=src pytest -v tests/test_ai_training_pon.py tests/test_data_nexus.py tests/test_nexus_deduplication.py tests/test_nexus_scraper.py
+PYTHONPATH=src uv run pytest -v tests/test_ai_training_pon.py tests/test_data_nexus.py tests/test_nexus_deduplication.py tests/test_nexus_scraper.py
 
 echo "============================================="
 echo "[3/3] Running Stress Battery (Endurance & Performance)..."
@@ -29,7 +28,7 @@ echo "Running test_stress_battery..."
 ./test_stress_battery
 
 cd /home/amdy/data_rein
-PYTHONPATH=src pytest -v tests/test_stress_battery.py
+PYTHONPATH=src uv run pytest -v tests/test_stress_battery.py
 
 echo "============================================="
 echo " ALL TESTS PASSED. PEDANTIC WALL SECURED."

@@ -26,9 +26,11 @@ EOF
 echo "// data_rein bin installer  [home=$HOME_DIR]"
 
 # 1. every real pyproject.toml [project.scripts] console-script the venv
-#    installed for real (currently just `reins`) - symlinked directly since
+#    installed for real - symlinked directly since
 #    its shebang already points at the venv's own python.
 link "$HOME_DIR/.venv/bin/reins" "reins"
+link "$HOME_DIR/.venv/bin/basedpyright" "basedpyright"
+link "$HOME_DIR/.venv/bin/basedpyright-langserver" "basedpyright-langserver"
 
 # 2. custom dashboard/TUI scripts that aren't packaged console-scripts.
 #    Add a new `wrapper name path` line here any time a new one is written,

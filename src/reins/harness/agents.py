@@ -14,10 +14,14 @@ It is passive and PON-compliant: no polling, no background threads of its own.
 """
 
 from __future__ import annotations
+from reins.services.logger import log_degradation
 
-from typing import Optional
+import sqlite3
+from typing import TypedDict
 
-from reins.harness.models import ModelRouter, RouteResult
+from reins.harness.model_types import RouteResult
+from reins.harness.models import ModelRouter
+from reins.services.task_trail import TaskTrail
 
 # Single source of truth for the fixed fleet of long-running harness agents
 # (tmux windows in the `data` session). Consumed by the Sofia dashboard for
@@ -27,7 +31,13 @@ from reins.harness.models import ModelRouter, RouteResult
 #   name       - tmux window / process identity
 #   role       - human-readable role shown in the dashboard
 #   signature  - substring matched against a process's cmdline to find its PID(s)
-KNOWN_AGENTS: list[dict] = [
+class AgentSpec(TypedDict):
+    name: str
+    role: str
+    signature: str
+
+
+KNOWN_AGENTS: list[AgentSpec] = [
     {"name": "data-agy", "role": "CLOUD/CORE", "signature": "agy "},
     {"name": "data-hermes", "role": "HUB", "signature": "hermes-agent"},
     {"name": "data-ody", "role": "LOCAL FAILSAFE", "signature": "reins.cli ody"},
@@ -35,19 +45,24 @@ KNOWN_AGENTS: list[dict] = [
 ]
 
 
+class RecallResult(TypedDict):
+    pages: list[sqlite3.Row]
+    memories: list[sqlite3.Row]
+
+
 class HarnessAgent:
     """Base identity shared by every agent operating under data_rein."""
 
-    role = "agent"
+    role: str = "agent"
 
-    def __init__(self, router: Optional[ModelRouter] = None) -> None:
-        self.router = router or ModelRouter()
+    def __init__(self, router: ModelRouter | None = None) -> None:
+        self.router: ModelRouter = router or ModelRouter()
+        self.trail: TaskTrail | None
         # Task trail is optional at construction so lightweight bridges can skip it.
         try:
-            from reins.services.task_trail import TaskTrail
-
             self.trail = TaskTrail()
-        except Exception:
+        except Exception:  # noqa: BLE001  # noqa: BROAD_EXCEPT_OK
+            log_degradation(__name__)
             self.trail = None
 
     def infer(self, category: str, prompt: str, node: str = "amdy", rag: bool = False) -> RouteResult:
@@ -56,22 +71,24 @@ class HarnessAgent:
 
         return workflow.run(category, prompt, node=node, rag=rag, router=self.router)
 
-    def recall(self, query: str, limit: int = 5) -> dict:
+    def recall(self, query: str, limit: int = 5) -> RecallResult:
         """Consult the shared knowledge DB. Degrades to empty results, never raises."""
         try:
             from reins.harness.wiki import WikiDB
 
             with WikiDB() as db:
-                return db.search(query, limit)
-        except Exception:
+                results = db.search(query, limit)
+                return {"pages": results["pages"], "memories": results["memories"]}
+        except Exception:  # noqa: BLE001  # noqa: BROAD_EXCEPT_OK
+            log_degradation(__name__)
             return {"pages": [], "memories": []}
 
-    def remember(self, text: str, *, category: str = "general", source: Optional[str] = None) -> None:
+    def remember(self, text: str, *, category: str = "general", source: str | None = None) -> None:
         """Persist a learned fact into the shared wiki (best effort)."""
         try:
             from reins.harness.wiki import WikiDB
 
             with WikiDB() as db:
-                db.add_memory(text, category=category, source=source or self.role, owner=self.role)
-        except Exception:
-            pass
+                _ = db.add_memory(text, category=category, source=source or self.role, owner=self.role)
+        except Exception:  # noqa: BLE001  # noqa: BROAD_EXCEPT_OK
+            log_degradation(__name__)

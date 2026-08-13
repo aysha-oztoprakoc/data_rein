@@ -9,7 +9,6 @@ the same `reins.services.backup` health suite the guard uses at shutdown.
 
 import os
 
-import pytest
 
 from conftest import require
 from reins.services.backup import BackupService

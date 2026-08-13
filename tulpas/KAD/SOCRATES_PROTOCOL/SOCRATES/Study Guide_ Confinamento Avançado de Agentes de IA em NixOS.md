@@ -1,0 +1,36 @@
+### Study Guide: Confinamento Avançado de Agentes de IA em NixOS
+
+Como Engenheiro Sênior de Infraestrutura DevSecOps, encaro a execução de Agentes de IA não como uma facilidade operacional, mas como a introdução de uma "caixa-preta" capaz de executar código arbitrário. A importância estratégica de um modelo de ameaças robusto torna-se evidente ao analisarmos tarefas de  **Code Generation** , como os testes de geração de código Python discutidos no Appendix E.3.2 com o modelo Llama-2-7B. Quando permitimos que um agente opere sobre sistemas de arquivos ou redes, estamos essencialmente lidando com um risco de execução onde o código gerado pode ser indistinguível de um script malicioso.
+
+##### 1\. Threat Model: O Blast Radius de Agentes LLM
+
+A análise do vetor de ataque começa com o entendimento de que agentes focados em programação — avaliados em benchmarks como HumanEval e MBPP Sec 4.2 — possuem a capacidade intrínseca de interagir com o sistema operacional. Se não houver confinamento, o "Blast Radius" (raio de explosão) de um agente errático ou comprometido pode ser catastrófico:
+
+* **Vazamento de SSH keys:**  O agente pode tentar ler o diretório \~/.ssh para exfiltrar credenciais privadas. GAP  
+* **Acesso não autorizado à rede:**  Capacidade de estabelecer conexões reversas ou sondar a intranet da empresa. GAP  
+* **Escrita indevida no diretório $HOME:**  Modificação de arquivos .bashrc ou .profile para garantir persistência maliciosa. GAPA camada crítica de decisão ("So What?") reside no fato de que os modelos são extremamente sensíveis a hiperparâmetros, como o  *Learning Rate*  Sec 1\. Se uma pequena variação no treinamento altera drasticamente o comportamento do modelo, o output do agente é, por definição, imprevisível. Em um ambiente de produção, não podemos confiar na "alinhagem" do modelo; nossa defesa primária deve ser o isolamento rígido via kernel Linux.
+
+##### 2\. Primitivas de Confinamento Linux
+
+A fundação de qualquer ambiente de IA local seguro reside no isolamento em nível de kernel. Como o estudo fonte demonstra que o comportamento do modelo pode ser instável, nossa arquitetura de  **Defense in Depth**  utiliza as seguintes primitivas:| Tecnologia | O que isola | Comando/Config | Caso de uso em AI Agent || \------ | \------ | \------ | \------ || **Linux namespaces** | PID, NET, MOUNT, USER | GAP | Isolar processos e impedir que o agente "enxergue" o restante do sistema. || **BPF seccomp** | Syscalls | GAP | Bloquear chamadas como execve para impedir a execução de binários não autorizados. || **Landlock** | Filesystem | GAP | Definir uma política de "Safe Browsing" onde o agente só lê o necessário. |  
+**Análise de Sharpness e Risco:**  Um detalhe técnico crucial extraído da análise de segunda ordem (Hessian Analysis Sec 5.2) é que variantes como o PiSSA apresentam uma "sharpness" (maiores autovalores de Hessian) significativamente mais alta que o LoRA vanilla. Isso indica trajetórias de otimização mais agressivas e potencialmente instáveis. Para agentes utilizando PiSSA, implementamos filtros  **Seccomp**  ainda mais restritivos, prevendo que a variabilidade de comportamento do modelo possa levar a tentativas de chamadas de sistema atípicas sob condições de estresse.
+
+##### 3\. Execution Rails: As Guardas da Execução
+
+Estabelecer "Execution Rails" é nossa camada de governança sobre agentes que geram código, conforme discutido no contexto de governança de dados e execução Appendix B.4. Como o documento conclui que variantes como PiSSA, DoRA e LoRA atingem paridade de performance sob o ajuste correto do learning rate Sec 4.3.1, os trilhos de execução tornam-se a única constante confiável de segurança, independentemente da variante do modelo.
+
+* **Rail 1: Proibir Rede (**  **\--unshare-net**  **):**  LLMs treinados para tarefas matemáticas ou de codificação Sec 4.2 não precisam de acesso externo. Utilizamos o  **Bubblewrap**  GAP para criar uma sandbox onde a pilha de rede é inexistente, impedindo qualquer exfiltração.  
+* **Rail 2: Mascarar $HOME via**  **tmpfs**  **:**  Em vez de expor o diretório home real, montamos um  **tmpfs**  (sistema de arquivos em memória RAM) sobre o /home/user. Isso garante que qualquer tentativa de persistência seja volátil. Comando: GAP.  
+* **Rail 3: Worktrees Temporárias:**  Forçamos o agente a operar exclusivamente em diretórios efêmeros como /tmp/ai-worktree-XXXX, que são destruídos imediatamente após a conclusão da tarefa.Para orquestrar esses trilhos, utilizamos ferramentas de suporte como systemd-nspawn ou scripts de ai-jail GAP.
+
+##### 4\. Padrão NixOS: Declarativo \+ Efêmero
+
+A importância estratégica do NixOS reside em sua capacidade de mitigar a volatilidade observada no treinamento de modelos. O estudo aponta que modelos exibem comportamentos dependentes do rank (Rank-Dependent Behavior Sec 4.3.2), onde a performance e a estabilidade variam de acordo com o rank escolhido (ex: Rank 8 vs 128).
+
+* **Nix Flakes e Reprodutibilidade:**  No NixOS, utilizamos  **Nix Flakes**  para declarar a versão exata do kernel, drivers CUDA e o rank do modelo utilizado. Se um experimento em Rank 128 for validado como seguro e performante, garantimos que o ambiente de produção seja bit-a-bit idêntico, evitando que falhas de ambiente concedam permissões elevadas acidentalmente.  
+* **Exemplo de Configuração:**  A estrutura de um flake.nix permite definir um sandbox imutável onde as dependências são isoladas do sistema host. Exemplo: GAP.  
+* **Estado Efêmero:**  A vantagem de rodar workloads de IA no NixOS é a capacidade de resetar o sistema inteiro para um estado conhecido a cada execução. Isso elimina a persistência de malware, pois o sistema de arquivos raiz pode ser montado como somente leitura, com alterações permitidas apenas em camadas voláteis.
+
+##### 5\. Questionário de Revisão
+
+**Q1: Por que \--unshare-net é crítico para um agente que gera código?**   **A1:**  Impede exfiltração de dados sensíveis ou o estabelecimento de conexões reversas (shells) durante a execução de código gerado pelo modelo.**Q2: Qual a relação entre a "Sharpness" do loss landscape (Hessian Analysis Sec 5.2) e a confiabilidade do agente?**   **A2:**  A curvatura (Hessian) dita a sensibilidade ao aprendizado; na segurança, modelos com alta "sharpness" (como o PiSSA) possuem comportamento mais volátil, exigindo sandboxing mais rígido para conter outputs imprevisíveis.**Q3: Como o Landlock protege as chaves SSH do host?**   **A3:**  Através da restrição granular de acesso ao sistema de arquivos no nível do processo, impedindo que o agente acesse qualquer caminho fora de sua worktree designada.**Q4: Por que o uso de tmpfs é preferível ao diretório home real?**   **A4:**  Garante que qualquer modificação no sistema de arquivos ou arquivo temporário criado pelo agente seja volátil, não persistindo após o encerramento do processo.**Q5: O que os documentos indicam sobre a paridade de performance entre variantes (PiSSA, DoRA, LoRA) que justifique o foco em infraestrutura?**   **A5:**  O documento conclui que, com o learning rate ajustado, todas as variantes atingem performance similar Sec 4.3.1. Isso torna a infraestrutura de confinamento o verdadeiro diferencial de segurança, já que a escolha da variante do modelo não garante maior confiabilidade intrínseca.  

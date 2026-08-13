@@ -10,6 +10,10 @@
 
 ## 0. MANDATORY INITIALIZATION PROTOCOL (do this before answering anything)
 
+The executable engineering laws are defined in `knowledge_base/TEN_LAWS.md`.
+They decompose this constitution into PON-1..3, GD-1..3, TDD-1..3, and NIX-1;
+all clients load and apply them with this directive.
+
 On every new session or invocation inside this workspace, **before** responding to
 the user, you MUST synchronize:
 
@@ -35,18 +39,35 @@ Every environment is a *client* of the same harness. None of them owns the state
 | Odysseus       | `skills/data_rein/SKILL.md`  | shell / python `reins.harness`         |
 | Hermes         | `agents/hermes/SOUL.xml`     | python `reins.harness`                 |
 | OpenCode       | `AGENTS.md` + `opencode.json`| MCP (`reins.harness.mcp_server`) + shell |
+| Codex          | `AGENTS.md` + `.codex/config.toml` | MCP (`reins.harness.mcp_server`) + shell |
 | VS Code        | `AGENTS.md` + `.vscode/`     | integrated terminal → `reins` CLI      |
 
 **OpenCode is the harness's interactive front end.** Its default model is a local
 LM Studio model (Qwen2.5-Coder-7B, JIT-loaded), sharing amdy's 8GB VRAM slot with
 Ollama the same way every other local model does. It reaches Claude/Gemini/OpenAI
-**only** through the `escalate_cloud` MCP tool, on explicit user request — never
-natively, so cloud access from an interactive session stays vault-gated and
-Task-Trail-logged exactly like the router's own last-resort `remote_fallback`
-(§3). Its trail entries appear under `task_type` prefix `opencode:`.
+**only** through explicit MCP cloud tools on user request — never natively, so cloud
+access from an interactive session stays vault-gated and Task-Trail-logged. Use
+`escalate_cloud` for a direct remote answer and `compile_prompt_remote` for the
+remote compilation phase described below. Ordinary `ModelRouter.route` calls have
+no cloud authorization parameter; the separate `route_cloud` API is the cloud
+boundary (§3). Direct-answer trail entries appear under `task_type` prefix
+`opencode:`.
+
+The same explicit cloud boundary also supports the inspectable two-phase prompt
+inference protocol. `compile_prompt_remote` uses one named cloud provider to produce
+a strict, hardware-aware `data-rein.remote-local-inference/1` package;
+`run_prompt_local` validates and executes that package without a cloud callable.
+Remote compiler output is untrusted data and cannot change routing or authorization.
 
 All of them resolve the *same* canonical paths via `reins.harness.paths`. There is
 no per-environment copy of anything that matters.
+
+**Codex is a client of the harness, not its model owner.** Project instructions
+come from this repository's `AGENTS.md`; `.codex/config.toml` connects Codex to
+the same `reins` MCP server used by the other clients. Codex may delegate by task
+category through `route_local` or use `escalate_cloud` only after an explicit
+user request. The active Codex model remains a host/user setting and is never
+written into `config/model_router.json`.
 
 ### Skills
 
@@ -98,7 +119,7 @@ reins wiki add-memory "amdy GPU is RX 9060 XT, 8GB VRAM" --category system
 
 The harness is not welded to any vendor. Route by *task category*, not by model.
 
-- Routing table: `config/model_router.json` (11 categories × `amdy`/`tell` × ranked
+- Routing table: `config/model_router.json` (12 categories × `amdy`/`tell` × ranked
   models). Dispatch through `reins.harness.models.ModelRouter`.
 - Providers are inferred automatically — Ollama (local/ssh), Gemini, Claude,
   OpenAI-compatible, ComfyUI (image/audio). Add a model by adding a row; the
@@ -106,9 +127,19 @@ The harness is not welded to any vendor. Route by *task category*, not by model.
   existing provider family.
 - **Local-first, graceful degradation:** background/autonomous work prefers local
   open-weights models. On failure the router walks down the ranked list, then
-  fails over to the other node. Cloud models (Gemini/Claude/OpenAI) are for
-  explicit, heavy, or user-authorized tasks. Secrets come only from the encrypted
-  vault (`scripts.get_secrets.get_secret`) — never from plaintext, never hard-coded.
+  fails over to the other node and returns an honest failure if both local planes
+  are exhausted. Cloud models (Gemini/Claude/OpenAI) require a separate explicit
+  `route_cloud`/`escalate_cloud` call authorized by the user. A requested cloud
+  provider is never substituted with another vendor. Secrets come only from the
+  encrypted vault (`scripts.get_secrets.get_secret`) — never from plaintext,
+  never hard-coded.
+- **Remote-to-local prompt inference:** selected prompts may use the separately
+  authorized `compile_prompt_remote` tool for compression, context shaping, and
+  target-model format adaptation under a 16,384-token ceiling. The returned package
+  must cross the `run_prompt_local` validation boundary before local execution.
+  Malformed, oversized, or unavailable remote compilation degrades to a deterministic
+  bounded package and is recorded in the Task Trail. Full contract:
+  `knowledge_base/REMOTE_LOCAL_INFERENCE_PROTOCOL.md`.
 
 ### 3a. Hardware manifest — the single source of truth for specs
 
@@ -148,10 +179,15 @@ All code written under this harness obeys PON:
 
 ## 5. THE UNIVERSAL TASK TRAIL
 
-All agents share one state machine: `~/.config/data_nexus/task_trail.json`
+All agents share one indexed state machine: `~/.config/data_nexus/task_trail.sqlite3`
 (`reins.harness.paths.task_trail`). Before a systemic action, check it (`reins trail
 list`) to see what is `running`/`pending` and whether anything `failed` and needs
 pickup. Log your own long-running work there so another agent can resume it.
+On first use, the harness imports the former `task_trail.json` exactly once and
+retains that file as migration evidence; active clients must use the `TaskTrail` API.
+Fallback execution is opt-in: only active tasks whose `target_node` is `data-ody`
+may be claimed by the Odysseus daemon. A generic `pending` or `running` status never
+transfers ownership.
 
 ---
 

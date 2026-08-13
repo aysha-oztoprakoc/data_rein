@@ -125,7 +125,8 @@ def shared_state() -> Path:
     override = os.environ.get("DATA_REIN_SHM")
     if override:
         return Path(override).expanduser().resolve()
-    shm = Path("/dev/shm/data_rein_state")
+    # This is the kernel shared-memory mount, not a temporary-file directory.
+    shm = Path("/dev/shm/data_rein_state")  # nosec B108
     if shm.parent.is_dir():
         return shm
     return state_dir() / "shared_state.mmap"
@@ -161,6 +162,10 @@ def state_dir() -> Path:
 
 
 def task_trail() -> Path:
+    return state_dir() / "task_trail.sqlite3"
+
+
+def legacy_task_trail() -> Path:
     return state_dir() / "task_trail.json"
 
 

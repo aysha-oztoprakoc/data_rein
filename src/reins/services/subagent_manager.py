@@ -1,8 +1,9 @@
 import json
 import threading
 from typing import Any, Dict
-from reins.services.logger import get_logger
+from reins.services.logger import get_logger, log_degradation
 from reins.harness.agents import HarnessAgent
+from reins.harness import external_io
 
 logger = get_logger("subagent_manager")
 
@@ -19,7 +20,7 @@ class SubagentManager(HarnessAgent):
         self.mqtt = mqtt_client
 
         # Subscribe to spawn events
-        self.mqtt.subscribe("data_rein/subagents/spawn")
+        _ = external_io.mqtt_subscribe(self.mqtt, "data_rein/subagents/spawn")
         self.mqtt.message_callback_add("data_rein/subagents/spawn", self.on_spawn_request)
         logger.info("Subagent Manager online. Waiting for instigations (Zero Polling).")
 
@@ -64,6 +65,7 @@ class SubagentManager(HarnessAgent):
                 task_id = self.trail.create_task(f"{self.role}:subagent:{task_type}", prompt, node)
                 self.trail.set_status(task_id, "running")
             except Exception:
+                log_degradation(__name__)
                 task_id = None
 
         # Route through the single model-agnostic harness router.
@@ -73,11 +75,12 @@ class SubagentManager(HarnessAgent):
             try:
                 self.trail.set_status(task_id, "success" if res.ok else "failed")
             except Exception:
+                log_degradation(__name__)
                 pass
 
         # Publish result back
         if res.ok:
-            self.mqtt.publish(reply_topic, json.dumps({
+            _ = external_io.mqtt_publish(self.mqtt, reply_topic, json.dumps({
                 "status": "success",
                 "task_type": task_type,
                 "node": res.node,
@@ -86,7 +89,7 @@ class SubagentManager(HarnessAgent):
             }))
             logger.info(f"Subagent '{task_type}' completed on {res.model}.")
         else:
-            self.mqtt.publish(reply_topic, json.dumps({
+            _ = external_io.mqtt_publish(self.mqtt, reply_topic, json.dumps({
                 "status": "error",
                 "task_type": task_type,
                 "node": node,

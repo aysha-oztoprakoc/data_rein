@@ -1,6 +1,5 @@
 import os
-import json
-import pytest
+import stat
 import zipfile
 from unittest.mock import patch, MagicMock
 
@@ -54,7 +53,48 @@ def test_zip_extractor(tmp_path) -> None:
     assert "output_path" in result
     assert os.path.exists(result["output_path"])
 
-@patch('reins.extraction.extractors.archive_extractors.subprocess.run')
+
+def test_zip_extractor_rejects_unsafe_members_before_reading(tmp_path) -> None:
+    extractor = registry.get_extractor(".zip")
+    assert extractor is not None
+    archive = tmp_path / "hostile.zip"
+    with zipfile.ZipFile(archive, "w") as handle:
+        handle.writestr("good.txt", "must not be ingested")
+        handle.writestr("../escape.txt", "hostile")
+
+    result = extractor.extract(str(archive), str(tmp_path / "out"))
+
+    assert result["status"] == "error"
+    assert "unsafe archive member" in result["error"]
+    assert not (tmp_path / "out").exists()
+
+
+def test_zip_extractor_rejects_links_and_aggregate_limit(tmp_path, monkeypatch) -> None:
+    extractor = registry.get_extractor(".zip")
+    assert extractor is not None
+    archive = tmp_path / "link.zip"
+    link = zipfile.ZipInfo("link.txt")
+    link.create_system = 3
+    link.external_attr = (stat.S_IFLNK | 0o777) << 16
+    with zipfile.ZipFile(archive, "w") as handle:
+        handle.writestr(link, "target.txt")
+    result = extractor.extract(str(archive), str(tmp_path / "out"))
+    assert result["status"] == "error"
+    assert "link" in result["error"]
+
+    monkeypatch.setattr(
+        "reins.extraction.extractors.archive_extractors.MAX_TOTAL_UNCOMPRESSED_BYTES",
+        5,
+    )
+    bounded = tmp_path / "bounded.zip"
+    with zipfile.ZipFile(bounded, "w") as handle:
+        handle.writestr("one.txt", "123")
+        handle.writestr("two.txt", "456")
+    result = extractor.extract(str(bounded), str(tmp_path / "bounded-out"))
+    assert result["status"] == "error"
+    assert "aggregate" in result["error"]
+
+@patch('reins.extraction.extractors.archive_extractors.external_io.run')
 def test_rar_extractor(mock_run, tmp_path) -> None:
     mock_res = MagicMock()
     mock_res.returncode = 0
@@ -70,7 +110,39 @@ def test_rar_extractor(mock_run, tmp_path) -> None:
     assert result["status"] == "success"
     assert "output_path" in result
 
-@patch('reins.extraction.extractors.text_extractors.subprocess.run')
+
+@patch("reins.extraction.extractors.archive_extractors.external_io.run")
+def test_rar_rejects_hostile_listing_without_extracting(mock_run, tmp_path) -> None:
+    mock_res = MagicMock()
+    mock_res.returncode = 0
+    mock_res.stdout = "Path = ../escape.txt\nSize = 4\nFolder = -\n"
+    mock_res.stderr = ""
+    mock_run.return_value = mock_res
+    extractor = registry.get_extractor(".rar")
+    assert extractor is not None
+
+    result = extractor.extract(str(tmp_path / "hostile.rar"), str(tmp_path / "out"))
+
+    assert result["status"] == "error"
+    assert mock_run.call_count == 1
+    assert mock_run.call_args.args[0][1:4] == ["l", "-slt", "-ba"]
+
+
+def test_xml_extractor_rejects_entity_declaration(tmp_path) -> None:
+    extractor = registry.get_extractor(".xml")
+    assert extractor is not None
+    hostile = tmp_path / "hostile.xml"
+    hostile.write_text(
+        '<!DOCTYPE x [<!ENTITY a "entity-bomb">]><document>&a;&a;</document>',
+        encoding="utf-8",
+    )
+
+    result = extractor.extract(str(hostile), str(tmp_path / "out"))
+
+    assert result["status"] == "error"
+    assert not (tmp_path / "out").exists()
+
+@patch('reins.extraction.extractors.text_extractors.external_io.run')
 def test_pdf_extractor(mock_run, tmp_path) -> None:
     mock_res = MagicMock()
     mock_res.returncode = 0

@@ -5,7 +5,8 @@ agents operating under the `data_rein` harness. It replaces the scattered,
 duplicated copies that previously lived under `DATA/kad-1.0/odysseus/data/skills/`,
 `odysseus/data/skills/`, and `DATA/kad-1.0/.agents/skills/`.
 
-Each skill is a directory containing a `SKILL.md` with YAML frontmatter
+Exactly the seven registered entries below are canonical. Each is a real,
+non-symlink directory containing a `SKILL.md` with YAML frontmatter
 (`name`, `description`, `tags`). Skills are lean: their deep knowledge lives in the
 monolith wiki (`reins wiki search`) and `knowledge_base/**`, not embedded copies.
 
@@ -19,6 +20,7 @@ monolith wiki (`reins wiki search`) and `knowledge_base/**`, not embedded copies
 | `hermes-persona`     | Assume the Data-Hermes orchestrator persona + mission. |
 | `omarchy-aesthetics` | Mandatory Omarchy Cyberpunk aesthetic for all generated output. |
 | `pon_testing_suite`  | Security/stability/PON static-analysis gate; wired into `.git/hooks/pre-push`. |
+| `prompt-optimizer`   | Explicit remote prompt compilation for bounded local-model execution. |
 
 ## How each environment picks these up
 
@@ -31,12 +33,15 @@ environment scans:
 | Odysseus     | `odysseus/data/skills/` (`SKILLS_DIR = DATA_DIR/skills`) |
 | Claude Code  | `~/.claude/skills/`                              |
 | Antigravity  | `.agents/skills/`                                |
-| Codex        | `odysseus/integrations/codex/skills/`            |
+| Codex        | `~/.codex/skills/`                               |
+| Odysseus Codex plugin | `odysseus/integrations/codex/skills/`   |
 | VS Code      | integrated terminal → `reins skills list`        |
 
 The installer symlinks (never copies) so there is exactly one editable source:
-this directory. Re-run it any time; it is idempotent and PON-compliant (runs
-on demand, exits).
+this directory. Correct links are preserved, wrong symlinks are atomically
+replaced, and real files or directories at target names are refused. Target
+roots that are symlinks are rejected. Re-run it any time; it is idempotent and
+PON-compliant (runs on demand, exits).
 
 ## Discover from any shell
 ```bash

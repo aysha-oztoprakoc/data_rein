@@ -9,7 +9,7 @@ from reins.services.data_nexus.nexus_daemon import NexusDaemon
 
 def test_nexus_daemon_assimilation() -> None:
     """Ensure Data Nexus correctly hooks into the extraction pipeline."""
-    with patch('reins.services.data_nexus.nexus_daemon.mqtt.Client') as MockClient:
+    with patch('reins.services.data_nexus.nexus_daemon.mqtt.Client'):
         daemon = NexusDaemon()
         assert daemon.is_processing is False, "Initial state must be False"
         

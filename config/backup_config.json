@@ -35,6 +35,12 @@
 
   "emergency_script": "~/.cache/data_rein/backup/omarchy_rescue.sh",
   "failsafe_backup_dir": "~/.cache/data_rein/backup/failsafe",
+  "security": {
+    "backup_root": "~/.cache/data_rein/backup",
+    "directory_mode": "0700",
+    "archive_mode": "0600",
+    "rescue_mode": "0700"
+  },
 
   "health": {
     "hypr_critical_files": [

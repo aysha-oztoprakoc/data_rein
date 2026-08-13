@@ -4,13 +4,13 @@
 > `getinfo` scan (`SysProfiler`). Do not hand-edit — re-run the scan.
 > The Prime Directive points here so hardware changes flow in on the next scan.
 
-**Last scan:** 2026-07-04 12:31 UTC
+**Last scan:** 2026-08-12 02:42 UTC
 
 ## amdy — online
 
 - **GPU VRAM:** 8.0 GB
 - **System RAM:** 14.7 GB
-- **CPU:** AMD Ryzen 7 7700 8-Core Processor (8 cores / 8 threads)
+- **CPU:** AMD Ryzen 7 7700 8-Core Processor (8 cores / 16 threads)
 - **Models fitting VRAM:** bakllava:latest, codegemma:7b, llama3.1:8b, qwen2.5-coder:7b
 
 ## tell — UNREACHABLE at scan (last-known below)

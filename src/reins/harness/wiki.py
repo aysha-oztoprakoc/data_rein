@@ -26,6 +26,7 @@ Two logical stores live in one file:
 from __future__ import annotations
 
 import hashlib
+import re
 import sqlite3
 import time
 from contextlib import contextmanager
@@ -35,7 +36,7 @@ from typing import Iterator, Optional
 
 from reins.harness import paths
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -51,6 +52,7 @@ CREATE TABLE IF NOT EXISTS pages (
     category    TEXT DEFAULT 'general',
     fmt         TEXT DEFAULT 'md',
     content     TEXT NOT NULL,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
     owner       TEXT DEFAULT 'harness',
     updated_at  REAL NOT NULL
 );
@@ -125,11 +127,17 @@ def _hash(*parts: str) -> str:
     return h.hexdigest()
 
 
+def _literal_fts_query(query: str) -> str | None:
+    terms = re.findall(r"[^\W_]+", query, flags=re.UNICODE)
+    return " AND ".join(f'"{term}"' for term in terms) or None
+
+
 @dataclass
 class Page:
     slug: str
     title: str
     content: str
+    metadata_json: str = "{}"
     source_path: Optional[str] = None
     category: str = "general"
     fmt: str = "md"
@@ -162,6 +170,11 @@ class WikiDB:
 
     def _migrate(self) -> None:
         self.conn.executescript(_SCHEMA)
+        columns = {row[1] for row in self.conn.execute("PRAGMA table_info(pages)")}
+        if "metadata_json" not in columns:
+            self.conn.execute(
+                "ALTER TABLE pages ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'"
+            )
         self.conn.execute(
             "INSERT INTO meta(key, value) VALUES('schema_version', ?) "
             "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -201,6 +214,7 @@ class WikiDB:
         source_path: Optional[str] = None,
         category: str = "general",
         fmt: str = "md",
+        metadata_json: str = "{}",
         owner: str = "harness",
     ) -> str:
         """Insert or update a page keyed by slug. Returns the slug used."""
@@ -208,18 +222,32 @@ class WikiDB:
         with self._tx() as conn:
             conn.execute(
                 """
-                INSERT INTO pages(slug, title, source_path, category, fmt, content, owner, updated_at)
-                VALUES(?,?,?,?,?,?,?,?)
+                INSERT INTO pages(
+                    slug, title, source_path, category, fmt, content,
+                    metadata_json, owner, updated_at
+                )
+                VALUES(?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(slug) DO UPDATE SET
                     title=excluded.title,
                     source_path=excluded.source_path,
                     category=excluded.category,
                     fmt=excluded.fmt,
                     content=excluded.content,
+                    metadata_json=excluded.metadata_json,
                     owner=excluded.owner,
                     updated_at=excluded.updated_at
                 """,
-                (slug, title, source_path, category, fmt, content, owner, time.time()),
+                (
+                    slug,
+                    title,
+                    source_path,
+                    category,
+                    fmt,
+                    content,
+                    metadata_json,
+                    owner,
+                    time.time(),
+                ),
             )
         return slug
 
@@ -248,8 +276,9 @@ class WikiDB:
             params.append(owner)
         clause = f"WHERE {' AND '.join(where)}" if where else ""
         order_sql = "title ASC" if order == "title" else "updated_at DESC"
+        # Both SQL fragments are selected from fixed literals above; values remain parameters.
         cur = self.conn.execute(
-            f"SELECT * FROM pages {clause} ORDER BY {order_sql} LIMIT ? OFFSET ?",
+            f"SELECT * FROM pages {clause} ORDER BY {order_sql} LIMIT ? OFFSET ?",  # nosec B608
             (*params, limit, offset),
         )
         return cur.fetchall()
@@ -263,9 +292,13 @@ class WikiDB:
             where.append("owner = ?")
             params.append(owner)
         clause = f"WHERE {' AND '.join(where)}" if where else ""
-        return int(self.conn.execute(f"SELECT COUNT(*) FROM pages {clause}", params).fetchone()[0])
+        # The clause contains only the fixed column predicates assembled above.
+        return int(self.conn.execute(f"SELECT COUNT(*) FROM pages {clause}", params).fetchone()[0])  # nosec B608
 
     def search_pages(self, query: str, limit: int = 10) -> list[sqlite3.Row]:
+        fts_query = _literal_fts_query(query)
+        if fts_query is None:
+            return []
         cur = self.conn.execute(
             """
             SELECT p.slug, p.title, p.category, p.source_path,
@@ -277,7 +310,7 @@ class WikiDB:
             ORDER BY rank
             LIMIT ?
             """,
-            (query, limit),
+            (fts_query, limit),
         )
         return cur.fetchall()
 
@@ -309,6 +342,9 @@ class WikiDB:
         return uid
 
     def search_memories(self, query: str, limit: int = 10) -> list[sqlite3.Row]:
+        fts_query = _literal_fts_query(query)
+        if fts_query is None:
+            return []
         cur = self.conn.execute(
             """
             SELECT m.uid, m.category, m.source,
@@ -320,7 +356,7 @@ class WikiDB:
             ORDER BY rank
             LIMIT ?
             """,
-            (query, limit),
+            (fts_query, limit),
         )
         return cur.fetchall()
 
@@ -335,15 +371,17 @@ class WikiDB:
     # -- diagnostics --------------------------------------------------------
     def stats(self) -> dict[str, int]:
         def count(table: str) -> int:
-            return int(self.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+            # The private caller supplies one of the two fixed table literals below.
+            return int(self.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])  # nosec B608
 
         return {"pages": count("pages"), "memories": count("memories")}
 
     def categories(self) -> dict[str, int]:
         out: dict[str, int] = {}
         for table in ("pages", "memories"):
+            # The loop iterates only the fixed table tuple above.
             for row in self.conn.execute(
-                f"SELECT category, COUNT(*) c FROM {table} GROUP BY category"
+                f"SELECT category, COUNT(*) c FROM {table} GROUP BY category"  # nosec B608
             ):
                 out[row["category"]] = out.get(row["category"], 0) + row["c"]
         return out

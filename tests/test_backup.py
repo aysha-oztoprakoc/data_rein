@@ -9,12 +9,14 @@ with a force override, and the emergency script's never-delete failsafe contract
 import subprocess
 from pathlib import Path
 
-import pytest
 
 from reins.services.backup import BackupService, HealthReport, HealthResult
 
 
-def _svc(tmp_path) -> BackupService:
+def _svc(tmp_path, monkeypatch=None) -> BackupService:
+    if monkeypatch is not None:
+        monkeypatch.setenv("DATA_REIN_HOME", str(tmp_path))
+        monkeypatch.setenv("HOME", str(tmp_path))
     cfg = {
         "dotfiles": {
             "git_dir": str(tmp_path / ".dotfiles"),
@@ -22,8 +24,8 @@ def _svc(tmp_path) -> BackupService:
             "paths": [str(tmp_path / ".config/hypr")],
         },
         "harness": {"repo": "", "branch": "main", "root": str(tmp_path / "data_rein")},
-        "emergency_script": str(tmp_path / "rescue.sh"),
-        "failsafe_backup_dir": str(tmp_path / "failsafe"),
+        "emergency_script": str(tmp_path / ".cache/data_rein/backup/rescue.sh"),
+        "failsafe_backup_dir": str(tmp_path / ".cache/data_rein/backup/failsafe"),
         "health": {
             "hypr_critical_files": [str(tmp_path / ".config/hypr/hyprland.conf")],
             "waybar_config": str(tmp_path / ".config/waybar/config.jsonc"),
@@ -99,8 +101,8 @@ def test_guard_force_overrides_block(tmp_path, monkeypatch):
 
 
 # -------------------------------------------------------- emergency script
-def test_emergency_script_is_portable_and_failsafe(tmp_path):
-    svc = _svc(tmp_path)
+def test_emergency_script_is_portable_and_failsafe(tmp_path, monkeypatch):
+    svc = _svc(tmp_path, monkeypatch)
     hypr = tmp_path / ".config/hypr"
     hypr.mkdir(parents=True)
     (hypr / "hyprland.conf").write_text("monitor=,preferred,auto,1\n")
@@ -115,13 +117,38 @@ def test_emergency_script_is_portable_and_failsafe(tmp_path):
     assert subprocess.run(["bash", "-n", str(out)]).returncode == 0
 
 
-def test_failsafe_backup_writes_archive(tmp_path):
-    svc = _svc(tmp_path)
+def test_failsafe_backup_writes_archive(tmp_path, monkeypatch):
+    svc = _svc(tmp_path, monkeypatch)
     hypr = tmp_path / ".config/hypr"
     hypr.mkdir(parents=True)
     (hypr / "hyprland.conf").write_text("data")
     archive = svc.failsafe_backup()
     assert archive and Path(archive).exists() and str(archive).endswith(".tar.gz")
+    assert Path(archive).stat().st_mode & 0o777 == 0o600
+    assert Path(archive).parent.stat().st_mode & 0o777 == 0o700
+
+
+def test_backup_rejects_symlink_source_before_archive_write(tmp_path, monkeypatch) -> None:
+    svc = _svc(tmp_path, monkeypatch)
+    outside = tmp_path.parent / "outside-secret.txt"
+    outside.write_text("secret", encoding="utf-8")
+    source = tmp_path / ".config/hypr"
+    source.mkdir(parents=True)
+    (source / "escape.txt").symlink_to(outside)
+
+    assert svc.failsafe_backup() is None
+    assert list((tmp_path / ".cache/data_rein/backup/failsafe").glob("*.tar.gz")) == []
+
+
+def test_backup_rejects_destination_outside_private_backup_root(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    svc = _svc(tmp_path, monkeypatch)
+    svc.config["emergency_script"] = str(tmp_path / "public" / "rescue.sh")
+
+    assert svc.generate_emergency_script() is None
+    assert not (tmp_path / "public").exists()
 
 
 # ------------------------------------------------------------------ install

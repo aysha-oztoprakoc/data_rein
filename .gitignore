@@ -56,3 +56,12 @@ __pycache__/
 # --- Installed skill symlinks (derived; regenerate via `reins skills install`).
 # Canonical skills live in /skills and are tracked; these are just links.
 .agents/skills/
+
+# --- Artifacts & large files ---
+*.dmg
+.codex/
+.omo/
+/os
+/signal
+/sys
+/unittest

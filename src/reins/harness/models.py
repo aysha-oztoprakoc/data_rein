@@ -1,397 +1,286 @@
-"""
-Model-agnostic provider router for the data_rein universal harness.
-
-The harness must not be welded to any single backend. This module lets the same
-task category route to whatever model/provider is configured - a local Ollama
-model on amdy or tell, Google Gemini, Anthropic Claude, or any OpenAI-compatible
-endpoint - behind one uniform ``route()`` call.
-
-Routing table:
-    config/model_router.json  ->  categories -> {amdy|tell} -> [ranked models]
-
-Provider is inferred from the model name (or an explicit ``provider`` key on the
-entry):
-    * ``gemini*``                      -> Gemini
-    * ``claude*`` / ``anthropic*``     -> Claude
-    * ``gpt*`` / ``openai*``           -> OpenAI-compatible
-    * ``comfyui_*`` (backend=comfyui)  -> ComfyUI (image/audio, not chat)
-    * everything else                  -> Ollama (local / ssh to tell)
-
-Secrets are read through the existing encrypted vault (``scripts.get_secrets``),
-never from plaintext. Cloud providers degrade gracefully to the next ranked
-model / the other node when a key or SDK is unavailable - honoring the harness's
-"local-first, graceful degradation" mandate.
-
-PON note: this is a passive dispatcher. It performs one blocking call per request
-and returns; it never polls.
-"""
-
 from __future__ import annotations
 
+import hashlib
 import json
-import os
-import subprocess
-import sys
-from dataclasses import dataclass, field
+import logging
+from collections.abc import Mapping
+from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Optional
+from typing import ClassVar, assert_never
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))  # for scripts.get_secrets
+from pydantic import ValidationError
 
-from reins.harness import paths  # noqa: E402
+from reins.harness import paths
+from reins.harness.model_inventory import ModelInventory
+from reins.harness.model_providers import ProviderHandler, ProviderRuntime
+from reins.harness.model_types import DEFAULT_PROVIDER_CAPABILITIES, ExecutionPlane, ModelEntry, ModelSpec, RouteResult, RouterConfig
+from reins.harness.resilience import BreakerRegistry, with_retry
+from reins.harness.resilience_types import BreakerState
+
+logger = logging.getLogger(__name__)
 
 
-def _get_secret(name: str) -> Optional[str]:
-    """Fetch a secret from the encrypted vault, falling back to env vars.
-    GD-3: a vault miss degrades to the env fallback but is never silent."""
+def _record_breaker_transition(name: str, old_state: BreakerState, new_state: BreakerState) -> None:
+    log = logger.warning if new_state is BreakerState.OPEN else logger.info
+    log("model circuit %s changed from %s to %s", name, old_state.value, new_state.value)
     try:
-        from scripts.get_secrets import get_secret  # type: ignore
+        from reins.services.task_trail import TaskTrail
 
-        val = get_secret(name)
-        if val:
-            return val
-    except Exception as e:
-        import logging
-
-        logging.getLogger(__name__).warning("vault lookup failed for %s: %s", name, e)
-    return os.environ.get(name)
-
-
-@dataclass
-class ModelSpec:
-    model: str
-    score: float = 0.0
-    power: str = "medium"
-    provider: str = ""
-    backend: str = ""
-    extra: dict = field(default_factory=dict)
-
-    @classmethod
-    def from_entry(cls, entry: dict) -> "ModelSpec":
-        known = {"model", "score", "power", "provider", "backend"}
-        return cls(
-            model=entry.get("model", "unknown"),
-            score=float(entry.get("score", 0.0)),
-            power=entry.get("power", "medium"),
-            provider=entry.get("provider", ""),
-            backend=entry.get("backend", ""),
-            extra={k: v for k, v in entry.items() if k not in known},
+        digest = hashlib.sha256(name.encode()).hexdigest()[:16]
+        status = {
+            BreakerState.OPEN: "failed",
+            BreakerState.HALF_OPEN: "running",
+            BreakerState.CLOSED: "success",
+        }[new_state]
+        _ = TaskTrail().upsert_task(
+            f"breaker-{digest}",
+            task_type="breaker:transition",
+            prompt=json.dumps({"circuit": name, "from": old_state.value, "to": new_state.value}),
+            target_node="resilience",
+            status=status,
+            breaker_state=new_state.value,
         )
-
-    @property
-    def resolved_provider(self) -> str:
-        if self.provider:
-            return self.provider.lower()
-        m = self.model.lower()
-        if self.backend == "comfyui" or m.startswith("comfyui"):
-            return "comfyui"
-        if m.startswith("gemini"):
-            return "gemini"
-        if m.startswith(("claude", "anthropic")):
-            return "claude"
-        if m.startswith(("gpt", "openai", "o1", "o3")) or ":cloud" in m:
-            return "openai"
-        return "ollama"
+    except Exception:
+        logger.warning("model circuit transition was not persisted", exc_info=True)
 
 
-@dataclass
-class RouteResult:
-    text: Optional[str]
-    model: str
-    provider: str
-    node: str
-    ok: bool
-    error: Optional[str] = None
+_DEFAULT_BREAKERS = BreakerRegistry(on_transition=_record_breaker_transition)
+@dataclass(frozen=True, slots=True)
+class _RouteRequest:
+    plane: ExecutionPlane
+    prompt: str
+    category: str = ""
+    node: str = "amdy"
+    allow_fallback: bool = False
+    provider: str | None = None
+
+
+def _get_secret(name: str) -> str | None:
+    try:
+        from scripts.get_secrets import get_secret  # type: ignore[import-not-found]
+
+        value = get_secret(name)
+        if value:
+            return value
+    except Exception:
+        logger.warning("vault lookup failed for %s", name, exc_info=True)
+    return None
 
 
 class ModelRouter:
-    """Reads model_router.json and dispatches to the right provider."""
+    FALLBACK_MODEL: ClassVar[str] = "llama3.1:8b"
 
-    FALLBACK_MODEL = "llama3.1:8b"
-
-    def __init__(self, router_path: Optional[Path] = None) -> None:
-        self.router_path = router_path or paths.model_router()
-        self.table: dict = {}
+    def __init__(
+        self,
+        router_path: Path | None = None,
+        *,
+        breaker_registry: BreakerRegistry | None = None,
+        model_inventory: ModelInventory | None = None,
+        provider_handlers: dict[str, ProviderHandler] | None = None,
+        provider_capabilities: Mapping[str, frozenset[ExecutionPlane]] | None = None,
+    ) -> None:
+        self.router_path: Path = router_path or paths.model_router()
+        self.breaker_registry: BreakerRegistry = breaker_registry or _DEFAULT_BREAKERS
+        self.model_inventory: ModelInventory = model_inventory or ModelInventory()
+        self.table: dict[str, dict[str, list[dict[str, str | int | float | bool | None]]]] = {}
         self.remote_fallback: list[ModelSpec] = []
-        self._last_usage: Optional[dict] = None
+        self._last_usage: dict[str, int] | None = None
+        self._runtime: ProviderRuntime = ProviderRuntime(_get_secret)
+        self.provider_handlers: dict[str, ProviderHandler] = (
+            provider_handlers or self._default_provider_handlers()
+        )
+        self.provider_capabilities: Mapping[str, frozenset[ExecutionPlane]] = (
+            provider_capabilities or DEFAULT_PROVIDER_CAPABILITIES
+        )
         self._load()
+
+    def _default_provider_handlers(self) -> dict[str, ProviderHandler]:
+        return {
+            "ollama": lambda model, prompt, node: self._ollama(model, prompt, node),
+            "comfyui": lambda model, prompt, node: self._comfyui(model, prompt, node),
+            "gemini": lambda model, prompt, _node: self._gemini(model, prompt),
+            "claude": lambda model, prompt, _node: self._claude(model, prompt),
+            "openai": lambda model, prompt, _node: self._openai(model, prompt),
+        }
 
     def _load(self) -> None:
         try:
-            data = json.loads(self.router_path.read_text(encoding="utf-8"))
-            self.table = data.get("categories", data)
-            self.remote_fallback = [ModelSpec.from_entry(e) for e in data.get("remote_fallback", [])]
-        except Exception:
+            config = RouterConfig.model_validate_json(self.router_path.read_text(encoding="utf-8"))
+            self.table = {
+                category: {
+                    node: [entry.model_dump() for entry in routes.for_node(node)]
+                    for node in ("amdy", "tell")
+                }
+                for category, routes in config.categories.items()
+            }
+            self.remote_fallback = [ModelSpec.from_entry(entry) for entry in config.remote_fallback]
+        except (OSError, ValidationError):
+            logger.warning("model router configuration failed to load", exc_info=True)
             self.table = {}
             self.remote_fallback = []
 
-    # -- lookup -------------------------------------------------------------
     def candidates(self, category: str, node: str = "amdy") -> list[ModelSpec]:
-        cat = self.table.get(category) or self.table.get(category.lower()) or {}
-        entries = cat.get(node, []) if isinstance(cat, dict) else []
-        specs = [ModelSpec.from_entry(e) for e in entries]
+        category_entry = self.table.get(category) or self.table.get(category.lower()) or {}
+        raw_entries = category_entry.get(node, [])
+        specs = [ModelSpec.from_entry(ModelEntry.model_validate(entry)) for entry in raw_entries]
         if not specs:
             specs = [ModelSpec(model=self.FALLBACK_MODEL)]
         if node == "amdy":
             specs.extend(self._extra_local_candidates(specs))
-        return specs
+        admitted = [
+            spec
+            for spec in specs
+            if spec.resolved_provider != "ollama" or self.model_inventory.admit(node, spec.model)
+        ]
+        return [
+            replace(
+                spec,
+                capabilities=self.provider_capabilities.get(spec.resolved_provider, frozenset()),
+            )
+            for spec in admitted
+        ]
 
     def _extra_local_candidates(self, known: list[ModelSpec]) -> list[ModelSpec]:
-        """Any locally-installed Ollama model not already ranked for this
-        category, appended as a low-score last resort - so a freshly
-        `ollama pull`-ed model is reachable without editing model_router.json.
-        Never raises: degrades to an empty list if the local server is down."""
         try:
             from reins.harness import local
 
-            known_names = {s.model for s in known}
-            installed = local.list_models()
+            known_names = {spec.model for spec in known}
+            return [
+                ModelSpec(model=name, score=1.0, power="unknown")
+                for name in local.list_models()
+                if name not in known_names
+            ]
         except Exception:
+            logger.warning("installed model discovery failed", exc_info=True)
             return []
-        return [ModelSpec(model=name, score=1.0, power="unknown")
-                for name in installed if name not in known_names]
 
     def optimal(self, category: str, node: str = "amdy") -> ModelSpec:
-        return self.candidates(category, node)[0]
+        candidates = self.candidates(category, node)
+        return candidates[0] if candidates else ModelSpec(model="none")
 
-    # -- dispatch -----------------------------------------------------------
     def route(
-        self,
-        category: str,
-        prompt: str,
-        node: str = "amdy",
-        *,
-        allow_fallback: bool = True,
-        allow_cloud: bool = True,
+        self, category: str, prompt: str, node: str = "amdy", *, allow_fallback: bool = True
     ) -> RouteResult:
-        """
-        Run ``prompt`` for ``category`` on ``node``, walking down the ranked list
-        and finally over to the other node (graceful degradation) on failure.
-        """
-        tried: list[tuple[str, str, str]] = []
-        for spec in self.candidates(category, node):
-            provider = spec.resolved_provider
-            if provider in ("comfyui",):
-                # Generative backends are not chat; skip for text routing.
-                continue
-            text, err = self._dispatch(provider, spec.model, prompt, node)
-            if text is not None:
-                return RouteResult(text, spec.model, provider, node, ok=True)
-            tried.append((node, spec.model, err or "empty"))
-
-        if allow_fallback:
-            other = "tell" if node == "amdy" else "amdy"
-            res = self.route(category, prompt, other, allow_fallback=False, allow_cloud=False)
-            if res.ok:
-                return res
-            tried.extend([(other, res.model, res.error or "empty")])
-
-            # Tier 1 - last-resort remote fallback, tried only once both nodes
-            # are fully exhausted for this category. Never a proactive path.
-            for spec in (self.remote_fallback if allow_cloud else []):
-                provider = spec.resolved_provider
-                text, err = self._dispatch(provider, spec.model, prompt, node)
-                if text is not None:
-                    return RouteResult(text, spec.model, provider, "cloud", ok=True)
-                tried.append(("cloud", spec.model, err or "empty"))
-
-        return RouteResult(
-            None, tried[-1][1] if tried else "none", "none", node, ok=False,
-            error="; ".join(f"{n}/{m}: {e}" for n, m, e in tried),
+        return self._execute_request(
+            _RouteRequest(ExecutionPlane.LOCAL_TEXT, prompt, category, node, allow_fallback)
         )
 
-    def route_cloud(self, prompt: str, provider: Optional[str] = None) -> RouteResult:
-        """
-        Explicit, user-requested cloud call - skips every local candidate and goes
-        straight to Tier 1 (``remote_fallback``). Used by callers (e.g. the OpenCode
-        MCP bridge) that must only reach Claude/Gemini/OpenAI when a human asked for
-        it, never as part of ordinary category routing.
-        """
-        specs = self.remote_fallback
-        if provider:
-            specs = [s for s in specs if s.resolved_provider == provider.lower()] or specs
-        tried: list[tuple[str, str, str]] = []
-        for spec in specs:
-            p = spec.resolved_provider
-            text, err = self._dispatch(p, spec.model, prompt, "cloud")
-            if text is not None:
-                return RouteResult(text, spec.model, p, "cloud", ok=True)
-            tried.append(("cloud", spec.model, err or "empty"))
-        return RouteResult(
-            None, tried[-1][1] if tried else "none", provider or "none", "cloud", ok=False,
-            error="; ".join(f"{n}/{m}: {e}" for n, m, e in tried) or "no remote_fallback configured",
+    def route_cloud(self, prompt: str, provider: str | None = None) -> RouteResult:
+        return self._execute_request(
+            _RouteRequest(ExecutionPlane.CLOUD_TEXT, prompt, node="cloud", provider=provider)
         )
 
     def generate_image(self, category: str, prompt: str, node: str = "amdy") -> RouteResult:
-        """
-        Image/audio generation entry point - deliberately separate from
-        ``route()``/``route_cloud()`` since comfyui backends aren't chat (see
-        module docstring). Walks ``candidates(category, node)`` but only
-        considers comfyui-backed specs.
-        """
+        return self._execute_request(_RouteRequest(ExecutionPlane.IMAGE, prompt, category, node))
+
+    def _execute_request(self, request: _RouteRequest) -> RouteResult:
         tried: list[tuple[str, str, str]] = []
-        for spec in self.candidates(category, node):
-            if spec.resolved_provider != "comfyui":
+        specs = self._policy_candidates(request)
+        for spec in specs:
+            if request.plane not in spec.capabilities:
+                if (
+                    request.plane is ExecutionPlane.LOCAL_TEXT
+                    and ExecutionPlane.CLOUD_TEXT in spec.capabilities
+                ):
+                    tried.append(
+                        (request.node, spec.model, "cloud provider requires explicit route_cloud authorization")
+                    )
                 continue
-            text, err = self._dispatch("comfyui", spec.model, prompt, node)
+            provider = spec.resolved_provider
+            text, error = self._dispatch(provider, spec.model, request.prompt, request.node)
             if text is not None:
-                return RouteResult(text, spec.model, "comfyui", node, ok=True)
-            tried.append((node, spec.model, err or "empty"))
-        return RouteResult(
-            None, tried[-1][1] if tried else "none", "comfyui", node, ok=False,
-            error="; ".join(f"{n}/{m}: {e}" for n, m, e in tried) or f"no comfyui candidates for {category!r}",
-        )
+                return RouteResult(text, spec.model, provider, request.node, ok=True)
+            tried.append((request.node, spec.model, error or "empty"))
+        if request.plane is ExecutionPlane.LOCAL_TEXT and request.allow_fallback:
+            other = "tell" if request.node == "amdy" else "amdy"
+            fallback = self._execute_request(replace(request, node=other, allow_fallback=False))
+            if fallback.ok:
+                return fallback
+            tried.append((other, fallback.model, fallback.error or "empty"))
+        provider, default = self._failure_policy(request)
+        return self._failure(request.node, tried, provider, default)
 
-    def _dispatch(self, provider: str, model: str, prompt: str, node: str):
-        try:
-            if provider == "ollama":
-                return self._ollama(model, prompt, node), None
-            if provider == "comfyui":
-                return self._comfyui(model, prompt, node), None
-            if provider in ("gemini", "claude", "openai"):
-                self._last_usage = None
-                text = getattr(self, f"_{provider}")(model, prompt)
-                if text is not None:
-                    self._record_usage(provider, model, self._last_usage)
-                return text, None
+    def _policy_candidates(self, request: _RouteRequest) -> list[ModelSpec]:
+        match request.plane:
+            case ExecutionPlane.LOCAL_TEXT | ExecutionPlane.IMAGE:
+                return self.candidates(request.category, request.node)
+            case ExecutionPlane.CLOUD_TEXT:
+                specs = [
+                    replace(
+                        spec,
+                        capabilities=self.provider_capabilities.get(spec.resolved_provider, frozenset()),
+                    )
+                    for spec in self.remote_fallback
+                ]
+                if request.provider:
+                    return [spec for spec in specs if spec.resolved_provider == request.provider.lower()]
+                return specs
+            case unreachable:
+                assert_never(unreachable)
+
+    @staticmethod
+    def _failure_policy(request: _RouteRequest) -> tuple[str, str]:
+        match request.plane:
+            case ExecutionPlane.LOCAL_TEXT:
+                return "none", ""
+            case ExecutionPlane.CLOUD_TEXT:
+                return request.provider or "none", "no remote_fallback configured"
+            case ExecutionPlane.IMAGE:
+                return "comfyui", f"no image candidates for {request.category!r}"
+            case unreachable:
+                assert_never(unreachable)
+
+    @staticmethod
+    def _failure(
+        node: str, tried: list[tuple[str, str, str]], provider: str = "none", default: str = ""
+    ) -> RouteResult:
+        error = "; ".join(f"{item_node}/{model}: {reason}" for item_node, model, reason in tried)
+        return RouteResult(None, tried[-1][1] if tried else "none", provider, node, False, error or default)
+
+    def _dispatch(self, provider: str, model: str, prompt: str, node: str) -> tuple[str | None, str | None]:
+        handler = self.provider_handlers.get(provider)
+        if handler is None:
             return None, f"unknown provider {provider}"
-        except Exception as e:  # graceful degradation - never crash the harness
-            return None, str(e)
 
-    def _record_usage(self, provider: str, model: str, usage: Optional[dict]) -> None:
-        """Log a cloud call to the shared TokenLedger. Never raises, but a
-        metering failure is a warning, never a silent no-op (GD-3)."""
+        def invoke() -> str:
+            self._last_usage = None
+            self._runtime.last_usage = None
+            text = handler(model, prompt, node)
+            self._last_usage = self._last_usage or self._runtime.last_usage
+            if text is None:
+                raise RuntimeError("provider returned an empty response")
+            if provider not in {"ollama", "comfyui"}:
+                self._record_usage(provider, model, self._last_usage)
+            return text
+
+        try:
+            breaker = self.breaker_registry.get(f"{provider}:{node}:{model}")
+            return with_retry(invoke, breaker=breaker, idempotent=False), None
+        except Exception as error:
+            logger.warning("model provider dispatch degraded", exc_info=True)
+            return None, str(error)
+
+    def _record_usage(self, provider: str, model: str, usage: dict[str, int] | None) -> None:
         if not usage:
             return
         try:
             from reins.services.token_ledger import TokenLedger
 
-            TokenLedger().record(
-                provider, model,
-                usage.get("input_tokens", 0), usage.get("output_tokens", 0),
-            )
-        except Exception as e:
-            import logging
+            TokenLedger().record(provider, model, usage.get("input_tokens", 0), usage.get("output_tokens", 0))
+        except Exception:
+            logger.warning("token usage not recorded for %s/%s", provider, model, exc_info=True)
 
-            logging.getLogger(__name__).warning(
-                "token usage not recorded (%s/%s): %s", provider, model, e
-            )
+    def _comfyui(self, model: str, prompt: str, node: str) -> str | None:
+        return self._runtime.comfyui(model, prompt, node)
 
-    # -- providers ----------------------------------------------------------
-    def _comfyui(self, model: str, prompt: str, node: str) -> Optional[str]:
-        """Submit a txt2img job to a local ComfyUI instance and return the
-        generated image's path (relative to ComfyUI's output/ directory) once
-        rendering completes. `node` is unused (comfyui runs on amdy only
-        today) but kept for signature parity with the other providers."""
-        import asyncio
+    def _ollama(self, model: str, prompt: str, node: str) -> str | None:
+        return self._runtime.ollama(model, prompt, node)
 
-        from reins.harness.comfyui_client import ComfyUIClient, build_txt2img_workflow
+    def _gemini(self, model: str, prompt: str) -> str | None:
+        return self._runtime.gemini(model, prompt, "cloud")
 
-        base_url = os.environ.get("COMFYUI_BASE_URL", "http://127.0.0.1:8188")
+    def _claude(self, model: str, prompt: str) -> str | None:
+        return self._runtime.claude(model, prompt, "cloud")
 
-        async def _run() -> Optional[str]:
-            client = ComfyUIClient(base_url=base_url)
-            try:
-                if not await client.check_health():
-                    raise RuntimeError(f"ComfyUI unreachable at {base_url}")
-                workflow = build_txt2img_workflow(prompt)
-                prompt_id = await client.queue_prompt(workflow)
-                if not prompt_id:
-                    raise RuntimeError("ComfyUI rejected the prompt (no prompt_id)")
-                entry = await client.wait_for_result(prompt_id)
-                if entry is None:
-                    raise RuntimeError(f"ComfyUI job {prompt_id} timed out")
-                image_path = ComfyUIClient.extract_image_path(entry)
-                if not image_path:
-                    raise RuntimeError(f"ComfyUI job {prompt_id} produced no image output")
-                return image_path
-            finally:
-                await client.close()
-
-        return asyncio.run(_run())
-
-    def _ollama(self, model: str, prompt: str, node: str) -> Optional[str]:
-        # Local node: use the clean HTTP API (no TUI spinner artifacts), starting
-        # the harness model server on demand.
-        if node != "tell":
-            from reins.harness import local
-
-            try:
-                from reins.harness.coordinator import get_coordinator
-
-                res = get_coordinator().generate(model, prompt)
-                if res is not None and res.ok:
-                    return res.text
-            except Exception:
-                pass  # coordinator unavailable/erroring: fall through to direct path
-
-            local.ensure_server()
-            return local.generate(model, prompt)
-
-        # Remote node (tell): drive its Ollama over SSH.
-        cmd = ["ssh", "-o", "BatchMode=yes", "tell", "ollama", "run", model]
-        res = subprocess.run(cmd, input=prompt.encode("utf-8"), capture_output=True)
-        if res.returncode == 0 and res.stdout.strip():
-            return res.stdout.decode("utf-8", "replace")
-        raise RuntimeError((res.stderr.decode("utf-8", "replace") or "ollama failed").strip()[:200])
-
-    def _gemini(self, model: str, prompt: str) -> Optional[str]:
-        key = _get_secret("GEMINI_API_KEY") or _get_secret("GOOGLE_STUDIO_API_KEY")
-        if not key:
-            raise RuntimeError("no GEMINI_API_KEY")
-        try:
-            import google.generativeai as genai  # type: ignore
-        except ImportError:
-            raise RuntimeError("google-generativeai not installed")
-        genai.configure(api_key=key)
-        resp = genai.GenerativeModel(model).generate_content(prompt)
-        meta = getattr(resp, "usage_metadata", None)
-        if meta is not None:
-            self._last_usage = {
-                "input_tokens": getattr(meta, "prompt_token_count", 0),
-                "output_tokens": getattr(meta, "candidates_token_count", 0),
-            }
-        return getattr(resp, "text", None)
-
-    def _claude(self, model: str, prompt: str) -> Optional[str]:
-        key = _get_secret("ANTHROPIC_API_KEY")
-        if not key:
-            raise RuntimeError("no ANTHROPIC_API_KEY")
-        try:
-            import anthropic  # type: ignore
-        except ImportError:
-            raise RuntimeError("anthropic sdk not installed")
-        client = anthropic.Anthropic(api_key=key)
-        msg = client.messages.create(
-            model=model, max_tokens=2048,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        usage = getattr(msg, "usage", None)
-        if usage is not None:
-            self._last_usage = {
-                "input_tokens": getattr(usage, "input_tokens", 0),
-                "output_tokens": getattr(usage, "output_tokens", 0),
-            }
-        parts = [b.text for b in msg.content if getattr(b, "type", "") == "text"]
-        return "\n".join(parts) if parts else None
-
-    def _openai(self, model: str, prompt: str) -> Optional[str]:
-        key = _get_secret("OPENAI_API_KEY")
-        if not key:
-            raise RuntimeError("no OPENAI_API_KEY")
-        try:
-            from openai import OpenAI  # type: ignore
-        except ImportError:
-            raise RuntimeError("openai sdk not installed")
-        client = OpenAI(api_key=key)
-        resp = client.chat.completions.create(
-            model=model.replace(":cloud", ""),
-            messages=[{"role": "user", "content": prompt}],
-        )
-        usage = getattr(resp, "usage", None)
-        if usage is not None:
-            self._last_usage = {
-                "input_tokens": getattr(usage, "prompt_tokens", 0),
-                "output_tokens": getattr(usage, "completion_tokens", 0),
-            }
-        return resp.choices[0].message.content
+    def _openai(self, model: str, prompt: str) -> str | None:
+        return self._runtime.openai(model, prompt, "cloud")

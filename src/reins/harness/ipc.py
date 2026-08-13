@@ -16,6 +16,7 @@ is not possible; the harness never claims otherwise).
 """
 
 from __future__ import annotations
+from reins.services.logger import log_degradation
 
 import json
 import mmap
@@ -27,7 +28,7 @@ import threading
 from pathlib import Path
 from typing import Iterator, Optional
 
-from reins.harness import paths
+from reins.harness import external_io, paths
 
 _HEADER = struct.Struct("!II")  # seq, payload_len
 FRAME_HEADER = struct.Struct("!2sBBI")  # magic, version, msg_type, length
@@ -95,6 +96,7 @@ class SharedState:
             finally:
                 os.close(fd)
         except Exception:
+            log_degradation(__name__)
             self.disabled = True
             self._mm = None
 
@@ -115,6 +117,7 @@ class SharedState:
             self._write_seq(seq + 2)  # even = stable
             return True
         except Exception:
+            log_degradation(__name__)
             return False
 
     def read(self) -> Optional[dict]:
@@ -132,6 +135,7 @@ class SharedState:
                     continue  # torn read
                 return json.loads(payload.decode("utf-8"))
             except Exception:
+                log_degradation(__name__)
                 continue
         return None
 
@@ -187,6 +191,7 @@ class IPCServer:
                 return {"ok": res.ok, "text": res.text, "error": res.error}
             return {"error": f"unknown op {kind!r}"}
         except Exception as e:
+            log_degradation(__name__)
             return {"error": str(e)}
 
     def _serve_client(self, conn: socket.socket) -> None:
@@ -201,14 +206,17 @@ class IPCServer:
             try:
                 op = json.loads(payload.decode("utf-8"))
             except Exception:
+                log_degradation(__name__)
                 conn.sendall(frame(ERR_JSON, json.dumps({"error": "malformed json"}).encode()))
                 return
             result = self._handle_op(op)
             conn.sendall(frame(RESP_JSON, json.dumps(result).encode("utf-8")))
         except Exception as e:
+            log_degradation(__name__)
             try:
                 conn.sendall(frame(ERR_JSON, json.dumps({"error": str(e)}).encode()))
             except Exception:
+                log_degradation(__name__)
                 pass
         finally:
             conn.close()
@@ -241,6 +249,7 @@ class IPCServer:
         try:
             self.socket_path.unlink()
         except Exception:
+            log_degradation(__name__)
             pass
 
     def stop(self) -> None:
@@ -256,7 +265,10 @@ class IPCClient:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(timeout)
         try:
-            sock.connect(str(self.socket_path))
+            _ = external_io.call(
+                f"ipc:{self.socket_path}:connect",
+                lambda: sock.connect(str(self.socket_path)),
+            )
             sock.sendall(frame(REQ_JSON, json.dumps(op).encode("utf-8")))
             got = read_frame(sock)
             if got is None:
@@ -264,6 +276,7 @@ class IPCClient:
             msg_type, payload = got
             return json.loads(payload.decode("utf-8"))
         except Exception as e:
+            log_degradation(__name__)
             return {"error": str(e)}
         finally:
             sock.close()
@@ -272,7 +285,10 @@ class IPCClient:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(timeout)
         try:
-            sock.connect(str(self.socket_path))
+            _ = external_io.call(
+                f"ipc:{self.socket_path}:connect",
+                lambda: sock.connect(str(self.socket_path)),
+            )
             sock.sendall(frame(REQ_JSON, json.dumps(op).encode("utf-8")))
             done = False
             while not done:

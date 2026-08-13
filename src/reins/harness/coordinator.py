@@ -14,12 +14,13 @@ a `RouteResult`, never an exception.
 """
 
 from __future__ import annotations
+from reins.services.logger import log_degradation
 
 import json
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Optional, TypedDict
 
 from reins.harness import local, paths
 
@@ -42,6 +43,19 @@ class ModelSlot:
     error: Optional[str] = None
 
 
+class SlotStatus(TypedDict):
+    state: str
+    est_gb: float
+    last_used: float
+    error: str | None
+
+
+class CoordinatorStatus(TypedDict):
+    vram_budget_gb: float
+    used_gb: float
+    slots: dict[str, SlotStatus]
+
+
 # Name-based fallback estimate (GB) when /api/tags doesn't expose a size yet
 # (model not pulled) — rough parameter-count heuristic, q4_K_M-ish.
 _SIZE_FALLBACK_GB = {
@@ -53,6 +67,7 @@ def _config() -> dict:
     try:
         return json.loads(paths.coordinator_config().read_text())
     except Exception:
+        log_degradation(__name__)
         return {}
 
 
@@ -71,7 +86,7 @@ class ModelCoordinator:
         self.defaults: dict = cfg.get("defaults", {"num_ctx": 2048, "num_thread": 8})
 
     # -- introspection --------------------------------------------------
-    def status(self) -> dict:
+    def status(self) -> CoordinatorStatus:
         self._sync_from_ollama()
         return {
             "vram_budget_gb": self.vram_budget_gb,
@@ -184,6 +199,7 @@ class ModelCoordinator:
                 self._publish_state()
                 return RouteResult(text, model, "ollama", "amdy", ok=True)
             except Exception as e:
+                log_degradation(__name__)
                 slot.state, slot.error = ModelState.ERROR, str(e)
                 self._publish_state()
                 self.evict_lru(self.estimate_gb(model))
@@ -208,6 +224,7 @@ class ModelCoordinator:
         try:
             resident = {m["name"]: m for m in local.loaded_models(self.host)}
         except Exception:
+            log_degradation(__name__)
             return
         for name, info in resident.items():
             slot = self._slot(name)
@@ -233,6 +250,7 @@ class ModelCoordinator:
                 "slots": {n: {"state": s.state.value, "est_gb": s.est_gb} for n, s in self._slots.items()},
             })
         except Exception:
+            log_degradation(__name__)
             pass
 
     def _log_trail_failure(self, model: str, error: str) -> None:
@@ -245,6 +263,7 @@ class ModelCoordinator:
                 model=model, error=error, target_node="amdy",
             )
         except Exception:
+            log_degradation(__name__)
             pass  # honest-failure logging is best-effort; never crash on it
 
 

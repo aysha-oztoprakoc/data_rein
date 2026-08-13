@@ -1,3 +1,4 @@
+from reins.services.logger import log_degradation
 import os
 
 # 100 GB limit in bytes
@@ -73,4 +74,5 @@ class KnowledgeManager:
                     owner="data_nexus",
                 )
         except Exception:
+            log_degradation(__name__)
             pass

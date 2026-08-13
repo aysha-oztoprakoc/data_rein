@@ -1,22 +1,8 @@
-"""
-The Three Laws of the data_rein harness, enforced as executable tests.
-
-Every module under `src/reins` is bound by these. They are written to *fail loudly*
-if future code breaks the harness contract, so they double as living documentation
-and as a TDD guard rail.
-
-    LAW 1 — PON (Notification-Oriented Paradigm): zero polling. No spin-wait
-            loops, no synchronous busy-wait timers. Reactivity only.
-    LAW 2 — Graceful Degradation: public entry points degrade (return / log / skip)
-            on bad input instead of raising and taking the harness down.
-    LAW 3 — Test-Driven Development: every harness module is covered by the suite;
-            no shipped module is left untested.
-"""
-
 from __future__ import annotations
 
 import ast
 import importlib
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -28,6 +14,20 @@ from conftest import harness_source_files, SRC_ROOT
 # LAW 1 — PON: no polling anywhere in harness source (AST-based, ignores
 # strings/comments so docstrings mentioning the anti-pattern don't false-positive).
 # ---------------------------------------------------------------------------
+
+
+def _call_names(node: ast.AST) -> set[str]:
+    names: set[str] = set()
+    for child in ast.walk(node):
+        if not isinstance(child, ast.Call):
+            continue
+        function = child.func
+        if isinstance(function, ast.Name):
+            names.add(function.id)
+        if isinstance(function, ast.Attribute):
+            names.add(function.attr)
+    return names
+
 
 def _polling_violations(path: Path) -> list[str]:
     """
@@ -45,15 +45,22 @@ def _polling_violations(path: Path) -> list[str]:
     out: list[str] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.While):
+            condition_calls = _call_names(node.test)
+            body_calls = set().union(*(_call_names(statement) for statement in node.body))
+            blocking_calls = {"read", "read_frame", "recv", "select"}
             test = node.test
             if isinstance(test, ast.Constant) and bool(test.value) is True:
                 out.append(f"{path.name}:{node.lineno} while-True spin loop")
+            elif condition_calls and not (condition_calls | body_calls).intersection(blocking_calls):
+                out.append(f"{path.name}:{node.lineno} status/deadline polling loop")
         if isinstance(node, ast.Call):
             fn = node.func
-            if isinstance(fn, ast.Attribute) and fn.attr == "sleep":
-                base = fn.value
-                if isinstance(base, ast.Name) and base.id == "time" and not _allowed(node.lineno):
-                    out.append(f"{path.name}:{node.lineno} synchronous sleep busy-wait")
+            if (
+                isinstance(fn, ast.Attribute)
+                and fn.attr in {"sleep", "wait_for_timeout"}
+                and not _allowed(node.lineno)
+            ):
+                out.append(f"{path.name}:{node.lineno} time-based polling wait")
     return out
 
 
@@ -64,21 +71,178 @@ def test_law_pon_no_polling_in_harness():
     assert not violations, "PON law broken (polling detected):\n  " + "\n  ".join(violations)
 
 
+def test_law_pon_no_periodic_timers_in_active_scripts() -> None:
+    # Given active service scripts are part of the event-driven harness surface.
+    violations: list[str] = []
+
+    # When their syntax trees are checked for timer-based state refresh.
+    for path in (SRC_ROOT.parents[1] / "scripts").glob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"), filename=str(path))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "set_interval"
+            ):
+                violations.append(f"{path.name}:{node.lineno} periodic timer")
+
+    # Then no service rechecks state on an elapsed-time schedule.
+    assert not violations, "PON-1 broken in active scripts:\n  " + "\n  ".join(violations)
+
+
+def test_single_wiki_active_scripts_do_not_write_legacy_database() -> None:
+    # Given wiki.db is the sole writable knowledge store.
+    violations: list[str] = []
+
+    # When active scripts are inspected for direct legacy app.db connections.
+    for path in (SRC_ROOT.parents[1] / "scripts").glob("*.py"):
+        if path.name == "consolidate_wiki.py":
+            continue
+        source = path.read_text(encoding="utf-8", errors="replace")
+        if "app.db" in source and "sqlite3.connect" in source:
+            violations.append(path.name)
+
+    # Then legacy databases remain read-only migration inputs, never writers.
+    assert not violations, "single-wiki law broken: " + ", ".join(violations)
+
+
+def test_law_gd_external_io_uses_circuit_breaker_adapter() -> None:
+    # Given external transport calls can repeatedly fail and exhaust the harness.
+    violations: list[str] = []
+    roots = [SRC_ROOT, SRC_ROOT.parents[1] / "scripts"]
+
+    # When active Python syntax is inspected for calls that bypass external_io.
+    for root in roots:
+        for path in root.rglob("*.py"):
+            if "legacy" in path.parts or path.name in {"external_io.py", "consolidate_wiki.py"}:
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"), filename=str(path))
+            parents = {
+                child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)
+            }
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                    continue
+                owner = ast.unparse(node.func.value)
+                call = node.func.attr
+                raw_process = owner == "subprocess" and call in {
+                    "run",
+                    "Popen",
+                    "check_call",
+                    "check_output",
+                }
+                raw_url = owner == "urllib.request" and call == "urlopen"
+                raw_socket = owner in {"socket", "sock"} and call in {
+                    "connect",
+                    "create_connection",
+                }
+                raw_browser = call in {"goto", "launch"} and owner in {"page", "p.chromium"}
+                raw_search = call == "text" and owner.endswith(".ddgs")
+                raw_mqtt = call in {"publish", "single", "subscribe"} or (
+                    call == "connect"
+                    and any(token in owner.lower() for token in ("mqtt", "client", " c"))
+                )
+                ancestor = parents.get(node)
+                admitted = False
+                while ancestor is not None:
+                    if (
+                        isinstance(ancestor, ast.Call)
+                        and isinstance(ancestor.func, ast.Attribute)
+                        and ast.unparse(ancestor.func.value) == "external_io"
+                        and ancestor.func.attr == "call"
+                    ):
+                        admitted = True
+                        break
+                    ancestor = parents.get(ancestor)
+                if (
+                    raw_process or raw_url or raw_socket or raw_browser or raw_search or raw_mqtt
+                ) and not admitted:
+                    violations.append(
+                        f"{path.relative_to(SRC_ROOT.parents[1])}:{node.lineno} {owner}.{call}"
+                    )
+
+    # Then every matching external call is admitted and observed by one breaker adapter.
+    assert not violations, "GD-1 raw external calls:\n  " + "\n  ".join(violations)
+
+
+def test_law_pon_no_reach_through() -> None:
+    violations: list[str] = []
+    for path in harness_source_files():
+        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                continue
+            if node.func.attr == "__new__":
+                violations.append(f"{path.name}:{node.lineno} internal __new__ reach-through")
+    assert not violations, "PON-2 broken:\n  " + "\n  ".join(violations)
+
+
+def _is_broad_handler(handler: ast.ExceptHandler) -> bool:
+    if handler.type is None:
+        return True
+    if isinstance(handler.type, ast.Name):
+        return handler.type.id in {"BaseException", "Exception"}
+    if isinstance(handler.type, ast.Tuple):
+        return any(
+            isinstance(item, ast.Name) and item.id in {"BaseException", "Exception"}
+            for item in handler.type.elts
+        )
+    return False
+
+
+def _has_failure_diagnostic(handler: ast.ExceptHandler) -> bool:
+    if any(isinstance(node, ast.Raise) for node in ast.walk(handler)):
+        return True
+    log_methods = {"critical", "error", "exception", "info", "warning"}
+    return any(
+        isinstance(node, ast.Call)
+        and (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr in log_methods
+            or isinstance(node.func, ast.Name)
+            and node.func.id == "log_degradation"
+        )
+        for node in ast.walk(handler)
+    )
+
+
+def test_law_honest_failure_broad_handlers_leave_diagnostics() -> None:
+    # Given broad exception translation is allowed only with an honest trace.
+    violations: list[str] = []
+
+    # When every production handler is inspected structurally.
+    for path in harness_source_files():
+        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"), filename=str(path))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.ExceptHandler)
+                and _is_broad_handler(node)
+                and not _has_failure_diagnostic(node)
+            ):
+                violations.append(f"{path.name}:{node.lineno} broad failure without diagnostic")
+
+    # Then no broad failure can disappear behind a sentinel, pass, or continue.
+    assert not violations, "GD-3 broken:\n  " + "\n  ".join(violations)
+
+
 # ---------------------------------------------------------------------------
 # LAW 2 — Graceful Degradation: representative public entry points must degrade,
 # not raise, on hostile input. (Module-specific degradation lives in each
 # module's own test; this asserts the systemic guarantee.)
 # ---------------------------------------------------------------------------
 
+
 def test_law_graceful_router_degrades_not_raises(monkeypatch):
     from reins.harness.models import ModelRouter
 
     monkeypatch.setattr("reins.harness.models._get_secret", lambda *_: None)
+    monkeypatch.setattr("reins.harness.local.list_models", lambda: [])
     r = ModelRouter()
     r.table = {"x": {"amdy": [{"model": "claude-nope"}], "tell": [{"model": "gpt-nope"}]}}
     res = r.route("x", "hello", "amdy")  # must not raise
     assert res.ok is False and res.error
-    assert "cloud/" in res.error  # Tier-1 remote fallback attempted, not skipped
+    assert "explicit route_cloud authorization" in res.error
+    assert "cloud/" not in res.error
 
 
 def test_law_graceful_wiki_survives_bad_query(wiki):
@@ -86,11 +250,8 @@ def test_law_graceful_wiki_survives_bad_query(wiki):
     try:
         wiki.upsert_page("t", "content", slug="t")
         wiki.search_pages('"unterminated AND (')  # invalid FTS syntax
-    except Exception as e:
-        # Degradation is allowed to raise a *handled* DB error type, but must not
-        # be an unexpected crash; sqlite raises OperationalError which callers guard.
-        import sqlite3
-        assert isinstance(e, sqlite3.Error)
+    except sqlite3.Error as error:
+        assert str(error)
 
 
 def test_law_graceful_odysseus_drain_survives_bad_trail(monkeypatch):
@@ -109,6 +270,7 @@ def test_law_graceful_odysseus_drain_survives_bad_trail(monkeypatch):
 # LAW 3 — TDD: every harness core module is imported/exercised by the suite.
 # Guards against new untested modules landing under src/reins/harness.
 # ---------------------------------------------------------------------------
+
 
 def _harness_core_modules() -> list[str]:
     core = SRC_ROOT / "harness"

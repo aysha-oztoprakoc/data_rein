@@ -12,18 +12,20 @@ bounded, event-like retry only during the one-time cold start, then returns.
 """
 
 from __future__ import annotations
+from reins.services.logger import log_degradation
 
 import json
+import logging
 import os
-import subprocess
-import threading
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Optional
 
-from reins.harness import paths
+from reins.harness import external_io, paths
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_HOST = os.environ.get("OLLAMA_HOST", "127.0.0.1:11434").replace("http://", "")
 
@@ -33,6 +35,7 @@ def _coordinator_config() -> dict:
     try:
         return json.loads(paths.coordinator_config().read_text())
     except Exception:
+        log_degradation(__name__)
         return {}
 
 
@@ -60,38 +63,42 @@ def _base_url(host: str = DEFAULT_HOST) -> str:
 
 def server_up(host: str = DEFAULT_HOST, timeout: float = 2.0) -> bool:
     try:
-        with urllib.request.urlopen(f"{_base_url(host)}/api/tags", timeout=timeout) as r:
+        with external_io.urlopen(f"{_base_url(host)}/api/tags", timeout=timeout) as r:
             return r.status == 200
     except Exception:
+        log_degradation(__name__)
         return False
 
 
 def list_models(host: str = DEFAULT_HOST) -> list[str]:
     try:
-        with urllib.request.urlopen(f"{_base_url(host)}/api/tags", timeout=5) as r:
+        with external_io.urlopen(f"{_base_url(host)}/api/tags", timeout=5) as r:
             data = json.load(r)
         return [m["name"] for m in data.get("models", [])]
     except Exception:
+        log_degradation(__name__)
         return []
 
 
 def list_models_detailed(host: str = DEFAULT_HOST) -> list[dict]:
     """Like list_models() but keeps name + size from /api/tags. Degrades to []."""
     try:
-        with urllib.request.urlopen(f"{_base_url(host)}/api/tags", timeout=5) as r:
+        with external_io.urlopen(f"{_base_url(host)}/api/tags", timeout=5) as r:
             data = json.load(r)
         return [{"name": m["name"], "size": m.get("size", 0)} for m in data.get("models", [])]
     except Exception:
+        log_degradation(__name__)
         return []
 
 
 def loaded_models(host: str = DEFAULT_HOST) -> list[dict]:
     """Currently resident models via /api/ps, incl. size_vram. Degrades to []."""
     try:
-        with urllib.request.urlopen(f"{_base_url(host)}/api/ps", timeout=5) as r:
+        with external_io.urlopen(f"{_base_url(host)}/api/ps", timeout=5) as r:
             data = json.load(r)
         return data.get("models", [])
     except Exception:
+        log_degradation(__name__)
         return []
 
 
@@ -104,9 +111,10 @@ def load_model(model: str, host: str = DEFAULT_HOST, keep_alive: str = "10m") ->
         headers={"Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=120) as r:
+        with external_io.urlopen(req, timeout=120) as r:
             return r.status == 200
     except Exception:
+        log_degradation(__name__)
         return False
 
 
@@ -152,23 +160,6 @@ def _inotify_wait_ready(host: str, log_path: Path, deadline: float) -> bool:
         os.close(fd)
 
 
-def _fallback_wait_ready(
-    host: str,
-    deadline: float,
-    wait=None,
-    clock=time.time,
-) -> bool:
-    """GD-3 fallback when inotify is unavailable (non-Linux, sandboxed FS,
-    ...): a bounded blocking wait — threading.Event().wait() is a real block,
-    not a busy spin — scoped to this one-time cold start."""
-    wait = wait or threading.Event().wait
-    while clock() < deadline:
-        if server_up(host):
-            return True
-        wait(0.5)
-    return server_up(host)
-
-
 def ensure_server(host: str = DEFAULT_HOST, wait: float = 20.0) -> bool:
     """
     Ensure an Ollama server is up and serving the harness model store.
@@ -188,13 +179,11 @@ def ensure_server(host: str = DEFAULT_HOST, wait: float = 20.0) -> bool:
 
     try:
         with open(log, "ab") as lf:
-            proc = subprocess.Popen(
-                ["ollama", "serve"],
-                env=env,
-                stdout=lf,
-                stderr=lf,
-                start_new_session=True,
-            )
+            proc = external_io.popen(["ollama", "serve"],
+            env=env,
+            stdout=lf,
+            stderr=lf,
+            start_new_session=True,)
     except FileNotFoundError:
         return False
 
@@ -204,14 +193,15 @@ def ensure_server(host: str = DEFAULT_HOST, wait: float = 20.0) -> bool:
         num_thread = default_options().get("num_thread", 8)
         cpu_pct = min(100, num_thread * 100 // (os.cpu_count() or num_thread))
         apply_cpu_budget("ollama_serve", cpu_pct, [proc.pid])
-    except Exception:
-        pass  # cgroup cap is best-effort; absence degrades to a log line only
+    except Exception as error:
+        logger.warning("Ollama CPU budget could not be applied: %s", error)
 
     deadline = time.time() + wait
     try:
         return _inotify_wait_ready(host, log, deadline)
-    except Exception:
-        return _fallback_wait_ready(host, deadline)
+    except Exception as error:
+        logger.warning("Ollama readiness notification unavailable: %s", error)
+        return server_up(host)
 
 
 def generate(
@@ -234,7 +224,7 @@ def generate(
         headers={"Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with external_io.urlopen(req, timeout=timeout) as r:
             data = json.load(r)
         text = data.get("response", "")
         if not text.strip():

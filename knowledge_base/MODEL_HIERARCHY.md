@@ -10,9 +10,8 @@
 **Hardware scan used:** 2026-07-04 12:31 UTC (`knowledge_base/HARDWARE.md`)
 
 Priorities baked into this ordering: maximize local usage on amdy + tell;
-fan Tier 3 out in parallel when a task allows it; reserve Tier 1 remote for
-work that's genuinely too complex/heavy for local, or that the user calls
-explicitly.
+fan Tier 3 out in parallel when a task allows it; permit Tier 1 remote only
+through a separate call explicitly authorized by the user.
 
 ---
 
@@ -34,8 +33,8 @@ OpenCode reaches the rest of the harness only through the `reins` MCP bridge
 agent turn), and `escalate_cloud` — the **only** way OpenCode reaches Tier 1.
 `escalate_cloud` is explicit-request-only and always logs a Task Trail entry
 (`task_type="opencode:cloud-escalation"`), so an interactive cloud call is
-exactly as auditable as the router's own `remote_fallback`. OpenCode never
-holds native Anthropic/Gemini credentials.
+auditable. Ordinary category routing cannot consume `remote_fallback`, and
+OpenCode never holds native Anthropic/Gemini credentials.
 
 | Model | Backend | Node | Fits VRAM? |
 |---|---|---|---|
@@ -46,24 +45,21 @@ holds native Anthropic/Gemini credentials.
 ## Tier 1 — Remote (explicit/heavy work only)
 
 Routed via `ModelRouter._dispatch` (`gemini*` / `claude*` / `gpt*` prefixes).
-Never selected automatically by category routing today — `model_router.json`
-has **zero cloud entries** in any category, so Tier 1 is reachable only
-through direct model-name calls, not `reins run "<category>"`.
+Never selected automatically by category routing. The public `ModelRouter.route`
+API has no cloud override; Tier 1 is reachable only through `route_cloud` or the
+gated `escalate_cloud` MCP tool, not `reins run "<category>"`.
 
 | Model | Provider | Vault key | Status |
 |---|---|---|---|
-| Claude (Opus 4.8 / Sonnet 5) | Anthropic | `ANTHROPIC_API_KEY` | SET — wired as Tier-1 fallback |
-| Gemini Pro | Google | `GEMINI_API_KEY` | SET — wired as Tier-1 fallback |
-| GPT (OpenAI-compatible) | OpenAI | `OPENAI_API_KEY` | SET — wired as Tier-1 fallback; not prioritized per directive |
+| Claude | Anthropic | `ANTHROPIC_API_KEY` | Configured for explicit Tier-1 routing |
+| Gemini Pro | Google | `GEMINI_API_KEY` | Configured for explicit Tier-1 routing |
+| GPT (OpenAI-compatible) | OpenAI | `OPENAI_API_KEY` | Configured for explicit Tier-1 routing |
 
-**Wired 2026-07-04:** `model_router.json`'s top-level `remote_fallback` array
-(Claude Sonnet 5 -> Gemini Pro -> GPT-4o, in that order) is now tried by
-`ModelRouter.route()` as a genuine last resort — only after a category's full
-local candidate list has failed on *both* amdy and tell. It is never chosen
-proactively; local-first still holds for every category. A successful remote
-hit reports `RouteResult.node == "cloud"` and `provider` set to the serving
-vendor. Manual/explicit calls to Claude or Gemini for complex work (bypassing
-category routing) remain equally valid and unaffected.
+The top-level `remote_fallback` array is the configured candidate list consumed
+only by `ModelRouter.route_cloud()`. An explicit provider filter is exact: if that
+provider is unavailable, routing fails without sending the prompt to a different
+vendor. A successful remote hit reports `RouteResult.node == "cloud"` and
+`provider` set to the serving vendor.
 
 ---
 
@@ -108,8 +104,8 @@ work. All currently live only on tell's intended model set (`tools/pull_models_t
   `tools/pull_models_tell.sh`, not a confirmed-installed fact. Re-run
   `getinfo` once tell is back online before trusting those rows.
 
-## Total fleet size
+## Fleet inventory
 
-13 distinct local models across both nodes (4 confirmed live on amdy + 9
-intended on tell) — matches the `CLAUDE.md` "13 local models" figure, which
-is fleet-wide, not per-node.
+The live `reins local status` and `config/model_registry.json` determine installed
+and hardware-admitted models. Rows for unreachable nodes are intended candidates,
+not fleet-size claims; re-run `getinfo` before admitting them.

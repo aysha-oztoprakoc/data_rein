@@ -7,17 +7,19 @@ Prime Directive - no per-environment client code.
 """
 
 from __future__ import annotations
+from reins.services.logger import log_degradation
 
 import argparse
-import subprocess
 import sys
 from pathlib import Path
 
-from reins.harness import paths
+from reins.harness import external_io, paths
 from reins.harness.wiki import WikiDB
 
 
-def register(subparsers: "argparse._SubParsersAction") -> None:
+def register(
+    subparsers: "argparse._SubParsersAction[argparse.ArgumentParser]",
+) -> None:
     # reins wiki ...
     wiki = subparsers.add_parser("wiki", help="Query the single monolith Wiki DB")
     wsub = wiki.add_subparsers(dest="subcmd")
@@ -126,6 +128,11 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     mcp_p.add_argument("--http", action="store_true", help="serve over streamable-HTTP instead of stdio")
     mcp_p.add_argument("--host", default="127.0.0.1")
     mcp_p.add_argument("--port", type=int, default=8765)
+    mcp_p.add_argument(
+        "--allow-remote-http",
+        action="store_true",
+        help="allow an authenticated HTTP bind outside the loopback interface",
+    )
 
     # reins coord ...  (model residency coordinator / IPC server)
     coord = subparsers.add_parser("coord", help="Manage the model residency coordinator (VRAM budget)")
@@ -146,6 +153,7 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     de.add_argument("--category", action="append", help="filter to this category prefix (repeatable)")
     de.add_argument("--kind", default="completion", choices=["completion", "memories"])
     de.add_argument("--min-chars", type=int, default=64)
+    de.add_argument("--max-chars", type=int, default=8192)
     de.add_argument("--limit", type=int, default=0)
 
     # reins train ...  (QLoRA fine-tuning; optional `train` extras group)
@@ -154,6 +162,7 @@ def register(subparsers: "argparse._SubParsersAction") -> None:
     tp = tsub.add_parser("prepare", help="Export a training JSONL (alias for `dataset export`)")
     tp.add_argument("out", help="output .jsonl path")
     tp.add_argument("--modality", help="filter to digested/<modality>")
+    tp.add_argument("--max-chars", type=int, default=8192)
     tr = tsub.add_parser("run", help="Run a fine-tune")
     tr.add_argument("--dataset", help="override dataset_path from config/training.json")
     tr.add_argument("--name", help="run name (defaults to a timestamp)")
@@ -197,9 +206,18 @@ def handle(args: argparse.Namespace) -> bool:
             print(f"{k:20s} {v}")
         return True
     if args.command == "mcp":
+        from reins.harness.mcp_security import McpHttpConfigurationError
         from reins.harness.mcp_server import main as mcp_main
 
-        mcp_main(http=args.http, host=args.host, port=args.port)
+        try:
+            mcp_main(
+                http=args.http,
+                host=args.host,
+                port=args.port,
+                allow_remote_http=args.allow_remote_http,
+            )
+        except McpHttpConfigurationError as error:
+            raise SystemExit(f"// MCP HTTP configuration refused: {error}") from None
         return True
     if args.command == "hardware":
         return _handle_hardware(args)
@@ -258,7 +276,7 @@ def _handle_dataset(args: argparse.Namespace) -> bool:
 
     stats = export_jsonl(
         args.out, categories=args.category, modality=args.modality,
-        kind=args.kind, min_chars=args.min_chars, limit=args.limit,
+        kind=args.kind, min_chars=args.min_chars, max_chars=args.max_chars, limit=args.limit,
     )
     print(f"// exported {stats.written} record(s) -> {stats.out_path} ({stats.skipped} skipped)")
     return True
@@ -272,7 +290,11 @@ def _handle_train(args: argparse.Namespace) -> bool:
     if sub == "prepare":
         from reins.harness.dataset import export_jsonl
 
-        stats = export_jsonl(args.out, modality=getattr(args, "modality", None))
+        stats = export_jsonl(
+            args.out,
+            modality=getattr(args, "modality", None),
+            max_chars=args.max_chars,
+        )
         print(f"// exported {stats.written} record(s) -> {stats.out_path} ({stats.skipped} skipped)")
         return True
 
@@ -281,8 +303,21 @@ def _handle_train(args: argparse.Namespace) -> bool:
 
         backend = probe()
         if args.dry_run:
-            print(f"// capability probe: mode={backend.mode} device={backend.device} "
-                  f"base={backend.base_model_key} - {backend.reason}")
+            from reins.training.config import load_training_config
+            from reins.training.records import validate_jsonl
+
+            overrides = {"dataset_path": args.dataset} if args.dataset else None
+            settings = load_training_config(overrides)
+            dataset_path = Path(settings.dataset_path).expanduser()
+            try:
+                records = validate_jsonl(dataset_path)
+                dataset_status = f"dataset={dataset_path} records={records} valid"
+            except (OSError, ValueError) as error:
+                dataset_status = f"dataset invalid: {error}"
+            print(
+                f"// capability probe: mode={backend.mode} device={backend.device} "
+                f"base={backend.base_model_key} - {backend.reason}; {dataset_status}"
+            )
             return True
         config = {"dataset_path": args.dataset} if args.dataset else None
         result = run_finetune(config, run_name=args.name)
@@ -320,12 +355,12 @@ def _handle_hardware(args: argparse.Namespace) -> bool:
         print(f"   ready to install: {', '.join(c['model'] for c in report['ready']) or '(none)'}")
         return True
     # default / "scan"
-    result = sp.profile_cluster(publish=False)
+    _ = sp.profile_cluster(publish=False)
     print(f"// hardware scan -> {paths.hardware_manifest()}")
     return True
 
 
-def _read_text_arg(value: Optional[str]) -> str:
+def _read_text_arg(value: str | None) -> str:
     """A positional that is a file path -> file contents; '-' or None -> stdin; else literal."""
     import sys
 
@@ -356,7 +391,7 @@ def _handle_workflow(args: argparse.Namespace) -> bool:
                 print(f"  {m}")
         else:  # status
             up = local.server_up()
-            print(f"// local model plane")
+            print("// local model plane")
             print(f"   server   : {'UP' if up else 'down'} ({local.DEFAULT_HOST})")
             print(f"   store    : {local.model_store()}")
             print(f"   models   : {len(local.list_models()) if up else 0}")
@@ -501,6 +536,7 @@ def _handle_secret(args: argparse.Namespace) -> bool:
         else:
             print(f"// no such secret: {args.key}", file=__import__("sys").stderr)
     except Exception as e:
+        log_degradation(__name__)
         print(f"// vault error: {e}", file=__import__("sys").stderr)
     return True
 
@@ -544,28 +580,31 @@ def _skills_dir() -> Path:
 
 
 def _handle_skills(args: argparse.Namespace) -> bool:
+    from reins.harness.skill_registry import SkillRegistryError, canonical_skill_names
+
     sub = getattr(args, "subcmd", None)
     root = _skills_dir()
 
     if sub == "install":
         script = paths.home() / "scripts" / "install_skills.sh"
-        subprocess.run(["bash", str(script)], check=False)
+        try:
+            result = external_io.run(["bash", str(script)], check=False)
+        except OSError as error:
+            print(f"// skill install failed: {type(error).__name__}", file=sys.stderr)
+            return False
+        if result.returncode != 0:
+            print(f"// skill install failed: exit {result.returncode}", file=sys.stderr)
+            return False
         return True
 
-    # default / list
-    if not root.is_dir():
-        print(f"// no skills dir: {root}")
-        return True
+    try:
+        names = canonical_skill_names(root)
+    except (OSError, SkillRegistryError) as error:
+        print(f"// skill registry failed: {type(error).__name__}", file=sys.stderr)
+        return False
     print(f"// canonical harness skills -> {root}")
-    for skill_md in sorted(root.glob("*/SKILL.md")):
-        name = skill_md.parent.name
-        desc = ""
-        for line in skill_md.read_text(encoding="utf-8", errors="replace").splitlines():
-            s = line.strip()
-            if s.startswith("description:"):
-                desc = s.split(":", 1)[1].strip().strip('">')
-                break
-        print(f"  {name:20s} {desc[:80]}")
+    for name in names:
+        print(f"  {name}")
     return True
 
 
@@ -575,7 +614,7 @@ def _handle_bin(args: argparse.Namespace) -> bool:
 
     if sub == "install":
         script = paths.home() / "scripts" / "install_bin.sh"
-        subprocess.run(["bash", str(script)], check=False)
+        external_io.run(["bash", str(script)], check=False)
         return True
 
     # default / list - anything in ~/.local/bin that symlinks/points into this repo
@@ -588,6 +627,7 @@ def _handle_bin(args: argparse.Namespace) -> bool:
             target = str(entry.resolve()) if entry.is_symlink() else ""
             text = entry.read_text(encoding="utf-8", errors="replace") if entry.is_file() and not entry.is_symlink() else ""
         except Exception:
+            log_degradation(__name__)
             target = text = ""
         if home in target or home in text:
             print(f"  {entry.name}")
@@ -599,7 +639,7 @@ def _handle_wiki(args: argparse.Namespace) -> bool:
 
     if sub == "consolidate":
         script = paths.home() / "scripts" / "consolidate_wiki.py"
-        subprocess.run([sys.executable, str(script)], check=False)
+        external_io.run([sys.executable, str(script)], check=False)
         return True
 
     db = WikiDB()

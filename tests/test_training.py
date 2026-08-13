@@ -8,7 +8,12 @@ so the suite runs without the optional `train` extra installed.
 import sys
 import types
 
+import pytest
+
 from reins.training import capability, qlora
+from reins.training.capability import TrainBackend
+from reins.training.config import TrainingConfig
+from reins.training.transformers_backend import train_once
 
 
 def _fake_torch(cuda_available: bool, hip: object = None) -> types.ModuleType:
@@ -110,3 +115,98 @@ def test_run_finetune_succeeds_with_fake_trainer(tmp_path, monkeypatch):
     })
     assert result.ok is True
     assert result.steps == 42
+
+
+def test_run_finetune_rejects_malformed_training_records_before_loading_models(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    # Given a derived dataset with a malformed record and a guarded training backend.
+    dataset = tmp_path / "invalid.jsonl"
+    dataset.write_text('{"meta": {"modality": "audio"}}\n', encoding="utf-8")
+    monkeypatch.setattr(
+        qlora,
+        "_train_once",
+        lambda *_args, **_kwargs: pytest.fail("invalid data must not reach model loading"),
+    )
+
+    # When local fine-tuning validates the dataset.
+    result = qlora.run_finetune({"dataset_path": str(dataset)})
+
+    # Then the run fails honestly before any weight manipulation begins.
+    assert result.ok is False
+    assert "training record" in (result.error or "")
+
+
+def test_training_remote_models_require_immutable_revisions() -> None:
+    config = TrainingConfig()
+
+    for key in ("base_model", "small_base_model", "tiny_base_model"):
+        _model, revision = config.source_for(key)
+        assert len(revision) == 40
+        assert all(character in "0123456789abcdef" for character in revision)
+
+
+def test_training_rejects_mutable_revision() -> None:
+    with pytest.raises(ValueError):
+        TrainingConfig(base_model_revision="main")
+
+
+def test_training_passes_pinned_revision_to_model_and_tokenizer(tmp_path, monkeypatch) -> None:
+    calls: list[tuple[str, dict[str, str]]] = []
+
+    class FakeModel:
+        def gradient_checkpointing_enable(self) -> None:
+            return None
+
+        def save_pretrained(self, _path: str) -> None:
+            return None
+
+    class FakeLoader:
+        @classmethod
+        def from_pretrained(cls, model: str, **kwargs):
+            calls.append((model, kwargs))
+            return FakeModel()
+
+    class FakeTokenizerLoader:
+        @classmethod
+        def from_pretrained(cls, model: str, **kwargs):
+            calls.append((model, kwargs))
+            return types.SimpleNamespace(
+                __call__=lambda *_args, **_kwargs: {"input_ids": [[1]]},
+                save_pretrained=lambda _path: None,
+            )
+
+    class FakeDataset:
+        column_names = ["text"]
+
+        def map(self, _function, **_kwargs):
+            return self
+
+    transformers = types.ModuleType("transformers")
+    transformers.AutoModelForCausalLM = FakeLoader
+    transformers.AutoTokenizer = FakeTokenizerLoader
+    transformers.BitsAndBytesConfig = lambda **kwargs: kwargs
+    transformers.TrainingArguments = lambda **kwargs: kwargs
+    transformers.Trainer = lambda **kwargs: types.SimpleNamespace(
+        train=lambda: types.SimpleNamespace(global_step=1)
+    )
+    datasets = types.ModuleType("datasets")
+    datasets.load_dataset = lambda *_args, **_kwargs: {"train": FakeDataset()}
+    peft = types.ModuleType("peft")
+    peft.LoraConfig = lambda **kwargs: kwargs
+    peft.get_peft_model = lambda model, _adapter: model
+    torch = types.ModuleType("torch")
+    torch.bfloat16 = "bfloat16"
+    monkeypatch.setitem(sys.modules, "transformers", transformers)
+    monkeypatch.setitem(sys.modules, "datasets", datasets)
+    monkeypatch.setitem(sys.modules, "peft", peft)
+    monkeypatch.setitem(sys.modules, "torch", torch)
+
+    config = TrainingConfig(gradient_checkpointing=False)
+    backend = TrainBackend("lora_cpu", "cpu", "tiny_base_model", "test")
+    assert train_once(config, backend, "dataset.jsonl", tmp_path / "run", 1, 256) == 1
+    assert calls == [
+        (config.tiny_base_model, {"revision": config.tiny_base_model_revision}),
+        (config.tiny_base_model, {"revision": config.tiny_base_model_revision}),
+    ]

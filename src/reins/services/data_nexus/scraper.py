@@ -1,10 +1,11 @@
 import sys
 import logging
-from typing import List, Dict, Optional
+from typing import List, Dict
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from playwright.sync_api import sync_playwright, TimeoutError
+from reins.harness import external_io
 
 logger = logging.getLogger("nexus_scraper")
 
@@ -33,7 +34,10 @@ class NexusScraper:
         logger.info(f"Searching web for: {query}")
         results = []
         try:
-            for r in self.ddgs.text(query, max_results=max_results):
+            found = external_io.call(
+                "search:ddgs:text", lambda: self.ddgs.text(query, max_results=max_results)
+            )
+            for r in found:
                 results.append(r)
         except Exception as e:
             logger.error(f"Search failed: {e}")
@@ -44,7 +48,9 @@ class NexusScraper:
         extracted_data = {}
         with sync_playwright() as p:
             # Launch chromium headlessly. 
-            browser = p.chromium.launch(headless=True)
+            browser = external_io.call(
+                "browser:chromium:launch", lambda: p.chromium.launch(headless=True)
+            )
             context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
@@ -54,9 +60,10 @@ class NexusScraper:
                 logger.info(f"Scraping {url}...")
                 try:
                     # PON Rule: Passive wait with timeout
-                    page.goto(url, timeout=15000, wait_until="domcontentloaded")
-                    # Wait for network idle or 3 seconds to let JS execute
-                    page.wait_for_timeout(3000)
+                    _ = external_io.call(
+                        "browser:page:goto",
+                        lambda: page.goto(url, timeout=15000, wait_until="load"),
+                    )
                     html = page.content()
                     
                     # Graceful Degradation check

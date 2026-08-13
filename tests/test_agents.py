@@ -5,7 +5,6 @@ the convergence. Enforces the contract: one router, one wiki for recall/remember
 graceful degradation (never raises), and PON-passive construction (no threads/polling).
 """
 
-import pytest
 
 from reins.harness.agents import HarnessAgent
 from reins.harness.models import RouteResult

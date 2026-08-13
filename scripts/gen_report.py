@@ -1,48 +1,50 @@
-import subprocess
-import shutil
 import os
+import shutil
+import subprocess
+from collections.abc import Sequence
+from pathlib import Path
 
-def run_cmd(cmd):
+from reins.harness import external_io
+
+
+def run_probe(command: Sequence[str], *, contains: str | None = None) -> str:
     try:
-        return subprocess.check_output(cmd, shell=True, text=True)
-    except Exception as e:
-        return str(e)
+        result = external_io.run(command, capture_output=True, text=True, check=False)
+    except (ConnectionError, OSError, subprocess.SubprocessError) as error:
+        return f"probe unavailable: {error}"
+    if result.returncode != 0:
+        detail = result.stderr.strip() or f"exit {result.returncode}"
+        return f"probe unavailable: {detail}"
+    lines = result.stdout.splitlines()
+    selected = lines if contains is None else [line for line in lines if contains in line]
+    return "\n".join(selected) or "probe unavailable: no matching output"
 
-def generate():
-    report = []
-    report.append("===================================")
-    report.append("       OMARCHY NIX REPORT")
-    report.append("===================================\n")
-    
-    report.append("--- OS ---")
-    report.append(run_cmd("cat /etc/os-release"))
-    
-    report.append("--- KERNEL ---")
-    report.append(run_cmd("uname -r"))
-    
-    report.append("--- CPU ---")
-    report.append(run_cmd("lscpu | grep 'Model name'"))
-    
-    report.append("--- RAM ---")
-    report.append(run_cmd("free -h"))
-    
-    report.append("--- GPU ---")
-    report.append(run_cmd("lspci | grep VGA"))
-    
-    report.append("--- INSTALLED PACKAGES ---")
-    report.append(run_cmd("pacman -Q"))
-    
+
+def generate(output: Path | None = None) -> str:
+    report = [
+        "===================================",
+        "       OMARCHY NIX REPORT",
+        "===================================\n",
+    ]
+    probes: tuple[tuple[str, Sequence[str], str | None], ...] = (
+        ("OS", ["cat", "/etc/os-release"], None),
+        ("KERNEL", ["uname", "-r"], None),
+        ("CPU", ["lscpu"], "Model name"),
+        ("RAM", ["free", "-h"], None),
+        ("GPU", ["lspci"], "VGA"),
+        ("INSTALLED PACKAGES", ["pacman", "-Q"], None),
+    )
+    for heading, command, contains in probes:
+        report.extend((f"--- {heading} ---", run_probe(command, contains=contains)))
     content = "\n".join(report)
-    
-    kb_path = "/home/amdy/data_rein/knowledge_base/omarchy-nix.txt"
-    dl_path = "/home/amdy/Downloads/omarchy-nix.txt"
-    
-    with open(kb_path, "w", encoding="utf-8") as f:
-        f.write(content)
-        
-    os.makedirs(os.path.dirname(dl_path), exist_ok=True)
-    shutil.copy(kb_path, dl_path)
-    print(f"Successfully generated {kb_path} and {dl_path}")
+    kb_path = output or Path("/home/amdy/data_rein/knowledge_base/omarchy-nix.txt")
+    _ = kb_path.write_text(content, encoding="utf-8")
+    if output is None:
+        download = Path("/home/amdy/Downloads/omarchy-nix.txt")
+        os.makedirs(download.parent, exist_ok=True)
+        _ = shutil.copy(kb_path, download)
+        _ = print(f"Successfully generated {kb_path} and {download}")
+    return content
 
 if __name__ == "__main__":
-    generate()
+    _ = generate()

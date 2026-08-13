@@ -9,17 +9,21 @@ dependencies = [
     "pymupdf>=1.24.0",
     "python-docx>=1.1.0",
     "beautifulsoup4>=4.12.0",
+    "cryptography>=50.0.0",
     "EbookLib>=0.18",
     "striprtf>=0.0.26",
     "rank-bm25>=0.2.2",
     "pytest-mock>=3.15.1",
     "playwright>=1.61.0",
     "markdownify>=1.2.3",
-    "duckduckgo-search>=8.1.1",
+    "ddgs>=9.14.4",
     "textual>=8.2.8",
     "mcp>=1.28.1",
     "openpyxl>=3.1.0",
     "python-pptx>=1.0.0",
+    "websockets>=16.0",
+    "pydantic>=2.13.0",
+    "defusedxml>=0.7.1",
 ]
 
 [project.optional-dependencies]
@@ -32,6 +36,10 @@ dev = [
 # this is opt-in rather than a base dependency every `uv sync` pulls in.
 ingestion = [
     "mineru>=3.4.0"
+]
+# Local speech-to-text for audio and video knowledge extraction.
+media = [
+    "faster-whisper>=1.2.1"
 ]
 # QLoRA fine-tuning (reins.training). Heavy GPU stack, opt-in only - the
 # harness core never imports torch; capability.probe() degrades gracefully
@@ -62,25 +70,31 @@ testpaths = [
 
 [dependency-groups]
 dev = [
+    "bandit[toml]>=1.8.6",
     "basedpyright>=1.39.9",
+    "detect-secrets>=1.5.0",
     "mcp-compressor>=0.4.2",
+    "pip-audit>=2.9.0",
     "psutil>=7.2.2",
     "pytest>=9.1.1",
     "pytest-mock>=3.15.1",
     "pyyaml>=6.0.3",
+    "ruff>=0.12.0",
+    "types-psutil>=7.2.2.20260518",
 ]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+include = ["src/**/*.py", "tests/**/*.py", "scripts/*.py"]
+extend-exclude = ["scripts/legacy"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
 
 [project.scripts]
 reins = "reins.cli:main"
 
-[tool.bandit]
-# B404: import subprocess
-# B603: subprocess call without shell=True
-# B110: try/except pass
-# B108: hardcoded /tmp directory
-# B311: pseudo-random generators
-# B607: partial path (ping, ssh)
-# B310: urllib
-# B104: bind all interfaces (Hermes API)
-# B405, B314: xml.etree.ElementTree (Safe for our extraction pipeline which runs in an isolated container anyway)
-skips = ["B404", "B603", "B110", "B108", "B311", "B607", "B310", "B104", "B405", "B314"]
+[tool.basedpyright]
+extraPaths = ["typings"]
+stubPath = "typings"

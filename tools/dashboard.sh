@@ -73,8 +73,7 @@ while true; do
     echo -e "\e[1;30m--------------------------------------------------------\e[0m"
     echo -e "\e[1;32mOpções: [p] Pausar | [r] Retomar | [q] Sair do Dashboard\e[0m"
     
-    read -t 1 -s -n 1 input
-    if [ $? -eq 0 ]; then
+    if read -r -t 1 -s -n 1 input; then
         case $input in
             p|P) pause_downloads ;;
             r|R) resume_downloads ;;

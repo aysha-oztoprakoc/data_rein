@@ -1,12 +1,12 @@
 {
-  "scanned_at": "2026-07-04T12:31:37.207487+00:00",
+  "scanned_at": "2026-08-12T02:42:52.738765+00:00",
   "amdy": {
     "reachable": true,
     "hardware": {
       "vram_gb": 8.0,
       "ram_gb": 14.7,
       "cpu": {
-        "threads": "8",
+        "threads": "16",
         "model": "AMD Ryzen 7 7700 8-Core Processor",
         "cores_per_socket": "8"
       }
@@ -14,12 +14,7 @@
     "models_installed": [
       "bakllava:latest",
       "codegemma:7b",
-      "deepseek-r1:14b",
-      "gemma3:12b",
       "llama3.1:8b",
-      "llama3.2-vision:11b",
-      "llava:13b",
-      "phi4:latest",
       "qwen2.5-coder:7b"
     ],
     "models_fit": [

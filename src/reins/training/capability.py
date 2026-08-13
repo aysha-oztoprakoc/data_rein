@@ -12,6 +12,7 @@ Degradation chain (best available wins, never raises):
 """
 
 from __future__ import annotations
+from reins.services.logger import log_degradation
 
 from dataclasses import dataclass
 
@@ -29,6 +30,7 @@ def probe() -> TrainBackend:
     try:
         import torch  # noqa: F401
     except Exception as e:
+        log_degradation(__name__)
         return TrainBackend("lora_cpu", "cpu", "tiny_base_model",
                              f"torch not installed ({e}); falling back to CPU LoRA")
 
@@ -41,6 +43,7 @@ def probe() -> TrainBackend:
             return TrainBackend("lora_fp16", device, "small_base_model",
                                  f"{device} available but bitsandbytes unusable - LoRA fp16/bf16 on small base")
     except Exception as e:
+        log_degradation(__name__)
         return TrainBackend("lora_cpu", "cpu", "tiny_base_model",
                              f"GPU detection failed ({e}); falling back to CPU LoRA")
 
@@ -52,6 +55,7 @@ def _is_rocm(torch_mod) -> bool:
     try:
         return getattr(torch_mod.version, "hip", None) is not None
     except Exception:
+        log_degradation(__name__)
         return False
 
 
@@ -61,4 +65,5 @@ def _bitsandbytes_usable() -> bool:
 
         return hasattr(bnb, "nn") and hasattr(bnb.nn, "Linear4bit")
     except Exception:
+        log_degradation(__name__)
         return False

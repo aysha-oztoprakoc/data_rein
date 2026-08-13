@@ -1,172 +1,149 @@
-"""
-QLoRA fine-tuning loop. Torch/transformers/peft/datasets/bitsandbytes are all
-imported inside functions - the harness core never hard-imports them.
-
-Never crashes the harness: config errors, OOM, and missing deps all degrade
-to a logged `TrainResult(ok=False)`.
-"""
+"""Validated QLoRA/LoRA orchestration with one bounded OOM degradation step."""
 
 from __future__ import annotations
 
-import json
 import time
 import uuid
-from dataclasses import dataclass, field
+from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import ClassVar
+
+from pydantic import BaseModel, ConfigDict, JsonValue, ValidationError
 
 from reins.harness import paths
+from reins.services.logger import log_degradation
 from reins.training.capability import TrainBackend, probe
+from reins.training.config import TrainingConfig, load_training_config
+from reins.training.records import validate_jsonl
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class TrainResult:
     ok: bool
-    run_dir: Optional[str] = None
-    backend: Optional[str] = None
-    error: Optional[str] = None
+    run_dir: str | None = None
+    backend: str | None = None
+    error: str | None = None
     steps: int = 0
 
 
-def _config() -> dict:
-    try:
-        return json.loads(paths.training_config().read_text())
-    except Exception:
-        return {}
+class _CoordinatorStatus(BaseModel):
+    model_config: ClassVar[ConfigDict] = ConfigDict(frozen=True, extra="ignore")
+
+    slots: dict[str, dict[str, JsonValue]] = {}
 
 
-def _log_trail(status: str, **fields) -> None:
+def _log_trail(
+    status: str,
+    *,
+    error: str | None = None,
+    run_dir: str | None = None,
+    backend: str | None = None,
+    steps: int = 0,
+) -> None:
     try:
         from reins.services.task_trail import TaskTrail
 
-        TaskTrail().upsert_task(str(uuid.uuid4()), task_type="training_run",
-                                 status=status, target_node="amdy", **fields)
-    except Exception:
-        pass  # honest-failure logging is best-effort; never crash on it
+        _ = TaskTrail().upsert_task(
+            str(uuid.uuid4()),
+            task_type="training_run",
+            status=status,
+            target_node="amdy",
+            error=error,
+            run_dir=run_dir,
+            backend=backend,
+            steps=steps,
+        )
+    except (OSError, RuntimeError, TypeError, ValueError):
+        log_degradation(__name__)
 
 
 def _unload_all_models() -> None:
-    """Free the VRAM budget before training starts - best-effort handshake
-    with the coordinator; a failure here just means training competes with
-    whatever's resident instead of aborting the run."""
     try:
         from reins.harness.coordinator import get_coordinator
 
-        coord = get_coordinator()
-        status = coord.status()
-        for name in list(status.get("slots", {})):
-            coord.unload(name)
-    except Exception:
-        pass
+        coordinator = get_coordinator()
+        status = _CoordinatorStatus.model_validate(coordinator.status())
+        for name in status.slots:
+            _ = coordinator.unload(name)
+    except (OSError, RuntimeError, TypeError, ValidationError, ValueError):
+        log_degradation(__name__)
 
 
-def run_finetune(config: Optional[dict] = None, *, run_name: Optional[str] = None) -> TrainResult:
-    """Run one QLoRA/LoRA fine-tune. `config` overrides `config/training.json`."""
-    cfg = {**_config(), **(config or {})}
-    dataset_path = cfg.get("dataset_path")
-    if not dataset_path or not Path(dataset_path).expanduser().exists():
-        err = f"dataset_path missing or nonexistent: {dataset_path!r}"
-        _log_trail("failed", error=err)
-        return TrainResult(ok=False, error=err)
+def _train_once(
+    config: TrainingConfig,
+    backend: TrainBackend,
+    dataset_path: str,
+    run_dir: Path,
+    batch_size: int,
+    sequence_length: int,
+) -> int:
+    from reins.training.transformers_backend import train_once
+
+    return train_once(config, backend, dataset_path, run_dir, batch_size, sequence_length)
+
+
+def _is_oom(error: Exception) -> bool:
+    name = type(error).__name__.lower()
+    message = str(error).lower()
+    return "outofmemory" in name or "out of memory" in message
+
+
+def run_finetune(
+    config: Mapping[str, JsonValue] | None = None,
+    *,
+    run_name: str | None = None,
+) -> TrainResult:
+    """Validate derived records, then run one local adapter-weight update."""
+    try:
+        settings = load_training_config(config)
+    except ValidationError as error:
+        message = f"invalid training configuration: {error}"
+        _log_trail("failed", error=message)
+        return TrainResult(ok=False, error=message)
+
+    dataset_path = Path(settings.dataset_path).expanduser()
+    if not settings.dataset_path or not dataset_path.exists():
+        message = f"dataset_path missing or nonexistent: {settings.dataset_path!r}"
+        _log_trail("failed", error=message)
+        return TrainResult(ok=False, error=message)
+    try:
+        _ = validate_jsonl(dataset_path)
+    except (OSError, ValueError) as error:
+        message = f"invalid training record dataset: {error}"
+        _log_trail("failed", error=message)
+        return TrainResult(ok=False, error=message)
 
     backend = probe()
-    run_name = run_name or f"run-{int(time.time())}"
-    run_dir = Path(cfg.get("output_dir") or paths.training_runs_dir()) / run_name
-
+    name = run_name or f"run-{int(time.time())}"
+    run_dir = Path(settings.output_dir or paths.training_runs_dir()) / name
     _unload_all_models()
-
-    batch_size = cfg.get("per_device_batch_size", 1)
-    seq_len = cfg.get("max_seq_len", 2048)
+    batch_size = settings.per_device_batch_size
+    sequence_length = settings.max_seq_len
 
     for attempt in range(2):
         try:
-            steps = _train_once(cfg, backend, dataset_path, run_dir, batch_size, seq_len)
-            _log_trail("success", run_dir=str(run_dir), backend=backend.mode, steps=steps)
-            return TrainResult(ok=True, run_dir=str(run_dir), backend=backend.mode, steps=steps)
-        except Exception as e:
-            if _is_oom(e) and attempt == 0:
-                batch_size = max(1, batch_size // 2) if batch_size > 1 else batch_size
-                seq_len = max(256, seq_len // 2)
+            steps = _train_once(
+                settings,
+                backend,
+                str(dataset_path),
+                run_dir,
+                batch_size,
+                sequence_length,
+            )
+            _log_trail(
+                "success",
+                run_dir=str(run_dir),
+                backend=backend.mode,
+                steps=steps,
+            )
+            return TrainResult(True, str(run_dir), backend.mode, steps=steps)
+        except Exception as error:
+            log_degradation(__name__)
+            if _is_oom(error) and attempt == 0:
+                batch_size = max(1, batch_size // 2)
+                sequence_length = max(256, sequence_length // 2)
                 continue
-            _log_trail("failed", error=str(e), backend=backend.mode)
-            return TrainResult(ok=False, error=str(e), backend=backend.mode)
-
-    return TrainResult(ok=False, error="training failed after OOM retry", backend=backend.mode)
-
-
-def _is_oom(e: Exception) -> bool:
-    try:
-        import torch
-
-        if isinstance(e, torch.cuda.OutOfMemoryError):
-            return True
-    except Exception:
-        pass
-    return "out of memory" in str(e).lower()
-
-
-def _train_once(cfg: dict, backend: TrainBackend, dataset_path: str, run_dir: Path,
-                 batch_size: int, seq_len: int) -> int:
-    """The actual training loop. Imports torch/transformers/peft/datasets
-    lazily - raises ImportError if the `train` extra isn't installed, which
-    `run_finetune` logs and degrades from."""
-    import torch
-    from datasets import load_dataset
-    from peft import LoraConfig, get_peft_model
-    from transformers import (
-        AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments,
-        BitsAndBytesConfig,
-    )
-
-    base_model = cfg.get(backend.base_model_key, cfg.get("base_model"))
-    lora_cfg = cfg.get("lora", {})
-
-    model_kwargs = {}
-    if backend.mode == "qlora_nf4":
-        model_kwargs["quantization_config"] = BitsAndBytesConfig(
-            load_in_4bit=True, bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True, bnb_4bit_compute_dtype=torch.bfloat16,
-        )
-        model_kwargs["device_map"] = "auto"
-    elif backend.mode == "lora_fp16":
-        model_kwargs["torch_dtype"] = torch.bfloat16
-        model_kwargs["device_map"] = "auto"
-
-    tokenizer = AutoTokenizer.from_pretrained(base_model)
-    model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)
-
-    peft_config = LoraConfig(
-        r=lora_cfg.get("r", 16), lora_alpha=lora_cfg.get("alpha", 32),
-        lora_dropout=lora_cfg.get("dropout", 0.05),
-        target_modules=lora_cfg.get("target_modules", ["q_proj", "v_proj"]),
-        task_type="CAUSAL_LM",
-    )
-    model = get_peft_model(model, peft_config)
-    if cfg.get("gradient_checkpointing", True):
-        model.gradient_checkpointing_enable()
-
-    dataset = load_dataset("json", data_files=dataset_path)["train"]
-
-    def _tokenize(batch):
-        return tokenizer(batch["text"], truncation=True, max_length=seq_len)
-
-    tokenized = dataset.map(_tokenize, batched=True, remove_columns=dataset.column_names)
-
-    run_dir.mkdir(parents=True, exist_ok=True)
-    args = TrainingArguments(
-        output_dir=str(run_dir),
-        per_device_train_batch_size=batch_size,
-        gradient_accumulation_steps=cfg.get("gradient_accumulation_steps", 16),
-        num_train_epochs=cfg.get("num_train_epochs", 3),
-        learning_rate=cfg.get("learning_rate", 2e-4),
-        optim=cfg.get("optim", "paged_adamw_8bit") if backend.mode != "lora_cpu" else "adamw_torch",
-        gradient_checkpointing=cfg.get("gradient_checkpointing", True),
-        save_strategy="epoch",
-        logging_steps=10,
-        report_to=[],
-    )
-    trainer = Trainer(model=model, args=args, train_dataset=tokenized)
-    result = trainer.train()
-    model.save_pretrained(str(run_dir))
-    tokenizer.save_pretrained(str(run_dir))
-    return int(result.global_step) if hasattr(result, "global_step") else 0
+            _log_trail("failed", error=str(error), backend=backend.mode)
+            return TrainResult(False, backend=backend.mode, error=str(error))
+    return TrainResult(False, backend=backend.mode, error="training failed after OOM retry")

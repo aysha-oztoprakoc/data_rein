@@ -24,8 +24,8 @@ agent the same three things:
 - **One knowledge store** — a single SQLite "wiki" (`knowledge_base/wiki.db`) with
   full-text search over pages and memories, rebuilt idempotently from tracked markdown.
 - **One model router** — `ModelRouter` picks a provider per task category (local Ollama
-  first, cloud only on explicit request or genuine complexity) and fails over gracefully
-  between nodes instead of crashing.
+  first) and fails over gracefully between local nodes instead of crashing. Cloud is a
+  separate explicit authorization path, never an automatic category fallback.
 - **One task trail** — a shared, queryable log of what every agent has done, so a new
   session can pick up exactly where the last one left off instead of guessing.
 
@@ -52,23 +52,29 @@ agent the same three things:
                           │  amdy ↔ tell failover │
                           └──────────┬───────────┘
                      ┌───────────────┼───────────────┐
-                Ollama (13 local           Cloud (Claude / Gemini /
+                Ollama (local,             Cloud (Claude / Gemini /
                 models, on-demand)          OpenAI — explicit only)
 ```
 
 ## Key features
 
 - **Model-agnostic routing** (`src/reins/harness/models.py`) — task categories map to a
-  provider preference list; local Ollama models are tried first, with automatic fallback
-  across every locally-installed model before ever touching a cloud API.
+  provider preference list; local Ollama models are tried across the available nodes.
+  Ordinary routing cannot touch a cloud API.
 - **Unified wiki + task trail** — every agent reads and writes the same store, so
   "what happened in the last session" is always answerable from inside the repo.
-- **Ingestion pipeline** — PDF (mineru → PyMuPDF → pdftotext fallback chain), DOCX, EPUB,
-  RTF, XLSX/XLS, PPTX, and web-scraped content all normalize into the same wiki.
-- **Local-first economics** — 13 local Ollama models cover menial coding, summarization,
-  classification, and RAG; cloud models (`escalate_cloud`) are reserved for work that's
-  explicitly requested or genuinely too heavy for local hardware, and every cloud call is
-  logged to the task trail for auditability.
+- **Multimodal ingestion pipeline** — text/document parsers, Tesseract plus routed local
+  vision, local Whisper audio, and FFmpeg video channels all normalize into the same Wiki
+  with source hashes and channel provenance.
+- **Context and local training** — Wiki FTS/RAG supplies request-time context; disposable,
+  segmented JSONL feeds validated QLoRA/LoRA adapter training without silently truncating
+  long sources.
+- **Local-first economics** — hardware-admitted local Ollama models cover menial coding, summarization,
+  classification, and RAG; cloud models (`escalate_cloud`) require an explicit user request,
+  and every cloud call is logged to the task trail for auditability.
+- **Remote-to-local prompt inference** — `compile_prompt_remote` can use one explicitly
+  authorized remote provider to compress and adapt selected tasks for the admitted local
+  model; `run_prompt_local` validates and executes the budgeted package locally.
 - **Odysseus dashboard** — a Dockerized web UI (zero filesystem access into the harness)
   that talks to the harness over an HTTP MCP transport, rendering task trail activity,
   per-agent CPU/GPU budgets, and wiki search in one place.
@@ -79,10 +85,14 @@ agent the same three things:
 
 ```bash
 uv sync
+uv sync --extra media   # local audio/video transcription
 reins directive          # print the Prime Directive (read this first)
 reins wiki stats          # sanity-check the knowledge store
 reins local status         # check the local Ollama model fleet
 reins ask "hello"          # smoke-test the router end to end
+reins digest /path/to/files --recursive
+reins train prepare /tmp/train.jsonl --max-chars 8192
+reins train run --dataset /tmp/train.jsonl --dry-run
 ```
 
 See `AGENTS.md` for the full agent contract (boot sequence, CLI reference, skills) —
@@ -96,13 +106,13 @@ not aspirational.
 | Area | Status |
 |---|---|
 | Wiki DB + task trail | ✅ Live, in daily use |
-| Model router (local + cloud failover) | ✅ Live |
+| Model router (local failover + explicit cloud route) | ✅ Live |
 | Local-model delegation for menial coding | ✅ Live |
-| PDF/DOCX/XLSX/PPTX ingestion pipeline | ✅ Live |
+| Text/document/image/audio/video ingestion pipeline | ✅ Live |
 | Odysseus dashboard (Docker, MCP-HTTP bridge) | 🟡 Built, not yet run end-to-end |
 | ComfyUI image generation | 🟡 Dispatch code wired; ComfyUI's own Python/torch env not set up yet |
 | Repo security hardening (public-readiness) | ✅ Audited — no secrets in tracked history |
-| Voice (TTS/STT) coverage | ⬜ Planned — see `knowledge_base/MODEL_GAPS.md` |
+| Local speech-to-text extraction | ✅ Live through optional `media` extra |
 | Embedding-based (semantic) wiki search | ⬜ Planned — currently keyword (FTS5) only |
 
 Track granular in-progress work as GitHub Issues; this table is the big-picture view.
@@ -117,6 +127,14 @@ Track granular in-progress work as GitHub Issues; this table is the big-picture 
 | `odysseus/` | Vendored web dashboard, wired to the harness via MCP-over-HTTP |
 | `scripts/` | Setup, backup, and secrets-vault tooling |
 | `tests/` | Test suite (`.venv/bin/pytest -q`) |
+
+## Documentation
+
+- [`MULTIMODAL_KNOWLEDGE_PIPELINE.md`](knowledge_base/MULTIMODAL_KNOWLEDGE_PIPELINE.md)
+  explains extraction, provenance, Wiki/RAG context, training records, weight updates, and
+  the boundary with `data-workspace`.
+- [`SOURCE_REFERENCE.md`](knowledge_base/SOURCE_REFERENCE.md) maps every authored runtime
+  module plus configuration, operator scripts, and verification areas in both projects.
 
 ## Principles (PON)
 

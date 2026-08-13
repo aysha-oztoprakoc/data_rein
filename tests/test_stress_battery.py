@@ -1,7 +1,6 @@
 import pytest
 import time
 import json
-import resource
 from unittest.mock import MagicMock, patch
 
 from reins.services.data_nexus.nexus_daemon import NexusDaemon
@@ -13,7 +12,7 @@ def test_nexus_mqtt_flood_endurance() -> None:
         
         # We mock process_extraction so the test doesn't actually trigger Ollama inferences.
         # We only want to test the ThreadPoolExecutor routing and Graceful Degradation under flood.
-        with patch.object(daemon, 'process_extraction') as mock_process:
+        with patch.object(daemon, 'process_extraction'):
             start_time = time.time()
             
             for i in range(5000):

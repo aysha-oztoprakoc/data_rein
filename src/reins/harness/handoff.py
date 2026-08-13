@@ -13,6 +13,7 @@ that's polling the trail on a timer/hook.
 """
 
 from __future__ import annotations
+from reins.services.logger import log_degradation
 
 import uuid
 from typing import Any, Dict, List, Optional
@@ -50,6 +51,7 @@ def _route_maestro(prompt: str, node: str, category: str):
             text = local.generate(MAESTRO_MODEL, prompt, options=local.default_options())
             return RouteResult(text=text, model=MAESTRO_MODEL, provider="ollama", node=node, ok=True)
         except Exception:
+            log_degradation(__name__)
             pass  # fall through to ModelRouter's own degradation chain
 
     return ModelRouter().route(category, prompt, node=node)
@@ -82,6 +84,7 @@ def queue_chunked_task(
         )
         return task_id
     except Exception as e:
+        log_degradation(__name__)
         _log_warning(f"queue_chunked_task failed: {e}")
         return None
 
@@ -136,6 +139,7 @@ def pickup_next(category: str = "coding: menial", node: str = "amdy") -> Optiona
             "chunk": cursor, "of": len(chunks), "summary": summary,
         }
     except Exception as e:
+        log_degradation(__name__)
         _log_warning(f"pickup_next failed: {e}")
         return None
 
@@ -154,4 +158,5 @@ def _log_warning(msg: str) -> None:
 
         get_logger("handoff").warning(msg)
     except Exception:
+        log_degradation(__name__)
         pass

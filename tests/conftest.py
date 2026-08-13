@@ -18,6 +18,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src" / "reins"
 
 
+@pytest.fixture(autouse=True)
+def isolated_runtime_state(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_REIN_STATE_DIR", str(tmp_path / "state"))
+
+
 @pytest.fixture()
 def wiki(tmp_path, monkeypatch):
     """An isolated monolith Wiki DB, pointed away from the real one."""

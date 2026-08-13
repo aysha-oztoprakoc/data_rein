@@ -1,4 +1,3 @@
-import pytest
 import gc
 import resource
 from unittest.mock import patch
@@ -21,8 +20,8 @@ def test_ram_sinkhole_defense() -> None:
         try:
             soup = BeautifulSoup(html_str, "html.parser")
             return md(str(soup))
-        except RecursionError:
-            return "[Error] Recursion limit exceeded. Graceful degradation."
+        except (MemoryError, RecursionError):
+            return "[Error] Nested document exceeded the parser safety limit."
         finally:
             sys.setrecursionlimit(old_limit)
 
@@ -40,9 +39,9 @@ def test_ram_sinkhole_defense() -> None:
 
 def test_scraper_engine_search() -> None:
     """Ensure DuckDuckGo search returns standard dictionaries and degrades gracefully on network errors."""
-    with patch('reins.services.data_nexus.scraper.DDGS.text') as mock_ddgs:
+    with patch('reins.services.data_nexus.scraper.external_io.call') as mock_call:
         # Mock valid return
-        mock_ddgs.return_value = [{"title": "Test", "href": "http://test.com"}]
+        mock_call.return_value = [{"title": "Test", "href": "http://test.com"}]
         
         scraper = NexusScraper()
         results = scraper.search("test query")
@@ -50,6 +49,6 @@ def test_scraper_engine_search() -> None:
         assert results[0]["href"] == "http://test.com"
         
         # Mock exception to test graceful degradation
-        mock_ddgs.side_effect = Exception("Network Error")
+        mock_call.side_effect = Exception("Network Error")
         results_err = scraper.search("fail query")
         assert results_err == [], "Pedantic Wall: Search must return empty list on network error, not crash."

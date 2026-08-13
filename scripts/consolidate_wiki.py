@@ -22,9 +22,11 @@ from __future__ import annotations
 import argparse
 import sqlite3
 import sys
-import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
+
+from defusedxml import ElementTree as ET
+from defusedxml.common import DefusedXmlException
 
 # Allow running straight from the repo without installation.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -57,6 +59,8 @@ def _read_content(path: Path) -> tuple[str, str]:
             title = (title_el.text or "").strip() if title_el is not None else path.stem
             if content_el is not None and content_el.text:
                 return (title or path.stem, content_el.text.strip())
+        except DefusedXmlException:
+            return (path.stem, "")
         except ET.ParseError:
             pass
     return (path.stem, raw)

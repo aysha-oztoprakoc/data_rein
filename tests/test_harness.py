@@ -6,11 +6,14 @@ model-agnostic routing that never crashes (graceful degradation).
 """
 
 import json
+import logging
+from subprocess import CompletedProcess
 
 import pytest
 
 from reins.harness import paths
 from reins.harness.wiki import slugify
+from reins.harness.model_types import ExecutionPlane
 from reins.harness.models import ModelSpec, ModelRouter
 
 # The isolated `wiki` DB fixture is shared from conftest.py. These tests alias it
@@ -46,6 +49,18 @@ def test_page_fts_search(db):
     db.upsert_page("Resilience", "graceful degradation under chaos", slug="r1")
     hits = db.search_pages("degradation")
     assert hits and hits[0]["slug"] == "r1"
+
+
+def test_wiki_search_treats_punctuation_as_literal_text(db):
+    # Given
+    slug = "harness-audit-2026-08-11"
+    db.upsert_page("Harness Audit", "codex-harness-audit-2026-08-11", slug=slug)
+
+    # When
+    result = db.search("codex-harness-audit-2026-08-11")
+
+    # Then
+    assert [row["slug"] for row in result["pages"]] == [slug]
 
 
 # --- wiki: memories --------------------------------------------------------
@@ -89,6 +104,7 @@ def test_router_appends_unlisted_local_models_for_amdy(monkeypatch):
     reachable as a low-priority last resort, so newly-pulled models work
     without editing config."""
     r = ModelRouter()
+    monkeypatch.setattr(r.model_inventory, "admit", lambda *_args: True)
     r.table = {"x": {"amdy": [{"model": "qwen2.5-coder:7b", "score": 90.0}]}}
     monkeypatch.setattr(
         "reins.harness.local.list_models",
@@ -103,6 +119,7 @@ def test_router_appends_unlisted_local_models_for_amdy(monkeypatch):
 def test_router_extra_local_candidates_skipped_for_tell(monkeypatch):
     """The dynamic fallback tier only applies to amdy; tell keeps the static list."""
     r = ModelRouter()
+    monkeypatch.setattr(r.model_inventory, "admit", lambda *_args: True)
     r.table = {"x": {"tell": [{"model": "qwen2.5-coder:3b", "score": 96.1}]}}
     monkeypatch.setattr(
         "reins.harness.local.list_models",
@@ -112,36 +129,158 @@ def test_router_extra_local_candidates_skipped_for_tell(monkeypatch):
     assert [s.model for s in specs] == ["qwen2.5-coder:3b"]
 
 
+def test_router_rejects_unfit_models_and_logs_the_policy_fact(
+    tmp_path,
+    trail,
+    monkeypatch,
+):
+    # Given a live node whose registry approves only one installed model.
+    registry_path = tmp_path / "model_registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "amdy": {
+                    "reachable": True,
+                    "models_installed": ["fits:7b", "too-large:14b"],
+                    "models_fit": [{"model": "fits:7b", "size_gb": 4.0}],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    from reins.harness.model_inventory import ModelInventory
+
+    router = ModelRouter(model_inventory=ModelInventory(registry_path))
+    router.table = {
+        "x": {
+            "amdy": [
+                {"model": "too-large:14b", "score": 100},
+                {"model": "fits:7b", "score": 90},
+            ]
+        }
+    }
+    monkeypatch.setattr(
+        "reins.harness.local.list_models",
+        lambda: ["fits:7b", "too-large:14b", "unknown:latest"],
+    )
+
+    # When ranked and discovered candidates cross the hardware-fit boundary.
+    candidates = router.candidates("x", "amdy")
+
+    # Then only the fit model can execute and each rejection is an auditable fact.
+    assert [candidate.model for candidate in candidates] == ["fits:7b"]
+    rejected = [
+        task for task in trail.all_tasks() if task.get("task_type") == "router:hardware-rejection"
+    ]
+    assert {task.get("model") for task in rejected} == {"too-large:14b", "unknown:latest"}
+
+
+def test_router_skips_unreachable_node_before_provider_dispatch(tmp_path, monkeypatch):
+    # Given tell is unreachable while amdy has one fitting model.
+    registry_path = tmp_path / "model_registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "amdy": {
+                    "reachable": True,
+                    "models_fit": [{"model": "fits:7b"}],
+                },
+                "tell": {"reachable": False, "models_fit": []},
+            }
+        ),
+        encoding="utf-8",
+    )
+    from reins.harness.model_inventory import ModelInventory
+
+    router = ModelRouter(model_inventory=ModelInventory(registry_path))
+    router.table = {
+        "x": {
+            "tell": [{"model": "remote:3b"}],
+            "amdy": [{"model": "fits:7b"}],
+        }
+    }
+    dispatched: list[tuple[str, str]] = []
+
+    def generate(_self, model, _prompt, node):
+        dispatched.append((model, node))
+        return "ok"
+
+    monkeypatch.setattr(ModelRouter, "_ollama", generate)
+
+    # When routing starts at the unreachable node.
+    result = router.route("x", "hello", "tell")
+
+    # Then failover selects amdy without attempting tell.
+    assert result.ok is True
+    assert result.node == "amdy"
+    assert dispatched == [("fits:7b", "amdy")]
+
+
+def test_router_accepts_injected_local_provider_without_dispatch_changes():
+    # Given a provider supplied at construction rather than hardcoded in ModelRouter.
+    calls: list[tuple[str, str, str]] = []
+
+    def custom_provider(model: str, prompt: str, node: str) -> str:
+        calls.append((model, prompt, node))
+        return "provider result"
+
+    router = ModelRouter(
+        provider_handlers={"custom": custom_provider},
+        provider_capabilities={"custom": frozenset({ExecutionPlane.LOCAL_TEXT})},
+    )
+    router.table = {"x": {"amdy": [{"model": "agnostic-v1", "provider": "custom"}]}}
+
+    # When the configured provider is routed.
+    result = router.route("x", "hello", "amdy", allow_fallback=False)
+
+    # Then it executes through the same model-agnostic result boundary.
+    assert result.ok is True
+    assert result.provider == "custom"
+    assert result.text == "provider result"
+    assert calls == [("agnostic-v1", "hello", "amdy")]
+
+
 def test_router_degrades_without_crashing(monkeypatch):
     """A category with only an unreachable provider returns ok=False, not an exception."""
     r = ModelRouter()
     r.table = {"x": {"amdy": [{"model": "claude-nope"}], "tell": [{"model": "gpt-nope"}]}}
     monkeypatch.setattr("reins.harness.models._get_secret", lambda *_: None)
+    monkeypatch.setattr("reins.harness.local.list_models", lambda: [])
     res = r.route("x", "hello", "amdy")
     assert res.ok is False
     assert res.error  # explains why each candidate failed
-    assert "cloud/" in res.error  # proves Tier-1 remote fallback was attempted, not skipped
+    assert "cloud/" not in res.error
 
 
-def test_router_remote_fallback_engages_after_local_exhausted(monkeypatch):
-    """Both nodes exhausted, but a vault key is present -> Tier 1 is tried and used."""
+def test_router_requires_explicit_cloud_authorization(monkeypatch):
+    # Given local candidates fail while a usable cloud candidate is configured.
     r = ModelRouter()
-    r.table = {"x": {"amdy": [{"model": "ollama-nope"}], "tell": [{"model": "ollama-nope2"}]}}
+    r.table = {"x": {"amdy": [{"model": "ollama-nope"}], "tell": []}}
     r.remote_fallback = [ModelSpec(model="claude-sonnet-5-20260514", provider="claude")]
-
-    monkeypatch.setattr("reins.harness.models._get_secret", lambda name: "fake-key")
-    monkeypatch.setattr(ModelRouter, "_claude", lambda self, model, prompt: "hello from claude")
+    calls: list[str] = []
+    monkeypatch.setattr("reins.harness.models._get_secret", lambda _name: "fake-key")
+    monkeypatch.setattr("reins.harness.local.list_models", lambda: [])
     monkeypatch.setattr(
         ModelRouter,
-        "_ollama",
-        lambda self, model, prompt, node: (_ for _ in ()).throw(RuntimeError("no ollama")),
+        "_claude",
+        lambda self, model, prompt: calls.append(model) or "cloud result",
     )
 
-    res = r.route("x", "hello", "amdy")
-    assert res.ok is True
-    assert res.provider == "claude"
-    assert res.node == "cloud"
-    assert res.model == "claude-sonnet-5-20260514"
+    # When ordinary routing exhausts the local plane.
+    result = r.route("x", "hello", "amdy")
+
+    # Then it degrades without spending cloud tokens or disclosing the prompt.
+    assert result.ok is False
+    assert calls == []
+
+
+def test_router_exposes_no_ordinary_cloud_override():
+    import inspect
+
+    r = ModelRouter()
+    r.remote_fallback = [ModelSpec(model="claude-sonnet-5-20260514", provider="claude")]
+
+    assert "allow_cloud" not in inspect.signature(r.route).parameters
 
 
 def test_router_remote_fallback_absent_still_degrades(monkeypatch):
@@ -153,8 +292,9 @@ def test_router_remote_fallback_absent_still_degrades(monkeypatch):
         ModelSpec(model="gemini-2.0-pro", provider="gemini"),
     ]
     monkeypatch.setattr("reins.harness.models._get_secret", lambda *_: None)
+    monkeypatch.setattr("reins.harness.local.list_models", lambda: [])
 
-    res = r.route("x", "hello", "amdy")
+    res = r.route_cloud("hello")
     assert res.ok is False
     assert res.error
     assert "cloud/" in res.error  # proves remote tier was actually attempted, not skipped
@@ -186,11 +326,29 @@ def test_route_cloud_filters_by_provider(monkeypatch):
     ]
     monkeypatch.setattr(ModelRouter, "_gemini", lambda self, model, prompt: "hi from gemini")
     monkeypatch.setattr(
-        ModelRouter, "_claude",
-        lambda self, model, prompt: (_ for _ in ()).throw(AssertionError("claude should be filtered out")),
+        ModelRouter,
+        "_claude",
+        lambda self, model, prompt: (_ for _ in ()).throw(
+            AssertionError("claude should be filtered out")
+        ),
     )
     res = r.route_cloud("hello", provider="gemini")
     assert res.ok is True and res.provider == "gemini"
+
+
+def test_route_cloud_does_not_substitute_an_unavailable_provider(monkeypatch):
+    r = ModelRouter()
+    r.remote_fallback = [ModelSpec(model="claude-sonnet-5-20260514", provider="claude")]
+    monkeypatch.setattr(
+        ModelRouter,
+        "_claude",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("prompt must not reach Claude")),
+    )
+
+    res = r.route_cloud("hello", provider="gemini")
+
+    assert res.ok is False
+    assert res.provider == "gemini"
 
 
 def test_route_cloud_degrades_without_crashing(monkeypatch):
@@ -221,37 +379,136 @@ def test_mcp_trail_tools_roundtrip(trail):
     assert match["task_type"] == "opencode:session"
 
 
+def test_task_trail_corruption_degrades_with_diagnostic(trail, caplog):
+    # Given durable trail state is corrupt.
+    trail.trail_path = str(trail.trail_path)
+    with open(trail.trail_path, "w", encoding="utf-8") as stream:
+        stream.write("{")
+
+    # When the public read boundary degrades.
+    with caplog.at_level(logging.WARNING):
+        tasks = trail.all_tasks()
+
+    # Then callers get a safe sentinel and operators get a useful diagnostic.
+    assert tasks == []
+    assert "Task Trail read degraded" in caplog.text
+
+
 def test_mcp_route_local_never_reaches_cloud(monkeypatch):
-    """route_local must call ModelRouter.route with allow_cloud=False."""
-    from reins.harness import mcp_server
+    from reins.harness import dispatch, mcp_server
 
-    seen = {}
+    seen: dict[str, bool] = {}
 
-    def _fake_route(self, category, prompt, node="amdy", *, allow_fallback=True, allow_cloud=True):
-        seen["allow_cloud"] = allow_cloud
+    def _fake_route(self, category, prompt, node="amdy", *, allow_fallback=True):
+        seen["route"] = True
         from reins.harness.models import RouteResult
+
         return RouteResult("ok", "qwen2.5-coder:7b", "ollama", node, ok=True)
 
-    monkeypatch.setattr(mcp_server.ModelRouter, "route", _fake_route)
+    def _fail_cloud(*_args, **_kwargs):
+        pytest.fail("route_local must never call route_cloud")
+
+    monkeypatch.setattr(dispatch.ModelRouter, "route", _fake_route)
+    monkeypatch.setattr(dispatch.ModelRouter, "route_cloud", _fail_cloud)
     result = json.loads(mcp_server.route_local("data processing", "summarize this"))
-    assert seen["allow_cloud"] is False
+    assert seen["route"] is True
     assert result["ok"] is True
+
+
+def test_mcp_route_local_rejects_schema_invalid_prompt_via_gate(trail, monkeypatch):
+    """A non-string prompt must be rejected by the action gate before ModelRouter.route runs."""
+    from reins.harness import dispatch, mcp_server
+
+    def _fake_route(self, category, prompt, node="amdy", *, allow_fallback=True):
+        pytest.fail("gate must reject before ModelRouter.route is ever called")
+
+    monkeypatch.setattr(dispatch.ModelRouter, "route", _fake_route)
+    result = json.loads(mcp_server.route_local("data processing", 12345))  # type: ignore[arg-type]
+    assert result["ok"] is False
+    assert result["error"] == "schema_invalid"
+
+
+def test_mcp_judge_submit_graph_dispatches_accepted_graph(trail, wiki, monkeypatch):
+    """judge_submit_graph parses JSON, judges, and dispatches accepted leaves - amdy only."""
+    from reins.harness import dispatch, mcp_server
+
+    def _fake_route(self, category, prompt, node="amdy", *, allow_fallback=True):
+        from reins.harness.models import RouteResult
+
+        return RouteResult("ok", "qwen2.5-coder:7b", "ollama", node, ok=True)
+
+    monkeypatch.setattr(dispatch.ModelRouter, "route", _fake_route)
+
+    nodes = json.dumps(
+        [
+            {
+                "id": "a",
+                "action": {
+                    "context": "route_local",
+                    "tool_name": "local_generate",
+                    "args": {"prompt": "do work"},
+                },
+            }
+        ]
+    )
+    result = json.loads(mcp_server.judge_submit_graph("graph-mcp-1", nodes, "[]"))
+    assert result["judge"]["accepted"] is True
+    assert result["dispatch"]["a"]["accepted"] is True
+    assert result["dispatch"]["a"]["result"]["ok"] is True
+
+
+def test_mcp_judge_submit_graph_rejects_cyclic_graph_without_dispatch(trail, wiki):
+    from reins.harness import mcp_server
+
+    nodes = json.dumps(
+        [
+            {
+                "id": "a",
+                "action": {
+                    "context": "route_local",
+                    "tool_name": "local_generate",
+                    "args": {"prompt": "x"},
+                },
+            },
+            {
+                "id": "b",
+                "action": {
+                    "context": "route_local",
+                    "tool_name": "local_generate",
+                    "args": {"prompt": "y"},
+                },
+            },
+        ]
+    )
+    edges = json.dumps(
+        [
+            {"from": "a", "to": "b", "rationale": "a before b"},
+            {"from": "b", "to": "a", "rationale": "b before a"},
+        ]
+    )
+    result = json.loads(mcp_server.judge_submit_graph("graph-mcp-cycle", nodes, edges))
+    assert result["judge"]["accepted"] is False
+    assert result["dispatch"] == {}
 
 
 def test_mcp_escalate_cloud_logs_trail_and_never_raises(trail, monkeypatch):
     """escalate_cloud always logs a trail entry, and degrades gracefully on failure."""
-    from reins.harness import mcp_server
+    from reins.harness import dispatch, mcp_server
     from reins.harness.models import RouteResult
 
     monkeypatch.setattr(
-        mcp_server.ModelRouter, "route_cloud",
-        lambda self, prompt, provider=None: RouteResult(None, "none", "none", "cloud", ok=False, error="no key"),
+        dispatch.ModelRouter,
+        "route_cloud",
+        lambda self, prompt, provider=None: RouteResult(
+            None, "none", "none", "cloud", ok=False, error="no key"
+        ),
     )
     result = json.loads(mcp_server.escalate_cloud("use claude for this"))
     assert result["ok"] is False
     assert result["task_id"]
 
     from reins.services.task_trail import TaskTrail
+
     logged = TaskTrail().get_task(result["task_id"])
     assert logged["status"] == "failed"
     assert logged["task_type"] == "opencode:cloud-escalation"
@@ -269,7 +526,9 @@ def test_token_ledger_records_and_aggregates(token_ledger):
 
     windows = token_ledger.window_summary("claude")
     assert set(windows) == {"5h", "day", "week", "month"}
-    assert windows["month"]["requests"] == 2  # every window is trailing-from-now, so all still count
+    assert (
+        windows["month"]["requests"] == 2
+    )  # every window is trailing-from-now, so all still count
 
 
 def test_token_ledger_old_events_age_out_of_window(token_ledger, monkeypatch):
@@ -289,11 +548,20 @@ def test_budget_report_computes_percentage_only_when_configured(monkeypatch, tok
     from reins.services import token_ledger as token_ledger_mod
 
     monkeypatch.setattr(
-        paths, "token_budgets",
-        lambda: type("P", (), {"read_text": lambda self, **_: __import__("json").dumps({
-            "_comment": "ignore me - not a provider",
-            "claude": {"5h": {"requests": 10}},
-        })})(),
+        paths,
+        "token_budgets",
+        lambda: type(
+            "P",
+            (),
+            {
+                "read_text": lambda self, **_: __import__("json").dumps(
+                    {
+                        "_comment": "ignore me - not a provider",
+                        "claude": {"5h": {"requests": 10}},
+                    }
+                )
+            },
+        )(),
     )
     token_ledger.record("claude", "claude-sonnet-5", input_tokens=1, output_tokens=1)
     token_ledger.record("gemini", "gemini-2.0-pro", input_tokens=1, output_tokens=1)
@@ -358,12 +626,87 @@ def test_apply_cpu_budget_degrades_on_sudo_failure(monkeypatch):
 
     monkeypatch.setattr(rb, "cgroup_available", lambda: True)
     monkeypatch.setattr(
-        rb, "run_sudo_cmd",
-        lambda cmd: type("R", (), {"returncode": 1, "stderr": "permission denied"})(),
+        rb,
+        "run_sudo_cmd",
+        lambda cmd, *, input_text=None: type(
+            "R", (), {"returncode": 1, "stderr": "permission denied"}
+        )(),
     )
     ok, msg = rb.apply_cpu_budget("data-hermes", 50, pids=[1234])
     assert ok is False
     assert "permission denied" in msg
+
+
+def test_apply_cpu_budget_degrades_when_privileged_runner_raises(monkeypatch):
+    # Given a root command runner that becomes unavailable at execution time.
+    from reins.services import resource_budgets as rb
+
+    monkeypatch.setattr(rb, "cgroup_available", lambda: True)
+
+    def unavailable(_command, *, input_text=None):
+        raise OSError("sudo launcher unavailable")
+
+    monkeypatch.setattr(rb, "run_sudo_cmd", unavailable)
+
+    # When a valid budget reaches the privileged boundary.
+    ok, message = rb.apply_cpu_budget("data-hermes", 50, pids=[1234])
+
+    # Then callers receive the established graceful tuple instead of an exception.
+    assert ok is False
+    assert "sudo launcher unavailable" in message
+
+
+@pytest.mark.parametrize(
+    ("agent_name", "pids"),
+    [("../escape", [1234]), ("data-hermes", [-1])],
+)
+def test_apply_cpu_budget_rejects_hostile_identifiers_before_sudo(
+    monkeypatch, agent_name, pids
+):
+    # Given an available cgroup controller and hostile cgroup or PID input.
+    from reins.services import resource_budgets as rb
+
+    calls: list[tuple[list[str], str | None]] = []
+    monkeypatch.setattr(rb, "cgroup_available", lambda: True)
+    monkeypatch.setattr(
+        rb,
+        "run_sudo_cmd",
+        lambda command, *, input_text=None: calls.append((command, input_text))
+        or CompletedProcess(command, 0, "", ""),
+    )
+
+    # When the budget is applied.
+    ok, message = rb.apply_cpu_budget(agent_name, 50, pids=pids)
+
+    # Then validation degrades before any privileged command can execute.
+    assert ok is False
+    assert message
+    assert calls == []
+
+
+def test_apply_cpu_budget_uses_exact_mkdir_and_tee_argv(monkeypatch):
+    # Given a valid cgroup identifier and PID.
+    from reins.services import resource_budgets as rb
+
+    calls: list[tuple[list[str], str | None]] = []
+    monkeypatch.setattr(rb, "cgroup_available", lambda: True)
+    monkeypatch.setattr(
+        rb,
+        "run_sudo_cmd",
+        lambda command, *, input_text=None: calls.append((command, input_text))
+        or CompletedProcess(command, 0, "", ""),
+    )
+
+    # When the CPU quota is applied.
+    ok, _message = rb.apply_cpu_budget("data-hermes", 50, pids=[1234])
+
+    # Then every privileged operation is a fixed mkdir/tee argv with data on stdin.
+    assert ok is True
+    assert calls[0] == (["mkdir", "-p", "/sys/fs/cgroup/data_rein/data-hermes"], None)
+    assert (["tee", "/sys/fs/cgroup/data_rein/data-hermes/cpu.max"], "50000 100000\n") in calls
+    assert (["tee", "/sys/fs/cgroup/data_rein/data-hermes/cgroup.procs"], "1234\n") in calls
+    assert all(command[0] in {"mkdir", "tee"} for command, _stdin in calls)
+    assert all("bash" not in command and "-c" not in command for command, _stdin in calls)
 
 
 def test_subagent_manager_logs_spawn_to_trail(monkeypatch, trail):
@@ -373,9 +716,15 @@ def test_subagent_manager_logs_spawn_to_trail(monkeypatch, trail):
     mgr.role = "data-hermes"
     mgr.trail = trail
     mgr.mqtt = type("M", (), {"publish": lambda self, topic, payload: None})()
-    monkeypatch.setattr(mgr, "infer", lambda category, prompt, node="amdy": type(
-        "Res", (), {"ok": True, "node": node, "model": "llama3.1:8b", "text": "hi", "error": None},
-    )())
+    monkeypatch.setattr(
+        mgr,
+        "infer",
+        lambda category, prompt, node="amdy": type(
+            "Res",
+            (),
+            {"ok": True, "node": node, "model": "llama3.1:8b", "text": "hi", "error": None},
+        )(),
+    )
 
     mgr._execute_subagent({"task_type": "General Chatting", "prompt": "hello", "node": "amdy"})
 
@@ -401,7 +750,9 @@ def test_comfyui_extract_image_path_from_history():
     entry = {"outputs": {"9": {"images": [{"filename": "reins_00001_.png", "subfolder": "sub"}]}}}
     assert ComfyUIClient.extract_image_path(entry) == "sub/reins_00001_.png"
 
-    entry_no_subfolder = {"outputs": {"9": {"images": [{"filename": "reins_00001_.png", "subfolder": ""}]}}}
+    entry_no_subfolder = {
+        "outputs": {"9": {"images": [{"filename": "reins_00001_.png", "subfolder": ""}]}}
+    }
     assert ComfyUIClient.extract_image_path(entry_no_subfolder) == "reins_00001_.png"
 
     assert ComfyUIClient.extract_image_path({"outputs": {}}) is None
@@ -420,9 +771,7 @@ def test_route_skips_comfyui_candidates_for_chat(monkeypatch):
     """route() must never try to dispatch chat prompts to a comfyui backend."""
     r = ModelRouter()
     r.table = {"x": {"amdy": [{"model": "comfyui_sdxl_base", "backend": "comfyui"}]}}
-    monkeypatch.setattr(
-        "reins.harness.local.list_models", lambda *a, **k: []
-    )
+    monkeypatch.setattr("reins.harness.local.list_models", lambda *a, **k: [])
     monkeypatch.setattr("reins.harness.models._get_secret", lambda *_: None)
     res = r.route("x", "hello", "amdy")
     assert res.ok is False
@@ -430,23 +779,51 @@ def test_route_skips_comfyui_candidates_for_chat(monkeypatch):
     assert "comfyui" not in res.error
 
 
-def test_get_secret_vault_failure_falls_back_to_env_with_warning(monkeypatch, caplog):
-    """GD-3: a broken vault must degrade to the env var, never fail silently."""
+def test_get_secret_vault_failure_rejects_env_fallback_with_warning(monkeypatch, caplog):
     import logging
 
     from reins.harness.models import _get_secret
 
     def _boom(_name):
-        raise RuntimeError("vault locked")
+        raise OSError("vault locked")
 
     monkeypatch.setitem(
-        __import__("sys").modules, "scripts.get_secrets",
+        __import__("sys").modules,
+        "scripts.get_secrets",
         type("m", (), {"get_secret": staticmethod(_boom)}),
     )
     monkeypatch.setenv("SOME_KEY", "env-value")
     with caplog.at_level(logging.WARNING):
-        assert _get_secret("SOME_KEY") == "env-value"
+        assert _get_secret("SOME_KEY") is None
     assert "vault lookup failed" in caplog.text
+
+
+def test_cloud_provider_does_not_start_when_vault_lookup_fails(monkeypatch):
+    import sys
+
+    from reins.harness import model_providers
+
+    def _vault_failure(_name: str) -> str:
+        raise OSError("vault locked")
+
+    monkeypatch.setitem(
+        sys.modules,
+        "scripts.get_secrets",
+        type("VaultFailure", (), {"get_secret": staticmethod(_vault_failure)}),
+    )
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "plaintext-env-key")
+    monkeypatch.setattr(
+        model_providers,
+        "load_claude",
+        lambda: pytest.fail("provider SDK must not load without a vault key"),
+    )
+    router = ModelRouter()
+    router.remote_fallback = [ModelSpec(model="claude-test", provider="claude")]
+
+    result = router.route_cloud("sensitive prompt", provider="claude")
+
+    assert result.ok is False
+    assert "no ANTHROPIC_API_KEY" in (result.error or "")
 
 
 def test_record_usage_failure_is_logged_not_silent(monkeypatch, caplog):

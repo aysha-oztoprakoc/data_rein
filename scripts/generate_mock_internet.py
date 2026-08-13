@@ -1,7 +1,8 @@
 import os
 import random
+import tempfile
 
-MOCK_DIR = "/tmp/nexus_internet_mock"
+MOCK_DIR = tempfile.mkdtemp(prefix="nexus_internet_mock-")
 
 def generate_mocks():
     os.makedirs(MOCK_DIR, exist_ok=True)

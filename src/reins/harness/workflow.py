@@ -13,6 +13,7 @@ model-agnostic and inherits local-first + amdy<->tell failover for free.
 """
 
 from __future__ import annotations
+from reins.services.logger import log_degradation
 
 from dataclasses import dataclass
 from typing import Callable, Iterable, Optional
@@ -42,6 +43,7 @@ def _rag_context(prompt: str, max_docs: int = 3) -> str:
         blocks = [f"[{h['title']}]\n{h['snippet']}" for h in hits]
         return "--- Context from the harness wiki ---\n" + "\n\n".join(blocks) + "\n--- end context ---\n\n"
     except Exception:
+        log_degradation(__name__)
         return ""
 
 
@@ -102,6 +104,7 @@ def batch(
 
             trail = TaskTrail()
         except Exception:
+            log_degradation(__name__)
             trail = None
 
     for i, prompt in enumerate(prompts):
@@ -114,6 +117,7 @@ def batch(
                 task_id = trail.create_task(f"batch:{category}", prompt, node)
                 trail.update_task(task_id, "running")
             except Exception:
+                log_degradation(__name__)
                 task_id = None
 
         res = run(category, prompt, node=node, rag=rag, router=router)
@@ -124,6 +128,7 @@ def batch(
             try:
                 trail.update_task(task_id, "success" if res.ok else "failed")
             except Exception:
+                log_degradation(__name__)
                 pass
         if on_result is not None:
             on_result(item)

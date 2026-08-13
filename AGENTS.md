@@ -43,7 +43,8 @@ reins trail list            # shared task state machine
 
 ## Local models (offload low-effort work)
 
-13 local models in `ai_models/models/`, served on demand by Ollama.
+Local models under `ai_models/models/` are served on demand by Ollama; the live
+inventory and hardware-fit registry, not this document, determine availability.
 ```bash
 reins local status | up | list
 reins run "<category>" "<prompt>" [--rag] [--node amdy|tell]
@@ -51,7 +52,8 @@ reins ask|summarize|classify|optimize "<text|file>"   # low-effort shortcuts
 reins batch "<category>" prompts.txt                   # unattended bulk, trail-logged
 ```
 Routes through `reins.harness.workflow` → `ModelRouter` (local-first, graceful
-amdy↔tell failover). Prefer local for trivial work; reserve cloud for heavy tasks.
+amdy↔tell failover). These commands never reach cloud; cloud requires the separate,
+explicitly authorized `escalate_cloud`/`route_cloud` path.
 
 ## Skills
 
@@ -81,10 +83,15 @@ the shared state:
   check `agent_status`/`trail_list` before systemic actions, per the Rule of Awareness.
 - `route_local` — delegate a menial subtask (summarize/classify/extract) to a cheap
   local Ollama model instead of spending an agent turn on it. Never reaches cloud.
-- `escalate_cloud` — **the only** path to Claude/Gemini/OpenAI. Call it only when the
-  user explicitly asks for Claude or Gemini by name; never as a default or automatic
-  step. Every call is logged to the Task Trail (`task_type="opencode:cloud-escalation"`)
-  so it stays exactly as auditable as `reins run`'s own last-resort cloud fallback.
+- `escalate_cloud` — the explicit path for a direct Claude/Gemini/OpenAI answer. Call
+  it only when the user explicitly asks for a cloud provider; never as a default or
+  automatic step. Every call is logged to the Task Trail
+  (`task_type="opencode:cloud-escalation"`) and the requested provider is never
+  silently replaced by another vendor.
+- `compile_prompt_remote` / `run_prompt_local` — explicit two-phase remote-to-local
+  prompt inference. The first tool consumes explicit cloud authorization and returns
+  a strict, budgeted package; the second validates that package and stays local-only.
+  See `knowledge_base/REMOTE_LOCAL_INFERENCE_PROTOCOL.md`.
 - `token_usage_status` — self-tracked Claude/Gemini/OpenAI usage vs configured budgets
   (`config/token_budgets.json`) over 5h/day/week/month rolling windows. Also reachable
   from any shell via `reins tokens status`. Neither provider exposes a remaining-quota
@@ -98,3 +105,19 @@ running `omni opencode --server "" --model lmstudio/qwen/qwen2.5-coder-7b --resu
 — OpenCode driven through Omnigent exactly like `data-omni` drives Claude, so the
 user's main interactive session always resumes the last conversation, the same
 way `data-agy` (`-c`) and `data-omni` (`--resume`) do.
+
+## Codex: model-agnostic harness client
+
+Codex loads this file as the repository contract and connects to the harness via
+the project-scoped `.codex/config.toml`. The `reins` MCP server exposes the same
+wiki, Task Trail, and category router used by OpenCode and shell clients:
+
+- Use `route_local` for bounded local-model work; it never reaches a cloud model.
+- Use `escalate_cloud` only when the user explicitly requests a cloud provider.
+- For an explicitly authorized remote model to optimize a selected prompt for a
+  local LLM, call `compile_prompt_remote`, inspect its package, then call
+  `run_prompt_local`. Do not collapse the two phases.
+- Keep the Codex host model out of `config/model_router.json`; the router describes
+  harness workloads, not the model currently driving the Codex session.
+- If MCP startup fails, continue through the `reins` CLI and record the degraded
+  path in the Task Trail. The project adapter is intentionally non-required.

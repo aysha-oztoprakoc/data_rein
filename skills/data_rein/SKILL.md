@@ -30,6 +30,11 @@ Python: `from reins.harness.wiki import WikiDB`.
 ComfyUI), local-first with graceful failover amdy↔tell. Secrets only via
 `scripts.get_secrets.get_secret`.
 
+Providers are admitted by an explicit execution-plane capability (`local_text`,
+`cloud_text`, or `image`), not by provider name. New injected local providers must
+declare `local_text`; ordinary routing never crosses into `cloud_text`, and an
+explicit cloud request never substitutes a different requested provider.
+
 ## Protocol enforcement
 - **PON**: no `while True` / `time.sleep` polling. Event-driven, exit gracefully.
 - **Graceful Degradation**: degrade to a lesser model/node; never crash; log to Task Trail.

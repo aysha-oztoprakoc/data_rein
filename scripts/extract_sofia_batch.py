@@ -1,8 +1,8 @@
 import os
 import sys
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
-import subprocess
+from defusedxml import minidom
+from reins.harness import external_io
 
 # Add src to path to allow importing extractors if needed, but we will use standalone logic for robustness
 sys.path.append("/home/amdy/data_rein/src")
@@ -41,7 +41,7 @@ def process_file(filepath):
     
     if ext == ".pdf":
         out_txt = filepath + ".tmp.txt"
-        res = subprocess.run(["pdftotext", filepath, out_txt], capture_output=True)
+        res = external_io.run(["pdftotext", filepath, out_txt], capture_output=True)
         if res.returncode == 0 and os.path.exists(out_txt):
             with open(out_txt, "r", encoding="utf-8", errors="ignore") as f:
                 text = f.read()

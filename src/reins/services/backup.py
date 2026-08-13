@@ -30,7 +30,6 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import tarfile
 import base64
 import io
@@ -39,8 +38,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, List, Optional
 
-from reins.services.logger import get_logger
-from reins.harness import paths
+from reins.services.logger import get_logger, log_degradation
+from reins.harness import external_io, paths
+from reins.services.backup_security import (
+    BackupPathError,
+    create_private_directory,
+    validate_destination,
+    validate_source_tree,
+)
 
 logger = get_logger("backup")
 
@@ -146,6 +151,7 @@ class BackupService:
             try:
                 ok, detail = fn(arg)
             except Exception as e:  # a broken check must not crash the guard
+                log_degradation(__name__)
                 ok, detail = False, f"check error: {e}"
             report.add(name, ok, detail)
         return report
@@ -192,6 +198,7 @@ class BackupService:
                 try:
                     content = conf.read_text(errors="replace")
                 except Exception:
+                    log_degradation(__name__)
                     continue
                 if "windowrulev2" in content:
                     bad.append(f"{conf}: deprecated windowrulev2")
@@ -206,9 +213,10 @@ class BackupService:
         if _expand("/var/lib/pacman/db.lck").exists() or Path("/var/lib/pacman/db.lck").exists():
             return False, "pacman db is LOCKED (/var/lib/pacman/db.lck) — an update may be mid-flight"
         try:
-            r = subprocess.run(["pacman", "-Qq"], capture_output=True, text=True, timeout=15)
+            r = external_io.run(["pacman", "-Qq"], capture_output=True, text=True, timeout=15)
             return (r.returncode == 0, "OK" if r.returncode == 0 else "pacman -Qq failed")
         except Exception as e:
+            log_degradation(__name__)
             return False, f"pacman query failed: {e}"
 
     def _check_packages(self, pkgs) -> tuple:
@@ -216,13 +224,15 @@ class BackupService:
             return True, "no essential packages configured (skipped)"
         missing = []
         for pkg in pkgs:
-            r = subprocess.run(["pacman", "-Q", pkg], capture_output=True, text=True)
+            r = external_io.run(
+                ["pacman", "-Q", pkg], capture_output=True, text=True, success_codes=(0, 1)
+            )
             if r.returncode != 0:
                 missing.append(pkg)
         return (not missing, "OK" if not missing else f"NOT installed: {', '.join(missing)}")
 
     # ------------------------------------------------------------- emergency
-    def generate_emergency_script(self, dest: Optional[str] = None) -> Path:
+    def generate_emergency_script(self, dest: Optional[str] = None) -> Optional[Path]:
         """Produce ONE self-contained bash rescue script (portable to a live USB).
 
         The critical *config* dirs are embedded as a base64 tarball inside the
@@ -230,23 +240,34 @@ class BackupService:
         by the script (the repo is the portable source). The script NEVER deletes
         anything — it moves existing targets to timestamped `.bak` first.
         """
-        out = _expand(dest or self.config.get("emergency_script", "~/.cache/data_rein/backup/omarchy_rescue.sh"))
-        out.parent.mkdir(parents=True, exist_ok=True)
-
-        # Tar the configured dotfiles paths (whatever exists) in-memory -> base64.
         df = self.config.get("dotfiles", {})
+        try:
+            sources = [
+                validate_source_tree(_expand(rel))
+                for rel in df.get("paths", [])
+                if _expand(rel).exists()
+            ]
+            out = validate_destination(
+                _expand(
+                    dest
+                    or self.config.get(
+                        "emergency_script",
+                        "~/.cache/data_rein/backup/omarchy_rescue.sh",
+                    )
+                )
+            )
+        except (BackupPathError, OSError) as error:
+            logger.error(f"Emergency rescue rejected unsafe path: {error}")
+            return None
         buf = io.BytesIO()
         included: List[str] = []
         counter = {"bytes": 0, "truncated": False}
         cfilter = _make_config_filter(counter)
         with tarfile.open(fileobj=buf, mode="w:gz") as tar:
-            for rel in df.get("paths", []):
-                p = _expand(rel)
-                if p.exists():
-                    # store relative to $HOME so the script can extract into ~
-                    arcname = str(p).replace(str(Path.home()) + "/", "")
-                    tar.add(str(p), arcname=arcname, filter=cfilter)
-                    included.append(arcname)
+            for source in sources:
+                arcname = str(source.relative_to(Path.home()))
+                tar.add(str(source), arcname=arcname, filter=cfilter)
+                included.append(arcname)
         if counter["truncated"]:
             logger.warning(f"Emergency payload hit the {_MAX_EMBED_BYTES // (1024*1024)}MB cap; "
                            "large assets omitted (restored from git instead).")
@@ -263,8 +284,9 @@ class BackupService:
             harness_root=harness.get("root", "~/data_rein"),
             payload_b64=payload_b64,
         )
+        create_private_directory(out.parent)
         out.write_text(script)
-        out.chmod(0o755)
+        out.chmod(0o700)
         logger.info(f"Emergency rescue script written -> {out} ({len(included)} config paths embedded)")
         return out
 
@@ -274,20 +296,35 @@ class BackupService:
         Stored under a durable cache dir (never /tmp) so a broken shutdown can't
         lose it. Best effort — returns the archive path or None.
         """
-        dest_dir = _expand(self.config.get("failsafe_backup_dir", "~/.cache/data_rein/backup/failsafe"))
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        archive = dest_dir / f"failsafe_{_now_stamp()}.tar.gz"
         df = self.config.get("dotfiles", {})
         cfilter = _make_config_filter({"bytes": 0, "truncated": False})
         try:
+            sources = [
+                validate_source_tree(_expand(rel))
+                for rel in df.get("paths", [])
+                if _expand(rel).exists()
+            ]
+            dest_dir = validate_destination(
+                _expand(
+                    self.config.get(
+                        "failsafe_backup_dir",
+                        "~/.cache/data_rein/backup/failsafe",
+                    )
+                )
+            )
+            create_private_directory(dest_dir)
+            archive = validate_destination(dest_dir / f"failsafe_{_now_stamp()}.tar.gz")
             with tarfile.open(archive, "w:gz") as tar:
-                for rel in df.get("paths", []):
-                    p = _expand(rel)
-                    if p.exists():
-                        tar.add(str(p), arcname=str(p).replace(str(Path.home()) + "/", ""), filter=cfilter)
+                for source in sources:
+                    tar.add(
+                        str(source),
+                        arcname=str(source.relative_to(Path.home())),
+                        filter=cfilter,
+                    )
+            archive.chmod(0o600)
             logger.info(f"Failsafe backup -> {archive}")
             return archive
-        except Exception as e:
+        except (BackupPathError, OSError, tarfile.TarError) as e:
             logger.error(f"Failsafe backup failed: {e}")
             return None
 
@@ -306,15 +343,17 @@ class BackupService:
             return False
         try:
             for rel in df.get("paths", []):
-                subprocess.run(git + ["add", str(_expand(rel))], check=False,
+                external_io.run(git + ["add", str(_expand(rel))], check=False,
                                capture_output=True)
-            staged = subprocess.run(git + ["diff", "--staged", "--quiet"])
+            staged = external_io.run(
+                git + ["diff", "--staged", "--quiet"], success_codes=(0, 1)
+            )
             if staged.returncode == 0:
                 logger.info("Dotfiles unchanged; nothing to push.")
                 return True
-            subprocess.run(git + ["commit", "-m", f"data_rein backup {_now_stamp()}"],
+            external_io.run(git + ["commit", "-m", f"data_rein backup {_now_stamp()}"],
                            check=False, capture_output=True)
-            r = subprocess.run(git + ["push", df.get("remote", "origin"), df.get("branch", "main")],
+            r = external_io.run(git + ["push", df.get("remote", "origin"), df.get("branch", "main")],
                                capture_output=True, text=True)
             ok = r.returncode == 0
             logger.info("Dotfiles pushed." if ok else f"Dotfiles push failed: {r.stderr.strip()}")
@@ -339,7 +378,7 @@ class BackupService:
             logger.error(f"Unknown power action: {action}")
             return 2
         logger.info(f"Executing power action: {' '.join(cmd)}")
-        return subprocess.run(cmd).returncode
+        return external_io.run(cmd).returncode
 
     def guard(self, action: str, *, force: bool = False, dry_run: bool = False,
               execute: Optional[Callable[[str], int]] = None) -> int:
@@ -376,7 +415,7 @@ class BackupService:
         for r in report.failures:
             print(f"  \033[31m✗\033[0m {r.name}: {r.detail}")
         print(f"\n  Failsafe snapshot saved: {archive}")
-        print(f"  Recover from the rescue script, GitHub, or fix the issues above.")
+        print("  Recover from the rescue script, GitHub, or fix the issues above.")
         print(f"  To override anyway:  {action} --force\n")
         self._notify_blocked(report)
         return 1
@@ -394,9 +433,10 @@ class BackupService:
         if not shutil.which("notify-send"):
             return
         try:
-            subprocess.run(["notify-send", "-u", "critical", title, msg],
+            external_io.run(["notify-send", "-u", "critical", title, msg],
                            check=False, capture_output=True, timeout=5)
         except Exception:
+            log_degradation(__name__)
             pass
 
     # ---------------------------------------------------------------- install
@@ -478,7 +518,8 @@ class BackupService:
                 notes.append(f"removed guard block from {rc}")
         uu = _expand("~/.config/systemd/user/data-rein-backup.service")
         if uu.exists():
-            uu.unlink(); notes.append("removed user systemd unit")
+            uu.unlink()
+            notes.append("removed user systemd unit")
         notes.append("if you enabled the system unit: sudo systemctl disable data-rein-backup.service "
                      "&& sudo rm /etc/systemd/system/data-rein-backup.service")
         return notes
@@ -498,7 +539,7 @@ class BackupService:
             logger.error(f"No local rescue script at {script}; run `reins backup emergency` first.")
             return False
         logger.info(f"Running local rescue script: {script}")
-        return subprocess.run(["bash", str(script), "--restore"]).returncode == 0
+        return external_io.run(["bash", str(script), "--restore"]).returncode == 0
 
     def _restore_github(self) -> bool:
         gh = self.config.get("remote_restore", {}).get("github", {})
@@ -509,9 +550,9 @@ class BackupService:
             return False
         if (root / ".git").exists():
             logger.info(f"Pulling latest {branch} into {root}")
-            return subprocess.run(["git", "-C", str(root), "pull", "origin", branch]).returncode == 0
+            return external_io.run(["git", "-C", str(root), "pull", "origin", branch]).returncode == 0
         logger.info(f"Cloning {repo} -> {root}")
-        return subprocess.run(["git", "clone", "-b", branch, repo, str(root)]).returncode == 0
+        return external_io.run(["git", "clone", "-b", branch, repo, str(root)]).returncode == 0
 
     def _restore_gcloud(self) -> bool:
         gc = self.config.get("remote_restore", {}).get("gcloud", {})
@@ -520,7 +561,7 @@ class BackupService:
             return False
         bucket = gc.get("bucket")
         root = _expand(self.config.get("harness", {}).get("root", "~/data_rein"))
-        return subprocess.run(["gcloud", "storage", "rsync", "-r", bucket, str(root)]).returncode == 0
+        return external_io.run(["gcloud", "storage", "rsync", "-r", bucket, str(root)]).returncode == 0
 
 
 # --------------------------------------------------------------------------- #

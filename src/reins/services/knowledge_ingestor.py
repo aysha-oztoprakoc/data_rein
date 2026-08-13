@@ -2,9 +2,9 @@ import os
 import json
 import threading
 from typing import Any
-from xml.etree import ElementTree as ET
 from reins.services.logger import get_logger
 from reins.services.task_trail import TaskTrail
+from reins.harness import external_io
 
 logger = get_logger("knowledge_ingestor")
 
@@ -21,7 +21,7 @@ class KnowledgeIngestor:
         
         # Subscribe to PON topic
         if self.mqtt:
-            self.mqtt.subscribe("data_rein/trail/success")
+            _ = external_io.mqtt_subscribe(self.mqtt, "data_rein/trail/success")
             self.mqtt.message_callback_add("data_rein/trail/success", self.on_success)
             logger.info("Knowledge Ingestor online. Listening for successful tasks.")
 
