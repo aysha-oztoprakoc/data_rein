@@ -22,6 +22,8 @@
               python311
               ruff
               uv
+              nodejs_20
+              ollama
             ];
 
             buildInputs = with pkgs; [

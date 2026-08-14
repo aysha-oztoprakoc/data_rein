@@ -140,6 +140,12 @@ class ModelCoordinator:
 
         if not self.fits(model):
             self.evict_lru(need)
+            if not self.fits(model):
+                slot = self._slot(model)
+                slot.state = ModelState.ERROR
+                slot.error = "VRAM saturated by busy models"
+                self._publish_state()
+                return slot
 
         slot = self._slot(model)
         slot.state = ModelState.LOADING
@@ -165,12 +171,12 @@ class ModelCoordinator:
     def evict_lru(self, need_gb: float) -> list[str]:
         self._sync_from_ollama()
         resident = sorted(
-            (s for s in self._slots.values() if s.state in (ModelState.READY, ModelState.BUSY)),
+            (s for s in self._slots.values() if s.state == ModelState.READY),
             key=lambda s: s.last_used,
         )
         evicted = []
         freed = 0.0
-        used = sum(s.est_gb for s in resident)
+        used = sum(s.est_gb for s in self._slots.values() if s.state in (ModelState.READY, ModelState.BUSY))
         for slot in resident:
             if used - freed + need_gb <= self.vram_budget_gb:
                 break
@@ -206,7 +212,7 @@ class ModelCoordinator:
                 if attempt == 0:
                     continue
                 self._log_trail_failure(model, str(e))
-                return ModelRouter().route("general chatting", prompt)
+                return ModelRouter().route("momus", prompt)
 
     def generate_category(self, category: str, prompt: str):
         from reins.harness.models import ModelRouter
