@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar, Literal
+from typing import ClassVar, Iterator, Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -106,6 +106,15 @@ def export_jsonl(
                         category=memory.category,
                         source=memory.source,
                     )
+                    if text.startswith("SFT_JSON:"):
+                        import json
+                        from reins.training.records import Message
+                        payload = json.loads(text[9:])
+                        messages = [Message(**m) for m in payload.get("messages", [])]
+                        record = TrainingRecord(messages=messages, meta=metadata)
+                        _ = destination.write(record.model_dump_json(exclude_none=True) + "\n")
+                        written += 1
+                        continue
                 else:
                     page = _PageRow.model_validate(dict(row))
                     text = page.content
@@ -114,7 +123,7 @@ def export_jsonl(
                     skipped += 1
                     continue
                 for record in _records(text, metadata, max_chars):
-                    _ = destination.write(record.model_dump_json() + "\n")
+                    _ = destination.write(record.model_dump_json(exclude_none=True) + "\n")
                     written += 1
             except (TypeError, ValueError, ValidationError):
                 skipped += 1
@@ -122,7 +131,7 @@ def export_jsonl(
     return ExportStats(written=written, skipped=skipped, out_path=str(output))
 
 
-def _query_pages(db: WikiDB, categories: list[str], limit: int) -> list[sqlite3.Row]:
+def _query_pages(db: WikiDB, categories: list[str], limit: int) -> Iterator[sqlite3.Row]:
     sql = "SELECT slug, content, category, source_path, metadata_json FROM pages"
     params: list[str | int] = []
     if categories:
@@ -131,10 +140,10 @@ def _query_pages(db: WikiDB, categories: list[str], limit: int) -> list[sqlite3.
     if limit:
         sql += " LIMIT ?"
         params.append(limit)
-    return db.conn.execute(sql, params).fetchall()
+    return db.conn.execute(sql, params)
 
 
-def _query_memories(db: WikiDB, categories: list[str], limit: int) -> list[sqlite3.Row]:
+def _query_memories(db: WikiDB, categories: list[str], limit: int) -> Iterator[sqlite3.Row]:
     sql = "SELECT text, category, source FROM memories"
     params: list[str | int] = []
     if categories:
@@ -143,4 +152,4 @@ def _query_memories(db: WikiDB, categories: list[str], limit: int) -> list[sqlit
     if limit:
         sql += " LIMIT ?"
         params.append(limit)
-    return db.conn.execute(sql, params).fetchall()
+    return db.conn.execute(sql, params)

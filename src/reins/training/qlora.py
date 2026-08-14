@@ -143,6 +143,12 @@ def run_finetune(
             if _is_oom(error) and attempt == 0:
                 batch_size = max(1, batch_size // 2)
                 sequence_length = max(256, sequence_length // 2)
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                except ImportError:
+                    pass
                 continue
             _log_trail("failed", error=str(error), backend=backend.mode)
             return TrainResult(False, backend=backend.mode, error=str(error))

@@ -89,7 +89,9 @@ def train_once(
     def tokenize(batch: dict[str, list[str]]) -> dict[str, list[list[int]]]:
         return tokenizer(batch["text"], truncation=True, max_length=sequence_length)
 
-    tokenized = dataset.map(tokenize, batched=True, remove_columns=dataset.column_names)
+    import os
+    optimal_workers = max(1, os.cpu_count() - 1) if hasattr(os, "cpu_count") and os.cpu_count() else 1
+    tokenized = dataset.map(tokenize, batched=True, remove_columns=dataset.column_names, num_proc=optimal_workers)
     run_dir.mkdir(parents=True, exist_ok=True)
     arguments = TrainingArguments(
         output_dir=str(run_dir),
