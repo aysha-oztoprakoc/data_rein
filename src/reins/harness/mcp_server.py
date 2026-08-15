@@ -28,9 +28,13 @@ from reins.harness.mcp_security import (
 )
 from reins.harness.provider_protocols import JsonValue
 from reins.harness.wiki import WikiDB
+from reins.harness.wiki_contract import WikiCrud, contract_result
+from reins.services.logger import log_degradation
 from reins.services.task_trail import TaskTrail
 from reins.services.token_ledger import budget_report
+from reins.harness.trust_anchor import KnowledgeValidator
 
+_validator = KnowledgeValidator()
 _http_token_verifier = BearerTokenVerifier()
 mcp = FastMCP(
     "reins",
@@ -74,8 +78,9 @@ def wiki_search(query: str, limit: int = 8) -> str:
     """Full-text search the shared wiki (pages + memories) for ``query``."""
     with WikiDB() as db:
         res = db.search(query, limit)
-    pages = ",".join(_row_to_json(row) for row in res["pages"])
-    memories = ",".join(_row_to_json(row) for row in res["memories"])
+    # Filter by trust_score to prevent data poisoning during RAG
+    pages = ",".join(_row_to_json(row) for row in res["pages"] if dict(row).get("trust_score", 1.0) >= 0.5)
+    memories = ",".join(_row_to_json(row) for row in res["memories"] if dict(row).get("trust_score", 1.0) >= 0.5)
     return f'{{"pages":[{pages}],"memories":[{memories}]}}'
 
 
@@ -92,9 +97,126 @@ def wiki_get(slug: str) -> str:
 @mcp.tool()
 def wiki_add_memory(text: str, category: str = "general") -> str:
     """Store an atomic fact in the shared wiki, attributed to opencode."""
+    trust_score = _validator.validate_update(text, "opencode")
     with WikiDB() as db:
-        uid = db.add_memory(text, category=category, source="opencode", owner="opencode")
-    return json.dumps({"uid": uid})
+        uid = db.add_memory(text, category=category, source="opencode", owner="opencode", trust_score=trust_score)
+    return json.dumps({"uid": uid, "trust_score": trust_score})
+
+
+@mcp.tool()
+def wiki_list_pages(limit: int = 50, offset: int = 0) -> str:
+    with WikiDB() as db:
+        return contract_result(lambda: WikiCrud(db).list_pages(limit=limit, offset=offset))
+
+
+@mcp.tool()
+def wiki_get_page(slug: str) -> str:
+    with WikiDB() as db:
+        return contract_result(lambda: WikiCrud(db).get_page(slug))
+
+
+@mcp.tool()
+def wiki_create_page(
+    title: str,
+    content: str,
+    slug: str = "",
+    category: str = "general",
+    fmt: str = "md",
+    metadata_json: str = "{}",
+) -> str:
+    with WikiDB() as db:
+        return contract_result(
+            lambda: WikiCrud(db).create_page(
+                title=title,
+                content=content,
+                slug=slug,
+                category=category,
+                fmt=fmt,
+                metadata_json=metadata_json,
+            )
+        )
+
+
+@mcp.tool()
+def wiki_update_page(
+    slug: str,
+    title: str,
+    content: str,
+    category: str = "general",
+    fmt: str = "md",
+    metadata_json: str = "{}",
+) -> str:
+    with WikiDB() as db:
+        return contract_result(
+            lambda: WikiCrud(db).update_page(
+                slug,
+                title=title,
+                content=content,
+                category=category,
+                fmt=fmt,
+                metadata_json=metadata_json,
+            )
+        )
+
+
+@mcp.tool()
+def wiki_delete_page(slug: str) -> str:
+    with WikiDB() as db:
+        return contract_result(lambda: WikiCrud(db).delete_page(slug))
+
+
+@mcp.tool()
+def wiki_list_memories(limit: int = 50, offset: int = 0) -> str:
+    with WikiDB() as db:
+        return contract_result(lambda: WikiCrud(db).list_memories(limit=limit, offset=offset))
+
+
+@mcp.tool()
+def wiki_get_memory(uid: str) -> str:
+    with WikiDB() as db:
+        return contract_result(lambda: WikiCrud(db).get_memory(uid))
+
+
+@mcp.tool()
+def wiki_create_memory(text: str, category: str = "general") -> str:
+    with WikiDB() as db:
+        return contract_result(lambda: WikiCrud(db).create_memory(text=text, category=category))
+
+
+@mcp.tool()
+def wiki_revise_memory(uid: str, text: str, category: str = "general") -> str:
+    with WikiDB() as db:
+        return contract_result(
+            lambda: WikiCrud(db).revise_memory(uid, text=text, category=category)
+        )
+
+
+@mcp.tool()
+def wiki_delete_memory(uid: str) -> str:
+    with WikiDB() as db:
+        return contract_result(lambda: WikiCrud(db).delete_memory(uid))
+
+
+@mcp.tool()
+def system_directive() -> str:
+    from reins.harness import paths
+
+    return json.dumps({"content": paths.prime_directive().read_text(encoding="utf-8")})
+
+
+@mcp.tool()
+def system_paths() -> str:
+    from reins.harness import paths
+
+    return json.dumps(
+        {
+            "home": str(paths.home()),
+            "wiki": str(paths.wiki_db()),
+            "trail": str(paths.task_trail()),
+            "config": str(paths.config_dir()),
+            "models": str(paths.model_registry()),
+        }
+    )
 
 
 @mcp.tool()
@@ -183,6 +305,25 @@ def route_local(category: str, prompt: str, node: str = "amdy") -> str:
     if not gated["accepted"]:
         return json.dumps({"ok": False, "model": None, "node": node, "text": None, "error": gated["reason"]})
     return json.dumps(gated["result"])
+
+
+@mcp.tool()
+def route_autonomous(category: str, prompt: str, node: str = "amdy") -> str:
+    """
+    Execute a task autonomously using the Hybrid Autonomous Workflow.
+    It adapts the prompt and delegates to the best fitting local model,
+    and intelligently escalates to the cloud when the task is too complex
+    or if the local model fails/gets stuck.
+    """
+    from reins.harness.autonomous import AutonomousWorkflow
+
+    try:
+        workflow = AutonomousWorkflow()
+        result = workflow.execute(category, prompt, node)
+        return json.dumps(result.__dict__ if hasattr(result, "__dict__") else result)
+    except Exception as e:
+        log_degradation(__name__)
+        return json.dumps({"ok": False, "error": str(e)})
 
 
 @mcp.tool()
@@ -320,11 +461,56 @@ def train_status() -> str:
     return json.dumps(asdict(capability.probe()))
 
 
+@mcp.tool()
+def vault_list() -> str:
+    """List all secret keys in the encrypted vault."""
+    try:
+        import sys as _sys
+        from reins.harness import paths
+        _sys.path.insert(0, str(paths.home() / "scripts"))
+        from get_secrets import list_secrets  # type: ignore
+        return json.dumps(list_secrets())
+    except Exception as e:
+        log_degradation(__name__)
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+def vault_set(key_name: str, value: str) -> str:
+    """Set a secret in the encrypted vault."""
+    try:
+        import sys as _sys
+        from reins.harness import paths
+        _sys.path.insert(0, str(paths.home() / "scripts"))
+        from get_secrets import set_secret  # type: ignore
+        set_secret(key_name, value)
+        return json.dumps({"ok": True, "key": key_name})
+    except Exception as e:
+        log_degradation(__name__)
+        return json.dumps({"ok": False, "error": str(e)})
+
+
+@mcp.tool()
+def vault_rm(key_name: str) -> str:
+    """Remove a secret from the encrypted vault."""
+    try:
+        import sys as _sys
+        from reins.harness import paths
+        _sys.path.insert(0, str(paths.home() / "scripts"))
+        from get_secrets import delete_secret  # type: ignore
+        removed = delete_secret(key_name)
+        return json.dumps({"ok": True, "removed": removed})
+    except Exception as e:
+        log_degradation(__name__)
+        return json.dumps({"ok": False, "error": str(e)})
+
+
 def main(
     http: bool = False,
     host: str = "127.0.0.1",
     port: int = 8765,
     *,
+    unix: str = "",
     allow_remote_http: bool = False,
     secret_loader: SecretLoader | None = None,
 ) -> None:
@@ -335,6 +521,19 @@ def main(
     the Odysseus dashboard, which can't share a stdio pipe with the host)
     needs to reach this server as a network client.
     """
+    if unix:
+        try:
+            import anyio
+            from reins.harness.mcp_unix import serve_mcp_unix
+
+            anyio.run(serve_mcp_unix, mcp, unix)
+            return
+        except KeyboardInterrupt:
+            return
+        except Exception:
+            log_degradation(__name__)
+            # Fall through to http or stdio
+
     if http:
         if not is_loopback_host(host) and not allow_remote_http:
             raise McpHttpConfigurationError(

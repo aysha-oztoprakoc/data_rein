@@ -100,13 +100,30 @@ class ProviderRuntime:
             _ = local.ensure_server()
             return local.generate(model, prompt)
 
-        command = ["ssh", "-o", "BatchMode=yes", "tell", "ollama", "run", model]
-        result = external_io.run(command, input=prompt.encode(), capture_output=True, check=False)
-        output = _decode_stream(result.stdout)
-        if result.returncode == 0 and output.strip():
-            return output
-        error = _decode_stream(result.stderr) or "ollama failed"
-        raise RuntimeError(error.strip()[:200])
+        import json
+        import urllib.request
+        import urllib.error
+
+        # Network-first API routing (avoids blocking interactive SSH overhead)
+        url = "http://tell:11434/api/generate"
+        payload = {"model": model, "prompt": prompt, "stream": False}
+        headers = {"Content-Type": "application/json"}
+        req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+        
+        try:
+            with external_io.urlopen(req, timeout=300) as response:
+                result_json = json.loads(response.read().decode("utf-8"))
+                return result_json.get("response", "")
+        except (urllib.error.URLError, ConnectionError) as e:
+            logger.warning(f"HTTP to tell:11434 failed ({e}). Falling back to SSH overlay.")
+            
+            command = ["ssh", "-o", "BatchMode=yes", "tell", "ollama", "run", model]
+            result = external_io.run(command, input=prompt.encode(), capture_output=True, check=False)
+            output = _decode_stream(result.stdout)
+            if result.returncode == 0 and output.strip():
+                return output
+            error = _decode_stream(result.stderr) or "ollama failed"
+            raise RuntimeError(error.strip()[:200])
 
     def gemini(self, model: str, prompt: str, _node: str) -> str | None:
         key = self._secret_lookup("GEMINI_API_KEY") or self._secret_lookup("GOOGLE_STUDIO_API_KEY")
@@ -157,6 +174,27 @@ class ProviderRuntime:
         except (ImportError, TypeError) as error:
             raise RuntimeError("openai sdk not installed") from error
         response = openai.OpenAI(api_key=key).chat.completions.create(
+            model=model.replace(":cloud", ""),
+            messages=[{"role": "user", "content": prompt}],
+        )
+        if response.usage is not None:
+            self.last_usage = {
+                "input_tokens": response.usage.prompt_tokens,
+                "output_tokens": response.usage.completion_tokens,
+            }
+        return response.choices[0].message.content
+
+    def openai_compat(
+        self, model: str, prompt: str, _node: str, *, base_url: str, secret_name: str
+    ) -> str | None:
+        key = self._secret_lookup(secret_name)
+        if not key:
+            raise RuntimeError(f"no {secret_name}")
+        try:
+            openai = load_openai()
+        except (ImportError, TypeError) as error:
+            raise RuntimeError("openai sdk not installed") from error
+        response = openai.OpenAI(api_key=key, base_url=base_url).chat.completions.create(
             model=model.replace(":cloud", ""),
             messages=[{"role": "user", "content": prompt}],
         )

@@ -100,7 +100,13 @@ class ModelRouter:
             "comfyui": lambda model, prompt, node: self._comfyui(model, prompt, node),
             "gemini": lambda model, prompt, _node: self._gemini(model, prompt),
             "claude": lambda model, prompt, _node: self._claude(model, prompt),
+            "anthropic": lambda model, prompt, _node: self._claude(model, prompt),
             "openai": lambda model, prompt, _node: self._openai(model, prompt),
+            "deepseek": lambda model, prompt, _node: self._deepseek(model, prompt),
+            "xai": lambda model, prompt, _node: self._xai(model, prompt),
+            "moonshot": lambda model, prompt, _node: self._moonshot(model, prompt),
+            "zhipu": lambda model, prompt, _node: self._zhipu(model, prompt),
+            "openrouter": lambda model, prompt, _node: self._openrouter(model, prompt),
         }
 
     def _load(self) -> None:
@@ -197,6 +203,21 @@ class ModelRouter:
             if fallback.ok:
                 return fallback
             tried.append((other, fallback.model, fallback.error or "empty"))
+            
+            # Explicitly log a failed local task to trigger the Odysseus fallback daemon
+            try:
+                from reins.services.task_trail import TaskTrail
+                
+                digest = hashlib.sha256(request.prompt.encode()).hexdigest()[:16]
+                TaskTrail().upsert_task(
+                    f"local-fail-{digest}", 
+                    task_type="local:failed", 
+                    prompt=request.prompt, 
+                    status="failed"
+                )
+            except Exception as e:
+                logger.warning(f"Could not record local failure to TaskTrail: {e}")
+
         provider, default = self._failure_policy(request)
         return self._failure(request.node, tried, provider, default)
 
@@ -284,3 +305,38 @@ class ModelRouter:
 
     def _openai(self, model: str, prompt: str) -> str | None:
         return self._runtime.openai(model, prompt, "cloud")
+
+    def _deepseek(self, model: str, prompt: str) -> str | None:
+        return self._runtime.openai_compat(
+            model, prompt, "cloud",
+            base_url="https://api.deepseek.com",
+            secret_name="DEEPSEEK_API_KEY",
+        )
+
+    def _xai(self, model: str, prompt: str) -> str | None:
+        return self._runtime.openai_compat(
+            model, prompt, "cloud",
+            base_url="https://api.x.ai/v1",
+            secret_name="XAI_API_KEY",
+        )
+
+    def _moonshot(self, model: str, prompt: str) -> str | None:
+        return self._runtime.openai_compat(
+            model, prompt, "cloud",
+            base_url="https://api.moonshot.cn/v1",
+            secret_name="MOONSHOT_API_KEY",
+        )
+
+    def _zhipu(self, model: str, prompt: str) -> str | None:
+        return self._runtime.openai_compat(
+            model, prompt, "cloud",
+            base_url="https://open.bigmodel.cn/api/paas/v4",
+            secret_name="ZHIPU_API_KEY",
+        )
+
+    def _openrouter(self, model: str, prompt: str) -> str | None:
+        return self._runtime.openai_compat(
+            model, prompt, "cloud",
+            base_url="https://openrouter.ai/api/v1",
+            secret_name="OPENROUTER_API_KEY",
+        )

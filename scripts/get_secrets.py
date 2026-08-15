@@ -186,3 +186,64 @@ def get_or_create_secret(
 
 def _generate_token() -> str:
     return secrets.token_urlsafe(32)
+
+
+def set_secret(key_name: str, value: str, *, paths: VaultPaths | None = None) -> None:
+    paths = paths or VaultPaths()
+    _validate_vault_file(paths.key)
+    try:
+        with paths.key.open("rb") as lock_file:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+            cipher, plaintext, previous = _decrypt(paths)
+            updated = _upsert_secret(plaintext, key_name, value)
+            _replace_vault(paths, cipher.encrypt(updated.encode("utf-8")), previous)
+    except VaultError:
+        raise
+    except OSError as error:
+        raise VaultWriteError(message="encrypted secrets vault update failed") from error
+
+
+def delete_secret(key_name: str, *, paths: VaultPaths | None = None) -> bool:
+    paths = paths or VaultPaths()
+    _validate_vault_file(paths.key)
+    try:
+        with paths.key.open("rb") as lock_file:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+            cipher, plaintext, previous = _decrypt(paths)
+            
+            prefix = f"{key_name}="
+            lines = plaintext.splitlines()
+            updated: list[str] = []
+            found = False
+            for line in lines:
+                if line.startswith(prefix):
+                    found = True
+                else:
+                    updated.append(line)
+            
+            if not found:
+                return False
+                
+            _replace_vault(paths, cipher.encrypt(("\n".join(updated) + "\n").encode("utf-8")), previous)
+            return True
+    except VaultError:
+        raise
+    except OSError as error:
+        raise VaultWriteError(message="encrypted secrets vault update failed") from error
+
+
+def list_secrets(*, paths: VaultPaths | None = None) -> list[str]:
+    paths = paths or VaultPaths()
+    _validate_vault_file(paths.key)
+    try:
+        with paths.key.open("rb") as lock_file:
+            fcntl.flock(lock_file, fcntl.LOCK_SH)
+            _, plaintext, _ = _decrypt(paths)
+    except OSError as error:
+        raise VaultError(message="encrypted secrets vault could not be read") from error
+        
+    keys = []
+    for line in plaintext.splitlines():
+        if "=" in line:
+            keys.append(line.split("=", 1)[0].strip())
+    return sorted(keys)

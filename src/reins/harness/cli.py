@@ -114,9 +114,17 @@ def register(
     tsub.add_parser("status", help="Usage vs budget for every provider, per rolling window")
     tsub.add_parser("clear", help="Wipe the usage ledger (does not touch config/token_budgets.json)")
 
-    # reins secret <KEY>  (read one value from the encrypted vault)
-    sec = subparsers.add_parser("secret", help="Print a secret value from the encrypted vault")
-    sec.add_argument("key", help="secret name, e.g. GITHUB_TOKEN")
+    # reins secret ... (manage the encrypted vault)
+    sec = subparsers.add_parser("secret", help="Manage the encrypted vault")
+    sec_sub = sec.add_subparsers(dest="subcmd")
+    sg = sec_sub.add_parser("get", help="Print a secret value")
+    sg.add_argument("key", help="secret name, e.g. GITHUB_TOKEN")
+    ss = sec_sub.add_parser("set", help="Set a secret value")
+    ss.add_argument("key", help="secret name")
+    ss.add_argument("value", help="secret value")
+    sec_sub.add_parser("list", help="List all secret names")
+    sr = sec_sub.add_parser("rm", help="Remove a secret")
+    sr.add_argument("key", help="secret name")
 
     # reins directive / paths
     subparsers.add_parser("directive", help="Print the Prime Directive")
@@ -529,12 +537,33 @@ def _handle_secret(args: argparse.Namespace) -> bool:
     try:
         import sys as _sys
         _sys.path.insert(0, str(paths.home() / "scripts"))
-        from get_secrets import get_secret  # type: ignore
-        val = get_secret(args.key)
-        if val:
-            print(val)
+        from get_secrets import get_secret, set_secret, list_secrets, delete_secret  # type: ignore
+        
+        sub = getattr(args, "subcmd", "get")
+        if not sub and hasattr(args, "key"):
+            sub = "get"
+            
+        if sub == "get":
+            val = get_secret(args.key)
+            if val:
+                print(val)
+            else:
+                print(f"// no such secret: {args.key}", file=_sys.stderr)
+        elif sub == "set":
+            set_secret(args.key, args.value)
+            print(f"// set {args.key}")
+        elif sub == "list":
+            keys = list_secrets()
+            print("// vault keys:")
+            for k in keys:
+                print(f"  {k}")
+        elif sub == "rm":
+            if delete_secret(args.key):
+                print(f"// removed {args.key}")
+            else:
+                print(f"// no such secret: {args.key}", file=_sys.stderr)
         else:
-            print(f"// no such secret: {args.key}", file=__import__("sys").stderr)
+            print("usage: reins secret {get|set|list|rm} ...")
     except Exception as e:
         log_degradation(__name__)
         print(f"// vault error: {e}", file=__import__("sys").stderr)
