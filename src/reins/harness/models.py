@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import time
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -14,6 +15,7 @@ from reins.harness import paths
 from reins.harness.model_inventory import ModelInventory
 from reins.harness.model_providers import ProviderHandler, ProviderRuntime
 from reins.harness.model_types import DEFAULT_PROVIDER_CAPABILITIES, ExecutionPlane, ModelEntry, ModelSpec, RouteResult, RouterConfig
+from reins.harness.combo_registry import ComboRegistry
 from reins.harness.resilience import BreakerRegistry, with_retry
 from reins.harness.resilience_types import BreakerState
 
@@ -86,6 +88,9 @@ class ModelRouter:
         self.remote_fallback: list[ModelSpec] = []
         self._last_usage: dict[str, int] | None = None
         self._runtime: ProviderRuntime = ProviderRuntime(_get_secret)
+        self._combo_registry: ComboRegistry = ComboRegistry()
+        self._omni_mode: bool = bool(self._combo_registry.config.combos)
+        self._rate_limited: dict[str, float] = {}
         self.provider_handlers: dict[str, ProviderHandler] = (
             provider_handlers or self._default_provider_handlers()
         )
@@ -193,9 +198,9 @@ class ModelRouter:
                     )
                 continue
             provider = spec.resolved_provider
-            text, error = self._dispatch(provider, spec.model, request.prompt, request.node)
+            text, error = self._dispatch(provider, spec.model, request.prompt, request.node, spec)
             if text is not None:
-                return RouteResult(text, spec.model, provider, request.node, ok=True)
+                return RouteResult(text, spec.model, provider, request.node, ok=True, combo_id=str(spec.extra.get("combo_id", "")))
             tried.append((request.node, spec.model, error or "empty"))
         if request.plane is ExecutionPlane.LOCAL_TEXT and request.allow_fallback:
             other = "tell" if request.node == "amdy" else "amdy"
@@ -222,6 +227,8 @@ class ModelRouter:
         return self._failure(request.node, tried, provider, default)
 
     def _policy_candidates(self, request: _RouteRequest) -> list[ModelSpec]:
+        if self._omni_mode:
+            return self._omni_candidates(request)
         match request.plane:
             case ExecutionPlane.LOCAL_TEXT | ExecutionPlane.IMAGE:
                 return self.candidates(request.category, request.node)
@@ -238,6 +245,33 @@ class ModelRouter:
                 return specs
             case unreachable:
                 assert_never(unreachable)
+
+    def _omni_candidates(self, request: _RouteRequest) -> list[ModelSpec]:
+        match request.plane:
+            case ExecutionPlane.LOCAL_TEXT | ExecutionPlane.IMAGE:
+                combos = self._combo_registry.combos_for_category(request.category, request.node)
+                specs = [self._combo_registry.combo_to_spec(c) for c in combos]
+                if not specs:
+                    specs = [ModelSpec(model=self.FALLBACK_MODEL)]
+            case ExecutionPlane.CLOUD_TEXT:
+                if request.provider:
+                    combos = [c for c in self._combo_registry.cloud_fallback_combos() 
+                              if c.provider == request.provider.lower()]
+                else:
+                    combos = self._combo_registry.cloud_fallback_combos()
+                specs = [self._combo_registry.combo_to_spec(c) for c in combos]
+            case unreachable:
+                assert_never(unreachable)
+        
+        now = time.monotonic()
+        specs = [s for s in specs if now > self._rate_limited.get(str(s.extra.get("combo_id", "")), 0)]
+        return [
+            replace(
+                spec,
+                capabilities=self.provider_capabilities.get(spec.resolved_provider, frozenset()),
+            )
+            for spec in specs
+        ]
 
     @staticmethod
     def _failure_policy(request: _RouteRequest) -> tuple[str, str]:
@@ -258,8 +292,30 @@ class ModelRouter:
         error = "; ".join(f"{item_node}/{model}: {reason}" for item_node, model, reason in tried)
         return RouteResult(None, tried[-1][1] if tried else "none", provider, node, False, error or default)
 
-    def _dispatch(self, provider: str, model: str, prompt: str, node: str) -> tuple[str | None, str | None]:
-        handler = self.provider_handlers.get(provider)
+    def _dispatch(self, provider: str, model: str, prompt: str, node: str, spec: ModelSpec | None = None) -> tuple[str | None, str | None]:
+        if spec and spec.extra.get("combo_id"):
+            secret_key = str(spec.extra.get("secret_key", ""))
+            base_url = str(spec.extra.get("base_url", ""))
+            if provider in ("deepseek", "xai", "moonshot", "zhipu", "openrouter") and secret_key:
+                default_urls = {
+                    "deepseek": "https://api.deepseek.com",
+                    "xai": "https://api.x.ai/v1",
+                    "moonshot": "https://api.moonshot.cn/v1",
+                    "zhipu": "https://open.bigmodel.cn/api/paas/v4",
+                    "openrouter": "https://openrouter.ai/api/v1",
+                }
+                handler = lambda m, p, n, prov=provider, k=secret_key, bu=base_url: self._runtime.openai_compat(
+                    m, p, n, base_url=bu or default_urls.get(prov, ""), secret_name=k
+                )
+            elif provider in ("openai",) and secret_key:
+                handler = lambda m, p, n, k=secret_key, bu=base_url: self._runtime.openai_compat(
+                    m, p, n, base_url=bu or "https://api.openai.com/v1", secret_name=k
+                )
+            else:
+                handler = self.provider_handlers.get(provider)
+        else:
+            handler = self.provider_handlers.get(provider)
+
         if handler is None:
             return None, f"unknown provider {provider}"
 
@@ -271,17 +327,23 @@ class ModelRouter:
             if text is None:
                 raise RuntimeError("provider returned an empty response")
             if provider not in {"ollama", "comfyui"}:
-                self._record_usage(provider, model, self._last_usage)
+                combo_id = str(spec.extra.get("combo_id", "")) if spec else ""
+                self._record_usage(provider, model, self._last_usage, combo_id)
             return text
 
         try:
             breaker = self.breaker_registry.get(f"{provider}:{node}:{model}")
             return with_retry(invoke, breaker=breaker, idempotent=False), None
         except Exception as error:
+            error_str = str(error).lower()
+            if "429" in error_str or "rate limit" in error_str or "quota" in error_str:
+                combo_id = str(spec.extra.get("combo_id", "")) if spec else ""
+                if combo_id:
+                    self._rate_limited[combo_id] = time.monotonic() + 300
             logger.warning("model provider dispatch degraded", exc_info=True)
             return None, str(error)
 
-    def _record_usage(self, provider: str, model: str, usage: dict[str, int] | None) -> None:
+    def _record_usage(self, provider: str, model: str, usage: dict[str, int] | None, combo_id: str = "") -> None:
         if not usage:
             return
         try:

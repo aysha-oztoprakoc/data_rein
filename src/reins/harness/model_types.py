@@ -165,3 +165,4 @@ class RouteResult:
     node: str
     ok: bool
     error: str | None = None
+    combo_id: str = ""
