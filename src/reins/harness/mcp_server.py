@@ -303,7 +303,7 @@ def route_local(category: str, prompt: str, node: str = "amdy") -> str:
     args: ActionArgs = {"prompt": prompt, "category": category, "node": node}
     gated = gate_call("route_local", "local_generate", args, dispatch_local_generate)
     if not gated["accepted"]:
-        return json.dumps({"ok": False, "model": None, "node": node, "text": None, "error": gated["reason"]})
+        return json.dumps({"ok": False, "model": None, "node": node, "text": None, "error": gated["reason"], "combo_id": None})
     return json.dumps(gated["result"])
 
 
@@ -345,7 +345,7 @@ def escalate_cloud(prompt: str, provider: str = "") -> str:
     if not gated["accepted"]:
         return json.dumps({
             "ok": False, "model": None, "provider": provider or None,
-            "text": None, "error": gated["reason"], "task_id": None, "usage": {},
+            "text": None, "error": gated["reason"], "task_id": None, "usage": {}, "combo_id": None
         })
     return json.dumps(gated["result"])
 

@@ -82,6 +82,7 @@ class TokenLedger:
         output_tokens: int = 0,
         *,
         source: str = "reins",
+        combo_id: str = "",
     ) -> None:
         """Log one cloud call. Never raises - usage tracking must not break a call."""
         try:
@@ -91,6 +92,7 @@ class TokenLedger:
                     "timestamp": time.time(),
                     "provider": provider,
                     "model": model,
+                    "combo_id": combo_id,
                     "input_tokens": int(input_tokens or 0),
                     "output_tokens": int(output_tokens or 0),
                     "total_tokens": int(input_tokens or 0) + int(output_tokens or 0),
@@ -104,6 +106,17 @@ class TokenLedger:
     # -- read -----------------------------------------------------------------
     def all_events(self) -> List[Dict[str, Any]]:
         return self._load()
+
+    def get_combo_usage(self, combo_id: str, window_hours: int = 24) -> int:
+        """Return total token usage for a specific combo over the specified window."""
+        cutoff = time.time() - (window_hours * 3600)
+        total = 0
+        for e in self._load():
+            if e.get("timestamp", 0) < cutoff:
+                continue
+            if e.get("combo_id") == combo_id:
+                total += e.get("total_tokens", 0)
+        return total
 
     def usage_in(self, seconds: float, provider: Optional[str] = None) -> Dict[str, int]:
         """Aggregate requests/tokens in the trailing ``seconds`` window."""

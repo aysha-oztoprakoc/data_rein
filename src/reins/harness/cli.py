@@ -51,6 +51,25 @@ def register(
     bsub2.add_parser("list", help="List commands linked into ~/.local/bin")
     bsub2.add_parser("install", help="Symlink/wrap every harness command into ~/.local/bin")
 
+    # reins combos ...
+    cmb = subparsers.add_parser("combos", help="Manage model combos")
+    csub = cmb.add_subparsers(dest="subcmd")
+    csub.add_parser("list", help="List all combos")
+    
+    ca = csub.add_parser("add", help="Add or update a combo")
+    ca.add_argument("id", help="Combo ID")
+    ca.add_argument("--provider", required=True, help="Provider name")
+    ca.add_argument("--model", required=True, help="Model name")
+    ca.add_argument("--secret-key", default="", help="Secret key name")
+    ca.add_argument("--base-url", default="", help="Base URL")
+    ca.add_argument("--tier", default="free", help="Tier (free/paid/local)")
+    
+    crm = csub.add_parser("rm", help="Remove a combo")
+    crm.add_argument("id", help="Combo ID")
+    
+    ctst = csub.add_parser("test", help="Test a combo")
+    ctst.add_argument("id", help="Combo ID")
+
     # reins local ... (local model server lifecycle)
     local_p = subparsers.add_parser("local", help="Manage the local Ollama model plane")
     lsub = local_p.add_subparsers(dest="subcmd")
@@ -180,11 +199,8 @@ def register(
     te.add_argument("tag", help="ollama model tag to create")
     tsub.add_parser("status", help="Show capability probe result")
 
-    # reins hardware ...  (hardware scan + model-gap advisor)
-    hw = subparsers.add_parser("hardware", help="Hardware scan + local-model gap advisor")
-    hwsub = hw.add_subparsers(dest="subcmd")
-    hwsub.add_parser("scan", help="Re-run the getinfo hardware scan (HARDWARE.md + model_registry.json)")
-    hwsub.add_parser("gaps", help="Recommend not-yet-installed models that fit this machine (MODEL_GAPS.md)")
+
+
 
 
 def handle(args: argparse.Namespace) -> bool:
@@ -227,6 +243,8 @@ def handle(args: argparse.Namespace) -> bool:
         except McpHttpConfigurationError as error:
             raise SystemExit(f"// MCP HTTP configuration refused: {error}") from None
         return True
+    if args.command == "combos":
+        return _handle_combos(args)
     if args.command == "hardware":
         return _handle_hardware(args)
     if args.command == "coord":
@@ -703,3 +721,64 @@ def _handle_wiki(args: argparse.Namespace) -> bool:
     finally:
         db.close()
     return True
+
+def _handle_combos(args: argparse.Namespace) -> bool:
+    from reins.harness.combo_registry import ComboRegistry
+    from reins.harness.model_types import Combo
+    import time
+
+    sub = getattr(args, "subcmd", "list")
+    registry = ComboRegistry()
+
+    if sub == "list":
+        print("// combos:")
+        print(f"  {'ID':<20} | {'Provider':<12} | {'Model':<30} | {'Tier':<6} | {'Secret Key':<15} | Base URL")
+        print("  " + "-"*110)
+        for c in registry.all_combos():
+            print(f"  {c.id:<20} | {c.provider:<12} | {c.model:<30} | {c.tier:<6} | {c.secret_key:<15} | {c.base_url}")
+        return True
+
+    if sub == "add":
+        combo = Combo(
+            id=args.id,
+            provider=args.provider,
+            model=args.model,
+            secret_key=args.secret_key,
+            base_url=args.base_url,
+            tier=args.tier,
+        )
+        registry.add_combo(combo)
+        print(f"// added combo: {args.id}")
+        return True
+
+    if sub == "rm":
+        if registry.remove_combo(args.id):
+            print(f"// removed combo: {args.id}")
+        else:
+            print(f"// combo not found: {args.id}")
+        return True
+
+    if sub == "test":
+        combo = registry.get_combo(args.id)
+        if not combo:
+            print(f"// combo not found: {args.id}")
+            return True
+            
+        from reins.harness.models import ModelRouter
+        router = ModelRouter()
+        
+        print(f"// testing combo {args.id} ({combo.provider}/{combo.model}) ...")
+        t0 = time.time()
+        spec = registry.combo_to_spec(combo)
+        text, err = router._dispatch(combo.provider, combo.model, "Say 'Hello, World!' in exactly two words.", "amdy", spec)
+        t1 = time.time()
+        
+        if not err and text:
+            print(f"// success! ({t1-t0:.2f}s)")
+            print(f"   response: {text.strip()}")
+        else:
+            print(f"// failure! ({t1-t0:.2f}s)")
+            print(f"   error: {err}")
+        return True
+
+    return False

@@ -225,6 +225,7 @@ def main() -> None:
         "coord",
         "dataset",
         "train",
+        "combos",
     )
     if harness_cli is not None and args.command in _harness_cmds:
         if harness_cli.handle(args):
