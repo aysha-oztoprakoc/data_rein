@@ -1906,7 +1906,7 @@ Example:
 builtins.fetchTarball
 ,→"https://github.com/NixOS/nix/archive/7c3ab5751568a0bc63430b33a5169c5e4784a0ff.tar.gz
 ,→"
-"/nix/store/d59llm96vgis5fy231x6m7nrijs0ww36-source"
+REDACTED_BY_SECURITY_SCAN
 Note
 The Nixpkgs manual on Fetchers53 lists numerous additional library functions to fetch files over the network.
 It is an error if the network request fails.
@@ -2013,7 +2013,7 @@ pname = "hello";
 version = "2.12";
 src = fetchurl {
 url = "mirror://gnu/${pname}/${pname}-${version}.tar.gz";
-sha256 = "1ayhp9v4m4rdhjmnl2bq3cibrbqqkgjbl3s7yk2nhlh8vj3ay16g";
+REDACTED_BY_SECURITY_SCAN
 };
 meta = with lib; {
 license = licenses.gpl3Plus;
@@ -2284,7 +2284,7 @@ src = fetchzip {
 12
 url = "https://ftp.gnu.org/gnu/hello/hello-2.12.1.tar.gz";
 13
-sha256 = "sha256-1kJjhtlsAkpNB7f6tZEs+dbKd8z7KoNHyDHEJ0tmhnc=";
+REDACTED_BY_SECURITY_SCAN
 14
 };
 15
@@ -2470,7 +2470,7 @@ repo = "icat";
 14
 rev = "v0.5";
 15
-sha256 = "0wyy2ksxp95vnh71ybj1bbmqd5ggp13x3mk37pzr99ljs9awy8ka";
+REDACTED_BY_SECURITY_SCAN
 16
 };
 17
@@ -2550,7 +2550,7 @@ repo = "icat";
 15
 rev = "v0.5";
 16
-sha256 = "0wyy2ksxp95vnh71ybj1bbmqd5ggp13x3mk37pzr99ljs9awy8ka";
+REDACTED_BY_SECURITY_SCAN
 17
 };
 18
@@ -2712,7 +2712,7 @@ repo = "icat";
 16
 rev = "v0.5";
 17
-sha256 = "0wyy2ksxp95vnh71ybj1bbmqd5ggp13x3mk37pzr99ljs9awy8ka";
+REDACTED_BY_SECURITY_SCAN
 18
 };
 19
@@ -2817,7 +2817,7 @@ repo = "icat";
 16
 rev = "v0.5";
 17
-sha256 = "0wyy2ksxp95vnh71ybj1bbmqd5ggp13x3mk37pzr99ljs9awy8ka";
+REDACTED_BY_SECURITY_SCAN
 18
 };
 19
@@ -3531,11 +3531,11 @@ trace: - world.txt (regular)
 this derivation will be built:
 /nix/store/sjzkn07d6a4qfp60p6dc64pzvmmdafff-fileset.drv
 ...
-'.' -> '/nix/store/zl4n1g6is4cmsqf02dci5b2h5zd0ia4r-fileset'
+REDACTED_BY_SECURITY_SCAN
 './build.sh' -> '/nix/store/zl4n1g6is4cmsqf02dci5b2h5zd0ia4r-fileset/build.sh'
 './hello.txt' -> '/nix/store/zl4n1g6is4cmsqf02dci5b2h5zd0ia4r-fileset/hello.txt'
 './world.txt' -> '/nix/store/zl4n1g6is4cmsqf02dci5b2h5zd0ia4r-fileset/world.txt'
-'./src' -> '/nix/store/zl4n1g6is4cmsqf02dci5b2h5zd0ia4r-fileset/src'
+REDACTED_BY_SECURITY_SCAN
 './src/select.c' -> '/
 ,→nix/store/zl4n1g6is4cmsqf02dci5b2h5zd0ia4r-fileset/src/select.c'
 './src/select.h' -> '/
@@ -5429,7 +5429,7 @@ extraGroups = [ "wheel" ];
 Additionally, you need to specify a password for this user. For the purpose of demonstration only, you specify an
 insecure, plain text password by adding the initialPassword option to the user configuration:
 1
-initialPassword = "test";
+REDACTED_BY_SECURITY_SCAN
 We add two lightweight programs as an example:
 1
 environment.systemPackages = with pkgs; [
@@ -5460,7 +5460,7 @@ isNormalUser = true;
 8
 extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
 9
-initialPassword = "test";
+REDACTED_BY_SECURITY_SCAN
 10
 };
 11
@@ -5596,7 +5596,7 @@ isNormalUser = true;
 13
 extraGroups = [ "wheel" ];
 14
-initialPassword = "test";
+REDACTED_BY_SECURITY_SCAN
 15
 };
 16
@@ -5655,7 +5655,7 @@ isNormalUser = true;
 18
 extraGroups = [ "wheel" ];
 19
-initialPassword = "test";
+REDACTED_BY_SECURITY_SCAN
 20
 };
 21
@@ -6611,11 +6611,11 @@ let
 4
 user = "guest";
 5
-password = "guest";
+REDACTED_BY_SECURITY_SCAN
 6
 SSID = "mywifi";
 7
-SSIDpassword = "mypassword";
+REDACTED_BY_SECURITY_SCAN
 8
 interface = "wlan0";
 9
@@ -7267,7 +7267,7 @@ building '/nix/store/9csjdxv6ir8ccnjl6ijs36izswjgchn0-test.drv' on
 ,→'ssh://remotebuilder'...
 copying 0 paths...
 copying 1 paths...
-copying path '/nix/store/hvj5vyg4723nly1qh5a8daifbi1yisb3-test' from
+REDACTED_BY_SECURITY_SCAN
 ,→'ssh://remotebuilder'...
 /nix/store/hvj5vyg4723nly1qh5a8daifbi1yisb3-test
 261 https://nix.dev/manual/nix/2.23/command-ref/conf-file#conf-system

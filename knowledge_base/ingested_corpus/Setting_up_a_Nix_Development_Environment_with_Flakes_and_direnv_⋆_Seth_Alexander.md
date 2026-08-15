@@ -277,7 +277,7 @@ use flake
 
 # Optional: Add project-specific environment variables
 # These are only set when you're in this directory
-export API_KEY="development-key"
+REDACTED_BY_SECURITY_SCAN
 
 # Optional: Load secrets from a .env file (don't commit this file!)
 # Create a .env file with KEY=value pairs for sensitive data
