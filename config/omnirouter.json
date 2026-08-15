@@ -1,0 +1,61 @@
+{
+  "_schema": "data-rein.omnirouter/1",
+  "combos": [
+    {"id": "ollama:qwen2.5-coder:7b", "provider": "ollama", "model": "qwen2.5-coder:7b", "tier": "local", "score": 95.0, "power": "high"},
+    {"id": "ollama:llama3.1:8b", "provider": "ollama", "model": "llama3.1:8b", "tier": "local", "score": 89.5, "power": "high"},
+    {"id": "ollama:gemma3:4b", "provider": "ollama", "model": "gemma3:4b", "tier": "local", "score": 88.0, "power": "medium"},
+    {"id": "ollama:qwen2.5-coder:1.5b", "provider": "ollama", "model": "qwen2.5-coder:1.5b", "tier": "local", "score": 98.0, "power": "low"},
+    {"id": "ollama:deepseek-r1:8b", "provider": "ollama", "model": "deepseek-r1:8b", "tier": "local", "score": 89.5, "power": "high"},
+    {"id": "ollama:deepseek-r1:1.5b", "provider": "ollama", "model": "deepseek-r1:1.5b", "tier": "local", "score": 98.0, "power": "low"},
+    {"id": "ollama:bakllava:latest", "provider": "ollama", "model": "bakllava:latest", "tier": "local", "score": 92.5, "power": "medium"},
+    {"id": "ollama:minicpm-v:8b", "provider": "ollama", "model": "minicpm-v:8b", "tier": "local", "score": 89.5, "power": "high"},
+    {"id": "ollama:moondream:1.8b", "provider": "ollama", "model": "moondream:1.8b", "tier": "local", "score": 97.6, "power": "low"},
+    {"id": "ollama:qwen3.5:9b", "provider": "ollama", "model": "qwen3.5:9b", "tier": "local", "score": 96.5, "power": "high"},
+    {"id": "ollama:qwen2.5:3b", "provider": "ollama", "model": "qwen2.5:3b", "tier": "local", "score": 96.1, "power": "low"},
+
+    {"id": "deepseek-free", "provider": "deepseek", "model": "deepseek-chat", "secret_key": "DEEPSEEK_API_KEY", "tier": "free", "score": 99.5, "power": "extreme"},
+    {"id": "gemini-free", "provider": "gemini", "model": "gemini-2.0-flash", "secret_key": "GEMINI_API_KEY", "tier": "free", "score": 98.0, "power": "extreme"},
+    {"id": "chatgpt-free", "provider": "openai", "model": "gpt-4o-mini", "secret_key": "OPENAI_API_KEY", "tier": "free", "score": 98.5, "power": "extreme"},
+    {"id": "claude-free", "provider": "anthropic", "model": "claude-3-haiku-20240307", "secret_key": "ANTHROPIC_API_KEY", "tier": "free", "score": 97.0, "power": "extreme"},
+    {"id": "grok-free", "provider": "xai", "model": "grok-3-mini", "secret_key": "XAI_API_KEY", "tier": "free", "score": 96.0, "power": "high"},
+    {"id": "kimi-free", "provider": "moonshot", "model": "moonshot-v1-auto", "secret_key": "MOONSHOT_API_KEY", "tier": "free", "score": 95.0, "power": "high"},
+    {"id": "glm-free", "provider": "zhipu", "model": "glm-4-flash", "secret_key": "ZHIPU_API_KEY", "tier": "free", "score": 99.0, "power": "low"},
+
+    {"id": "openrouter-ds", "provider": "openrouter", "model": "deepseek/deepseek-coder", "secret_key": "OPENROUTER_API_KEY", "tier": "paid", "base_url": "https://openrouter.ai/api/v1", "score": 99.0, "power": "extreme"}
+  ],
+
+  "categories": {
+    "rlm-primary": {
+      "description": "Main orchestrator, strong reasoning",
+      "amdy": ["ollama:qwen2.5-coder:7b", "deepseek-free", "chatgpt-free", "gemini-free", "claude-free", "grok-free", "kimi-free"],
+      "tell": ["ollama:qwen3.5:9b", "deepseek-free"],
+      "cloud": ["deepseek-free", "chatgpt-free", "gemini-free", "claude-free", "grok-free", "kimi-free", "glm-free"]
+    },
+    "rlm-worker-fast": {
+      "description": "Cheap, fast models for high-volume delegation",
+      "amdy": ["ollama:qwen2.5-coder:1.5b", "ollama:llama3.1:8b", "glm-free", "deepseek-free"],
+      "tell": ["ollama:qwen2.5:3b", "glm-free", "deepseek-free"],
+      "cloud": ["glm-free", "deepseek-free", "gemini-free", "kimi-free"]
+    },
+    "rlm-worker-heavy": {
+      "description": "Deep reasoning models",
+      "amdy": ["ollama:deepseek-r1:8b", "ollama:qwen2.5-coder:7b", "deepseek-free", "chatgpt-free", "claude-free"],
+      "tell": ["ollama:deepseek-r1:8b", "ollama:deepseek-r1:1.5b", "deepseek-free"],
+      "cloud": ["deepseek-free", "chatgpt-free", "claude-free", "gemini-free", "grok-free"]
+    },
+    "rlm-vision": {
+      "description": "Multimodal visual reasoning",
+      "amdy": ["ollama:bakllava:latest"],
+      "tell": ["ollama:minicpm-v:8b", "ollama:moondream:1.8b"],
+      "cloud": ["gemini-free", "chatgpt-free"]
+    },
+    "openrouter_explicit": {
+      "description": "Explicit paid tokens via OpenRouter",
+      "amdy": ["openrouter-ds"],
+      "tell": [],
+      "cloud": ["openrouter-ds"]
+    }
+  },
+
+  "cloud_fallback": ["deepseek-free", "chatgpt-free", "gemini-free", "claude-free", "grok-free", "kimi-free", "glm-free"]
+}

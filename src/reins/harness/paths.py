@@ -88,6 +88,10 @@ def model_router() -> Path:
     return config_dir() / "model_router.json"
 
 
+def omnirouter_config() -> Path:
+    return config_dir() / "omnirouter.json"
+
+
 def model_registry() -> Path:
     return config_dir() / "model_registry.json"
 
@@ -202,6 +206,7 @@ def summary() -> dict[str, str]:
         "wiki_db": str(wiki_db()),
         "config_dir": str(config_dir()),
         "model_router": str(model_router()),
+        "omnirouter_config": str(omnirouter_config()),
         "obsidian_vault": str(obsidian_vault()),
         "task_trail": str(task_trail()),
         "token_usage": str(token_usage()),
