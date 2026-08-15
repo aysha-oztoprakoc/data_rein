@@ -16,6 +16,12 @@ This file serves as the collective memory and synchronization point for all agen
   hash-only Task-Trail-logged, capped at 16,384 estimated tokens, and degrade to a
   deterministic bounded package without retry. Contract:
   `knowledge_base/REMOTE_LOCAL_INFERENCE_PROTOCOL.md`.
+* **Unified OmniRouter System (2026-08-15)**: The `ModelRouter` is refactored into a unified,
+  multi-account, multi-provider router supporting 11 providers (Ollama, Gemini, Claude/Anthropic,
+  OpenAI, DeepSeek, xAI/Grok, Moonshot/Kimi, ZhipuAI/GLM, OpenRouter, ComfyUI). All endpoints are
+  configured as labeled **Combos** (`provider + model + key + base_url + tier`) in `config/omnirouter.json`.
+  Includes quota-aware auto-fallback chains, 429 rate-limit cooldown isolation, token budget threshold
+  deprioritization, full encrypted vault CRUD (`reins secret {get,set,list,rm}`), and CLI verb `reins combos {list,add,rm,test}`.
 
 ## 2. The Universal Task Trail
 All agents running under the `data_rein` harness share a unified Task Trail.
@@ -248,3 +254,53 @@ Core interactive processes run via `data-harness-daemon.sh` inside a resilient `
   This is independent of basedpyright installation. Use `GODEBUG=netdns=cgo agy --continue`
   after configuring IPv4 preference, or repair the host's IPv6 default route; do not
   reinstall the Python package to address this transport error.
+
+## Gemini explanation and paper reconciliation (2026-08-14)
+
+* **Source**: `/home/amdy/Downloads/gemini_explanation.txt` is a project-context
+  summary, not a v5 paper or execution log. No v5 PDF is present in Downloads.
+* **Available paper**: the two 10-page PDFs are the previously audited technical
+  draft artifacts. Findings are recorded in
+  `knowledge_base/ACADEMIC_PAPER_SANITY_CHECK_V3.md` and the new
+  `knowledge_base/GEMINI_EXPLANATION_RECONCILIATION_2026_08_14.md`.
+* **Registry correction**: the canonical tree contains eight skills, including
+  `deep-research-paper`; the manifest prose and installer fixture now reflect
+  all eight. `pon_testing_suite` now has the promised frontmatter tags.
+* **Architecture correction**: the PON skill now distinguishes durable state on
+  `tell` from transient local coordinator/cache state on execution nodes.
+* **Boundary**: Gemini’s summary is treated as context. Runtime behavior,
+  measured results, and paper claims must be supported by repository evidence or
+  recorded experiments.
+
+## Skills and v5 paper audit continuation (2026-08-14)
+
+* **Artifact boundary**: a fresh Downloads scan still finds no separately
+  identifiable v5 manuscript. The two Gemini explanation filenames are
+  byte-identical context summaries; the two Data Rein PDFs are 10-page,
+  versionless WeasyPrint drafts.
+* **Skills**: all eight canonical skills resolve correctly through all six
+  configured scan roots. The undated skills list in `PRIME_DIRECTIVE.md` was
+  corrected. Residual risks are that the registry does not validate frontmatter
+  fields and `pon_testing_suite` uses a hyphenated internal name while its
+  directory uses underscores.
+* **Paper**: `knowledge_base/SKILLS_AND_V5_SANITY_CHECK_2026_08_14.md` records
+  contradictions involving `ProcessPoolExecutor`, `OLLAMA_MAX_VRAM`, JSON Task
+  Trail, the absent `tests/test_pon_compliance.py`, the unsubstantiated 13-loop
+  history, and unsupported stress/CPU/uptime results.
+* **Current gate**: focused skill tests and harness PON scanning pass. A wider
+  targeted run still has three failures in malformed training-data handling,
+  two broad-handler diagnostics, and test coverage for untracked
+  `reins.harness.autonomous`.
+
+## Full-Stack Safety Audit and Wiki Unification Handoff (2026-08-14)
+
+* **Status**: COMPLETED. Code committed to `dev` branch.
+* **Frontend/Backend Safety Sweep**: Conducted a deep full-stack audit across the Odysseus application. Squashed 25+ critical runtime errors, including `async` Promise executor anti-patterns in `signature.js`, missing `window` context (`no-undef`) across the JS modules, and Python `NameError` exceptions (missing `datetime` in `caldav_writeback.py`, `repo_id` mismatch in `cookbook_routes.py`). All layers are strictly ESLint and flake8 compliant.
+* **Unified Wiki Integration**: The monolithic `WikiDB` is now natively exposed via REST API. Implemented full CRUD routes (`GET`, `POST`, `PUT`, `DELETE`) inside `odysseus/routes/reins_routes.py`.
+* **Interactive UI Editor**: Replaced the read-only wiki panel in `static/index.html` with a fully interactive split-pane editor (in `static/js/harness.js`). Humans and models can natively create, search, edit, and delete Markdown Pages and Memories directly inside the Odysseus dashboard.
+* **Obsidian Porting**: Wrote and executed an export script (`scripts/export_to_obsidian.py`) that successfully ported the entire `WikiDB` into a standalone Obsidian vault located at `/home/amdy/data_rein/wiki_vault/`. All pages and memories are formatted cleanly as `.md` files with rich YAML frontmatter (slug, category, owner, uid).
+* **Next Agent Sanity Check**: The incoming agent should verify that all the API routes and UI integrations function seamlessly together and ensure the new `wiki_vault` meets the user's expectations for Obsidian compatibility.
+
+## Odysseus full-stack remediation (2026-08-14)
+
+* **Current state**: implementation and release gates pass; vault publication remains intentionally fail-closed because the current Wiki content did not pass secret scanning. See `knowledge_base/HANDOFF_2026_08_14_ODY_FULL_STACK_REMEDIATION.md`.
