@@ -148,6 +148,7 @@ def register(
     ss.add_argument("key", help="secret name")
     ss.add_argument("value", help="secret value")
     sec_sub.add_parser("list", help="List all secret names")
+    sec_sub.add_parser("export", help="Export vault secrets as shell export statements")
     sr = sec_sub.add_parser("rm", help="Remove a secret")
     sr.add_argument("key", help="secret name")
 
@@ -581,13 +582,20 @@ def _handle_secret(args: argparse.Namespace) -> bool:
             print("// vault keys:")
             for k in keys:
                 print(f"  {k}")
+        elif sub == "export":
+            import shlex
+            keys = list_secrets()
+            for k in keys:
+                val = get_secret(k)
+                if val:
+                    print(f"export {k}={shlex.quote(val)}")
         elif sub == "rm":
             if delete_secret(args.key):
                 print(f"// removed {args.key}")
             else:
                 print(f"// no such secret: {args.key}", file=_sys.stderr)
         else:
-            print("usage: reins secret {get|set|list|rm} ...")
+            print("usage: reins secret {get|set|list|export|rm} ...")
     except Exception as e:
         log_degradation(__name__)
         print(f"// vault error: {e}", file=__import__("sys").stderr)

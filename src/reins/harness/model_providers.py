@@ -194,7 +194,11 @@ class ProviderRuntime:
             openai = load_openai()
         except (ImportError, TypeError) as error:
             raise RuntimeError("openai sdk not installed") from error
-        response = openai.OpenAI(api_key=key, base_url=base_url).chat.completions.create(
+        response = openai.OpenAI(
+            api_key=key,
+            base_url=base_url,
+            default_headers={"Authorization": f"Bearer {key}"},
+        ).chat.completions.create(
             model=model.replace(":cloud", ""),
             messages=[{"role": "user", "content": prompt}],
         )
