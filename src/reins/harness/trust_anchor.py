@@ -5,7 +5,6 @@ Provides Policy-Based Access Control (PBAC) and anomaly detection against data p
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from reins.harness.paths import knowledge_base

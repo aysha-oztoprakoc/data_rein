@@ -7,10 +7,8 @@ monolith wiki consolidation.
 from __future__ import annotations
 
 import logging
-import subprocess
 import sys
 import threading
-from pathlib import Path
 from typing import Optional
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler

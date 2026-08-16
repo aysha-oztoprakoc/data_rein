@@ -13,7 +13,7 @@ model-agnostic and inherits local-first + amdy<->tell failover for free.
 """
 
 from __future__ import annotations
-from reins.services.logger import log_degradation
+from reins.services.logger import get_logger, log_degradation
 
 from dataclasses import dataclass
 from typing import Callable, Iterable, Optional
@@ -22,6 +22,7 @@ from reins.harness.models import ModelRouter, RouteResult
 from reins.harness.resilience import BreakerRegistry, CircuitOpenError
 from reins.harness.trust_anchor import KnowledgeValidator
 
+logger = get_logger("workflow")
 _breaker_registry = BreakerRegistry()
 _validator = KnowledgeValidator()
 

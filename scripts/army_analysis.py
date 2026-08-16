@@ -13,9 +13,9 @@ repository_root = Path(__file__).resolve().parents[1]
 if str(repository_root / "src") not in sys.path:
     sys.path.insert(0, str(repository_root / "src"))
 
-from reins.harness.workflow import batch, BatchItem
-from reins.harness.wiki import WikiDB
-from reins.harness.trust_anchor import KnowledgeValidator
+from reins.harness.workflow import batch, BatchItem  # noqa: E402
+from reins.harness.wiki import WikiDB  # noqa: E402
+from reins.harness.trust_anchor import KnowledgeValidator  # noqa: E402
 
 def main():
     parser = argparse.ArgumentParser(description="Deploy the local army to analyze the codebase.")

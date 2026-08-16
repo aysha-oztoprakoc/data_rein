@@ -200,15 +200,13 @@ def _manifest(name_to_purpose: dict[str, str]) -> str:
     rows: list[str] = []
     footer: list[str] = []
     section = "header"
-    table_start = table_end = None
-    for i, line in enumerate(lines):
+    for line in lines:
         if line == "## Registered skills":
             section = "table"
             header.append(line)
             continue
         if section == "table":
             if line.startswith("## "):  # next section starts the footer
-                table_end = i
                 section = "footer"
             elif re.match(r"^\|\s*`", line):
                 rows.append(line)

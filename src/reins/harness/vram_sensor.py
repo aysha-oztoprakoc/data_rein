@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from typing import Final
@@ -9,8 +10,6 @@ from reins.harness import external_io
 _QUERY_TIMEOUT: Final = 1.0
 _BYTES_PER_GIB: Final = 1024**3
 
-
-import json
 
 def _command_free_gb(command: list[str]) -> float | None:
     try:

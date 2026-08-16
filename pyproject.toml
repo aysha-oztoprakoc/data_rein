@@ -96,5 +96,26 @@ select = ["E4", "E7", "E9", "F"]
 reins = "reins.cli:main"
 
 [tool.basedpyright]
+include = [
+    "src",
+    "tests",
+]
+exclude = [
+    "**/__pycache__",
+    "**/.venv",
+    "third_party",
+    "skills",
+    "tulpas",
+    "config",
+    "scripts",
+    "data-oby",
+    "ComfyUI",
+    "wiki_vault",
+    "DATA",
+    "nix-cache",
+    "scratch",
+    "logs",
+    "native",
+]
 extraPaths = ["typings"]
 stubPath = "typings"

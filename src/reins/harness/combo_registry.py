@@ -8,7 +8,6 @@ from pydantic import ValidationError
 from reins.harness import paths
 from reins.harness.model_types import (
     Combo,
-    ExecutionPlane,
     ModelSpec,
     OmniRouterConfig,
     DEFAULT_PROVIDER_CAPABILITIES,

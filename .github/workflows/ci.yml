@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main, prod-ready]
+  pull_request:
+
+jobs:
+  test:
+    name: test (uv sync --locked · pytest · ruff · bandit · detect-secrets · basedpyright)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Sync project (locked)
+        run: uv sync --locked --group dev
+
+      - name: Compile check
+        run: uv run python -m compileall -q src scripts tests
+
+      - name: Pytest
+        run: uv run pytest tests/ -q
+
+      - name: Ruff
+        run: uv run ruff check src tests scripts
+
+      - name: Bandit
+        # Fail only on Medium/High severities; the 15 pre-existing Low findings
+        # (subprocess/xml-import style informational) remain a tracked backlog,
+        # not a CI blocker.
+        run: uv run bandit -r src -q -ll
+
+      - name: Detect-secrets (baselined)
+        run: |
+          uv run detect-secrets scan --baseline .secrets.baseline >/dev/null ||
+          { echo "::error::New secrets detected beyond .secrets.baseline"; exit 1; }
+
+      - name: Basedpyright (ratcheting)
+        # Permits the 311 pre-existing errors; fails on any newly introduced one.
+        run: uv run basedpyright --verifybaseline --baselinefile .basedpyright-baseline.txt

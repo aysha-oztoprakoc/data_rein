@@ -385,13 +385,20 @@ class ModelRouter:
                     "zhipu": "https://open.bigmodel.cn/api/paas/v4",
                     "openrouter": "https://openrouter.ai/api/v1",
                 }
-                handler = lambda m, p, n, prov=provider, k=secret_key, bu=base_url: self._runtime.openai_compat(
-                    m, p, n, base_url=bu or default_urls.get(prov, ""), secret_name=k
-                )
+
+                def _dispatch_multi(m, p, n, prov=provider, k=secret_key, bu=base_url):
+                    return self._runtime.openai_compat(
+                        m, p, n, base_url=bu or default_urls.get(prov, ""), secret_name=k
+                    )
+
+                handler = _dispatch_multi
             elif provider in ("openai",) and secret_key:
-                handler = lambda m, p, n, k=secret_key, bu=base_url: self._runtime.openai_compat(
-                    m, p, n, base_url=bu or "https://api.openai.com/v1", secret_name=k
-                )
+                def _dispatch_openai(m, p, n, k=secret_key, bu=base_url):
+                    return self._runtime.openai_compat(
+                        m, p, n, base_url=bu or "https://api.openai.com/v1", secret_name=k
+                    )
+
+                handler = _dispatch_openai
             else:
                 handler = self.provider_handlers.get(provider)
         else:

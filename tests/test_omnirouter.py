@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import pytest
 
 from reins.harness.combo_registry import ComboRegistry
-from reins.harness.model_types import Combo, OmniRouterConfig
+from reins.harness.model_types import Combo
 from reins.harness.trust_anchor import KnowledgeValidator
 
 
