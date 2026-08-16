@@ -49,5 +49,9 @@ jobs:
           { echo "::error::New secrets detected beyond .secrets.baseline"; exit 1; }
 
       - name: Basedpyright (ratcheting)
-        # Permits the 311 pre-existing errors; fails on any newly introduced one.
-        run: uv run basedpyright --verifybaseline --baselinefile .basedpyright-baseline.txt
+        # Scaling gate: the committed baseline (.basedpyright-baseline.txt, 247
+        # pre-existing diagnostics) is permitted; the check exits non-zero when
+        # a NEW diagnostic is introduced. Regenerate the baseline with:
+        #   basedpyright --writebaseline --baselinefile .basedpyright-baseline.txt
+        # Only do so deliberately — refactoring to remove errors shrinks it.
+        run: uv run basedpyright --baselinefile .basedpyright-baseline.txt
