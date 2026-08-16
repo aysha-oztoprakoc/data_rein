@@ -220,6 +220,7 @@ def test_recursive_digest_ignores_unsupported_runtime_artifacts(
 def test_training_export_segments_long_multimodal_pages_without_losing_provenance(
     wiki: WikiDB,
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # Given one long video page carrying structured extraction provenance.
     metadata = TrainingMetadata(
@@ -238,6 +239,7 @@ def test_training_export_segments_long_multimodal_pages_without_losing_provenanc
     output = tmp_path / "training.jsonl"
 
     # When the Wiki page is exported for a 128-character local training window.
+    monkeypatch.setenv("DATA_REIN_EXPORT_DIR", str(tmp_path))
     stats = dataset.export_jsonl(str(output), modality="video", min_chars=1, max_chars=128)
 
     # Then every segment remains traceable to the same source and modality.

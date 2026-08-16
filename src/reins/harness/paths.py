@@ -170,6 +170,19 @@ def state_dir() -> Path:
     return Path("~/.config/data_nexus").expanduser()
 
 
+def export_dir() -> Path:
+    """Bounded directory that dataset/training exports may land in.
+
+    Export paths are confined here so a remote/tool caller cannot write JSONL
+    to arbitrary filesystem locations (audit residual). Admins may widen it via
+    ``DATA_REIN_EXPORT_DIR``; otherwise it defaults under the per-user state dir.
+    """
+    override = os.environ.get("DATA_REIN_EXPORT_DIR")
+    if override:
+        return Path(override).expanduser().resolve()
+    return state_dir() / "exports"
+
+
 def task_trail() -> Path:
     return state_dir() / "task_trail.sqlite3"
 

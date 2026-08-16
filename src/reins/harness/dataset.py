@@ -9,6 +9,7 @@ from typing import ClassVar, Iterator, Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from reins.harness import paths
 from reins.harness.wiki import WikiDB
 from reins.training.records import TrainingMetadata, TrainingRecord, segment_text
 
@@ -72,6 +73,24 @@ def _records(text: str, metadata: TrainingMetadata, max_chars: int) -> tuple[Tra
     )
 
 
+def _confine_out_path(out_path: str) -> Path:
+    """Resolve ``out_path`` inside the bounded export root (fail-closed).
+
+    Relative paths (bare filenames) land under ``paths.export_dir()``; absolute
+    paths must resolve within it. Any escape attempt raises ``ValueError`` so an
+    untrusted caller cannot write JSONL outside the export root.
+    """
+    root = paths.export_dir()
+    raw = Path(out_path).expanduser()
+    if not raw.is_absolute():
+        raw = root / raw
+    resolved = raw.resolve()
+    root_resolved = root.resolve()
+    if root_resolved not in resolved.parents and resolved != root_resolved:
+        raise ValueError(f"export path escapes the export root ({root}): {out_path}")
+    return resolved
+
+
 def export_jsonl(
     out_path: str,
     *,
@@ -85,7 +104,7 @@ def export_jsonl(
     """Derive bounded records; the Wiki remains the sole knowledge store."""
     written = 0
     skipped = 0
-    output = Path(out_path).expanduser()
+    output = _confine_out_path(out_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     selected = list(categories) if categories else []
     if modality:
