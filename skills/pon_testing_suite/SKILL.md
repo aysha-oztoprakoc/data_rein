@@ -1,6 +1,7 @@
 ---
 name: pon-testing-suite
 description: "Executa testes de segurança, estabilidade e verificação estrita das regras do PON (Paradigma Orientado a Notificações). Obrigatório antes de qualquer push ao GitHub, backup ou grande modificação arquitetural."
+tags: "security, stability, pon, testing, gate"
 ---
 
 # PON Testing Suite (KAD 1.1)

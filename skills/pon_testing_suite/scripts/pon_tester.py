@@ -65,8 +65,14 @@ def run_tests(target_path):
         all_files.append(target_path)
     elif os.path.isdir(target_path):
         for root, dirs, files in os.walk(target_path):
-            # Ignora pastas de ambiente virtual, cache, repositório local e third-party/legacy
-            dirs[:] = [d for d in dirs if d not in ['.git', 'venv', '.venv', '__pycache__', 'node_modules', '.cache', 'ComfyUI', 'comfyui', 'odysseus']]
+            # Ignora pastas de ambiente virtual, cache, repositório local e third-party/legacy.
+            # `skills/*/scripts` são ferramentas importadas/vendored (ToB, HashiCorp etc.);
+            # o PON rege o código do harness, não as ferramentas de skill de terceiros.
+            rel = root.lstrip("./")
+            if rel.startswith("skills") and os.path.basename(root) == "scripts":
+                dirs[:] = []
+                continue
+            dirs[:] = [d for d in dirs if d not in ['.git', 'venv', '.venv', '__pycache__', 'node_modules', '.cache', 'ComfyUI', 'comfyui', 'odysseus', 'third_party', 'scratch', 'wiki_vault', 'nix-cache', 'ai_models', 'DATA', 'nixos', 'target']]
             for file in files:
                 if file.endswith((".py", ".sh", ".bash", ".js", ".c", ".cpp")):
                     all_files.append(os.path.join(root, file))

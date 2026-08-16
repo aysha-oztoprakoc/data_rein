@@ -7,6 +7,8 @@ config/api_keys.json
 config/.secrets.env
 config/.secrets.enc
 config/.secrets.key
+config/.secrets.enc.bak
+config/keys/
 .secrets.env
 api_keys.json
 vault.json
@@ -29,6 +31,22 @@ knowledge_base/wiki.db-wal
 /.gemini/
 /logs/
 /chroma_notebooklm/
+
+# --- Heavyweight / regenerable / machine-local dirs ---
+# Nix binary-cache store + local signing keypair live under config/keys (above).
+# wiki_vault/ is a derived Obsidian export (regenerate via scripts/export_to_obsidian.py).
+# native/reins-pon-engine is a nested git repo published separately (submodule).
+# DATA/ is stray local Claude Code project state that leaked into the repo root.
+/nix-cache/
+/wiki_vault/
+/scratch/
+/result
+/native/
+/DATA/
+/opencode.db
+node_modules/
+.opencode/node_modules/
+.opencode/skills/
 
 # --- Stray environment / home dotfiles that leaked into the repo root ---
 .bashrc
@@ -65,3 +83,5 @@ __pycache__/
 /signal
 /sys
 /unittest
+# Added by code-review-graph
+.code-review-graph/
