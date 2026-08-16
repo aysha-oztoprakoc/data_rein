@@ -1,0 +1,6 @@
+{
+  "substituters": ["http://localhost:8080"],
+  "trusted_public_keys": ["data_rein-1:hfHPGtlX6tbiJPEW43jVt5xzvmPb4zLg2vyA+1L7oUc="],
+  "fallback_to_source_build": true,
+  "discovery": "node-ready-event"
+}

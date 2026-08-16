@@ -10,6 +10,8 @@
   },
   "kv_overhead_gb": 0.6,
   "load_headroom_factor": 1.10,
+  "reserved_vram_gb": 0.5,
+  "eviction_policy": "lru",
   "keep_alive": "10m",
   "model_overrides": { "bakllava:latest": { "num_ctx": 1024 } },
   "ipc": { "socket": null, "mmap_path": null, "mmap_size": 4096 }

@@ -1,67 +1,47 @@
 {
-  "_comment": "Archetypes from OhMyOpenAgents (OMO), re-organized for hardware-optimized defaults with zero initial permissions.",
+  "_comment": "Archetypes based on Prime Agent RLM paradigm, replacing OmO static roles.",
   "categories": {
-    "sisyphus": {
-      "description": "The Coder. Relentlessly writes, refactors, and debugs code. Optimized for syntax and logic.",
+    "rlm-primary": {
+      "description": "The main REPL controller and orchestrator. Strong reasoning.",
       "permissions": [],
-      "capabilities": ["code_generation", "code_review", "debugging", "syntax_analysis"],
+      "capabilities": ["code_generation", "complex_reasoning", "orchestration"],
       "amdy": [
-        {"model": "qwen2.5-coder:7b", "score": 95.0, "power": "high"},
-        {"model": "codegemma:7b", "score": 90.0, "power": "high"}
+        {"model": "deepseek-v4-pro", "score": 99.5, "power": "extreme", "provider": "deepseek"},
+        {"model": "gpt-4o", "score": 99.0, "power": "extreme", "provider": "openai"}
       ],
       "tell": [
-        {"model": "qwen2.5-coder:3b", "score": 96.1, "power": "low"}
+        {"model": "qwen3.5:9b", "score": 96.5, "power": "high"}
       ]
     },
-    "hephaestus": {
-      "description": "The Architect/Planner. Breaks down goals and creates execution plans.",
+    "rlm-worker-fast": {
+      "description": "Cheap, fast models for high-volume parallel delegation (search, formatting, simple extraction).",
       "permissions": [],
-      "capabilities": ["planning", "system_design", "architecture", "task_breakdown"],
+      "capabilities": ["web_search", "exploration", "data_gathering", "formatting", "rag"],
       "amdy": [
-        {"model": "qwen3:8b", "score": 97.2, "power": "high"},
-        {"model": "llama3.1:8b", "score": 95.8, "power": "high"}
-      ],
-      "tell": [
-        {"model": "deepseek-r1:1.5b", "score": 98.0, "power": "low"}
-      ]
-    },
-    "oracle": {
-      "description": "The High-Reasoning Planner. Deep insight, complex problem solving, and strategic foresight.",
-      "permissions": [],
-      "capabilities": ["complex_reasoning", "strategy", "decision_making", "foresight"],
-      "amdy": [
-        {"model": "qwen3.5:9b", "score": 96.5, "power": "high"},
-        {"model": "phi4-mini", "score": 95.0, "power": "high"}
-      ],
-      "tell": [
-        {"model": "deepseek-r1:8b", "score": 89.5, "power": "high"}
-      ]
-    },
-    "librarian": {
-      "description": "The Knowledge Keeper. RAG extraction, documentation search, and file context synthesis.",
-      "permissions": [],
-      "capabilities": ["rag", "summarization", "knowledge_retrieval", "document_analysis"],
-      "amdy": [
+        {"model": "qwen2.5-coder:1.5b", "score": 98.0, "power": "low"},
         {"model": "llama3.1:8b", "score": 89.5, "power": "high"}
       ],
       "tell": [
-        {"model": "smollm2:1.7b", "score": 97.8, "power": "low"},
-        {"model": "gemma2:2b", "score": 97.4, "power": "low"}
-      ]
-    },
-    "explore": {
-      "description": "The Web/Deep Researcher. Explores external context, fetches internet data, and broad surveys.",
-      "permissions": [],
-      "capabilities": ["web_search", "exploration", "data_gathering"],
-      "amdy": [
-        {"model": "llama3.1:8b", "score": 89.5, "power": "high"}
-      ],
-      "tell": [
+        {"model": "glm-4-flash", "score": 99.0, "power": "low", "provider": "zhipu"},
+        {"model": "deepseek-v4-flash", "score": 98.5, "power": "low", "provider": "deepseek"},
         {"model": "qwen2.5:3b", "score": 96.1, "power": "low"}
       ]
     },
-    "multimodal-looker": {
-      "description": "The Visionary. Image analysis, UI to code translation, and visual reasoning.",
+    "rlm-worker-heavy": {
+      "description": "Powerful reasoning models for deep recursive execution.",
+      "permissions": [],
+      "capabilities": ["architecture", "deep_implementation", "debugging"],
+      "amdy": [
+        {"model": "deepseek-coder", "score": 99.0, "power": "extreme", "provider": "deepseek"},
+        {"model": "qwen2.5-coder:7b", "score": 95.0, "power": "high"}
+      ],
+      "tell": [
+        {"model": "deepseek-r1:8b", "score": 89.5, "power": "high"},
+        {"model": "deepseek-r1:1.5b", "score": 98.0, "power": "low"}
+      ]
+    },
+    "rlm-vision": {
+      "description": "Multimodal visual reasoning.",
       "permissions": [],
       "capabilities": ["vision", "image_analysis", "ui_generation"],
       "amdy": [
@@ -72,45 +52,23 @@
         {"model": "moondream:1.8b", "score": 97.6, "power": "low", "type": "vision_analysis"}
       ]
     },
-    "prometheus": {
-      "description": "The Creator. Generates raw assets, images, audio, and large unstructured outputs.",
-      "permissions": [],
-      "capabilities": ["asset_generation", "image_generation", "audio_generation"],
+    "openrouter_explicit": {
+      "description": "Explicit paid tokens via OpenRouter with strict $2 budget limit.",
+      "permissions": ["require_explicit_invocation"],
+      "capabilities": ["premium_routing", "uncapped_reasoning"],
       "amdy": [
-        {"model": "comfyui_sdxl_base", "score": 95.0, "power": "extreme", "backend": "comfyui"},
-        {"model": "comfyui_audio_bark", "score": 92.0, "power": "extreme", "backend": "comfyui"}
+        {"model": "deepseek/deepseek-coder", "score": 99.0, "power": "extreme", "provider": "openrouter"}
       ],
       "tell": [
-        {"model": "llama3.1:8b-instruct-q4_K_M", "score": 89.5, "power": "high", "type": "prompt_generation"}
-      ]
-    },
-    "metis": {
-      "description": "The Optimizer/Reviewer. Evaluates output, optimizes prompts, and performs critical quality control.",
-      "permissions": [],
-      "capabilities": ["code_review", "prompt_optimization", "quality_control", "evaluation"],
-      "amdy": [
-        {"model": "qwen3.5:9b", "score": 96.5, "power": "high"},
-        {"model": "llama3.1:8b", "score": 89.5, "power": "high"}
-      ],
-      "tell": [
-        {"model": "deepseek-r1:1.5b", "score": 98.0, "power": "low"}
-      ]
-    },
-    "momus": {
-      "description": "The Generalist/Orchestrator. Handles routine conversational tasks, user alignment, and routing.",
-      "permissions": [],
-      "capabilities": ["general_chat", "orchestration", "routing", "formatting"],
-      "amdy": [
-        {"model": "llama3.1:8b", "score": 89.5, "power": "high"}
-      ],
-      "tell": [
-        {"model": "qwen2.5:3b", "score": 96.1, "power": "low"}
+        {"model": "meta-llama/llama-3.1-8b-instruct", "score": 90.0, "power": "high", "provider": "openrouter"}
       ]
     }
   },
   "remote_fallback": [
-    {"model": "gpt-4o", "score": 98.0, "power": "extreme", "provider": "openai"},
-    {"model": "gemini-2.5-pro", "score": 98.0, "power": "extreme", "provider": "google"},
-    {"model": "claude-3-7-sonnet-20250219", "score": 99.0, "power": "extreme", "provider": "anthropic"}
+    {"model": "deepseek-v4-pro", "score": 100.0, "power": "extreme", "provider": "deepseek"},
+    {"model": "gpt-4o", "score": 99.0, "power": "extreme", "provider": "openai"},
+    {"model": "gemini-1.5-pro", "score": 99.0, "power": "extreme", "provider": "gemini"},
+    {"model": "gpt-4o-mini", "score": 98.5, "power": "extreme", "provider": "openai"},
+    {"model": "claude-3-7-sonnet-20250219", "score": 97.0, "power": "extreme", "provider": "claude"}
   ]
 }

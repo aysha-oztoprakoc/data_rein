@@ -12,6 +12,58 @@
     }
   },
   "plugin": ["./.opencode/plugin/reins-awareness.js"],
+  "agent": {
+    "plan": {
+      "name": "Planner",
+      "description": "High-level architecture, plan formulation, and task decomposition",
+      "model": "ollama/llama3.1:8b"
+    },
+    "build": {
+      "name": "Builder",
+      "description": "Deep code generation, heavy refactoring, and implementation",
+      "model": "ollama/llama3.1:8b"
+    },
+    "deepsearch": {
+      "name": "DeepSearch",
+      "description": "Fast exploration, RAG, search, file reading, background extraction",
+      "model": "ollama/llama3.1:8b"
+    },
+    "explore": {
+      "name": "Explorer",
+      "description": "Repository exploration and codebase discovery",
+      "model": "ollama/llama3.1:8b"
+    },
+    "refactor": {
+      "name": "Refactorer",
+      "description": "Surgical code edits and structural refactoring",
+      "model": "ollama/llama3.1:8b"
+    },
+    "triage": {
+      "name": "Triager",
+      "description": "Code review, bug diagnosis, static analysis verification",
+      "model": "ollama/llama3.1:8b"
+    },
+    "writer": {
+      "name": "Writer",
+      "description": "Technical documentation, academic papers, release notes",
+      "model": "ollama/llama3.1:8b"
+    },
+    "qa": {
+      "name": "QA Tester",
+      "description": "Quality assurance, test execution review, edge case validation",
+      "model": "ollama/llama3.1:8b"
+    },
+    "momus": {
+      "name": "Momus Enforcer",
+      "description": "Strict adversarial review and law compliance check",
+      "model": "ollama/llama3.1:8b"
+    },
+    "vision": {
+      "name": "Vision Inspector",
+      "description": "Multimodal visual reasoning, UI mockup inspection, OCR",
+      "model": "ollama/bakllava:latest"
+    }
+  },
   "lsp": {
     "basedpyright": {
       "command": [".venv/bin/basedpyright-langserver", "--stdio"],

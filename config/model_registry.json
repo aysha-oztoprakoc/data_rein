@@ -1,5 +1,5 @@
 {
-  "scanned_at": "2026-08-12T02:42:52.738765+00:00",
+  "scanned_at": "2026-08-14T21:22:45.862756+00:00",
   "amdy": {
     "reachable": true,
     "hardware": {
@@ -14,8 +14,19 @@
     "models_installed": [
       "bakllava:latest",
       "codegemma:7b",
+      "deepseek-r1:14b",
+      "gemma3:4b",
       "llama3.1:8b",
-      "qwen2.5-coder:7b"
+      "llama3.2-vision:11b",
+      "llama3.2:3b",
+      "moondream:1.8b",
+      "phi3.5:3.8b",
+      "phi4-mini:latest",
+      "qwen2.5-coder:1.5b",
+      "qwen2.5-coder:7b",
+      "qwen2.5:7b",
+      "qwen3.5:9b",
+      "qwen3:8b"
     ],
     "models_fit": [
       {
@@ -29,14 +40,59 @@
         "score": 37.5
       },
       {
+        "model": "gemma3:4b",
+        "size_gb": 3.3,
+        "score": 58.8
+      },
+      {
         "model": "llama3.1:8b",
         "size_gb": 4.9,
         "score": 38.7
       },
       {
+        "model": "llama3.2:3b",
+        "size_gb": 2.0,
+        "score": 75.0
+      },
+      {
+        "model": "moondream:1.8b",
+        "size_gb": 1.7,
+        "score": 78.8
+      },
+      {
+        "model": "phi3.5:3.8b",
+        "size_gb": 2.2,
+        "score": 72.5
+      },
+      {
+        "model": "phi4-mini:latest",
+        "size_gb": 2.5,
+        "score": 68.8
+      },
+      {
+        "model": "qwen2.5-coder:1.5b",
+        "size_gb": 1.0,
+        "score": 87.5
+      },
+      {
         "model": "qwen2.5-coder:7b",
         "size_gb": 4.7,
         "score": 41.2
+      },
+      {
+        "model": "qwen2.5:7b",
+        "size_gb": 4.7,
+        "score": 41.2
+      },
+      {
+        "model": "qwen3.5:9b",
+        "size_gb": 6.6,
+        "score": 17.5
+      },
+      {
+        "model": "qwen3:8b",
+        "size_gb": 5.2,
+        "score": 35.0
       }
     ]
   },

@@ -1,0 +1,15 @@
+[Unit]
+Description=SOFIA Kernel Dashboard & Knowledge Base (data_rein)
+After=network.target ollama-harness.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/amdy/data_rein
+ExecStart=/home/amdy/data_rein/.venv/bin/python /home/amdy/data_rein/dashboard/app.py
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+Environment=PATH=/home/amdy/data_rein/.venv/bin:/home/amdy/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target

@@ -79,8 +79,8 @@
     "base_paths": ["~/data_rein", "~/.dotfiles", "~/.hermes"],
     "destinations": [
       {"id": "amdy_local", "type": "local", "path": "~/backups/{repo_name}"},
-      {"id": "tell_nvme", "type": "remote", "host": "tell@192.168.0.2", "path": "~/DATA/nvme_backup/{repo_name}"},
-      {"id": "tell_hdd", "type": "remote", "host": "tell@192.168.0.2", "path": "~/HDD/backups/{repo_name}"}
+      {"id": "tell_nvme", "type": "remote", "host": "tell@tell", "path": "~/DATA/nvme_backup/{repo_name}"},
+      {"id": "tell_hdd", "type": "remote", "host": "tell@tell", "path": "~/HDD/backups/{repo_name}"}
     ]
   }
 }
