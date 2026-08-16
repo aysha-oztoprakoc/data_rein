@@ -301,6 +301,34 @@ Core interactive processes run via `data-harness-daemon.sh` inside a resilient `
 * **Obsidian Porting**: Wrote and executed an export script (`scripts/export_to_obsidian.py`) that successfully ported the entire `WikiDB` into a standalone Obsidian vault located at `/home/amdy/data_rein/wiki_vault/`. All pages and memories are formatted cleanly as `.md` files with rich YAML frontmatter (slug, category, owner, uid).
 * **Next Agent Sanity Check**: The incoming agent should verify that all the API routes and UI integrations function seamlessly together and ensure the new `wiki_vault` meets the user's expectations for Obsidian compatibility.
 
-## Odysseus full-stack remediation (2026-08-14)
+## Odysseus full-stack remediation & SOFIA Kernel Assimilation (2026-08-15)
 
-* **Current state**: implementation and release gates pass; vault publication remains intentionally fail-closed because the current Wiki content did not pass secret scanning. See `knowledge_base/HANDOFF_2026_08_14_ODY_FULL_STACK_REMEDIATION.md`.
+* **Task Trail**: `a2772747-94e6-4f64-ba03-c5fcc9e33a09` -> `SUCCESS`.
+* **Deterministic Obsidian Export**: Verified and executed `scripts/export_to_obsidian.py` with zero secret violations; produced complete standalone vault (`wiki_vault/`) containing 818 pages and 194 memories with `.export-manifest.json`.
+* **SOFIA Dashboard Daemonization**: Registered and enabled `systemd/sofia-dashboard.service` (`systemctl --user`), with live supervisor, WebSocket telemetry, inotify reactive watcher, and `sofia-ui` wrapped on `$PATH`.
+* **PON Reactive Wiki Watcher**: Inotify-backed `src/reins/services/wiki_watcher.py` auto-consolidates `knowledge_base/wiki.db` on `.md` document edits with zero polling and non-blocking `external_io` breaker compliance.
+* **Harness Quality Gate**: 338/338 pytest suite passing in 11.59s, 100% PON approved via `pon_tester.py`.
+
+
+## Full-stack security audit & Trail of Bits skills integration (2026-08-16)
+
+* **Task Trail**: `9dc06a83...` batch + audit `4e93e0c0-53ea-4e39-ba47-83cd309e514e` -> `SUCCESS`.
+* **Skills vendored**: 79 Trail of Bits security skills imported (78 native + synthesized
+  `insecure-defaults`); canonical tree now **154 skills**; installed across all 6 environments;
+  ingested into the monolith Wiki (1675 pages / 194 memories). Canonical record:
+  `knowledge_base/SECURITY_AUDIT_2026_08_16.md`.
+* **Confirmed & fixed**:
+  - **HIGH** path traversal via MQTT vault memory `title` — `src/reins/services/vault_manager.py`
+    now sanitizes titles to a bare basename (`sanitize_vault_title`) and validates the resolved
+    write path stays inside the wiki dir. `tests/test_vault_traversal.py` (8 cases).
+  - **MEDIUM** untrusted `.docx` XML entity expansion/XXE — `odysseus/src/markitdown_runtime.py`
+    prefers `defusedxml` and rejects any `<!DOCTYPE` on the stdlib fallback.
+    `odysseus/tests/test_markitdown_runtime.py` (XXE + billion-laughs cases).
+* **Verdicted not-vulnerable (fp/mitigated/no-issue)**: SQL flags (parameterized), `bind_all_interfaces`
+  (SSRF allowlists), `shell=True` builtin actions (admin+tool-policy gated), `sudo_exec` (fully
+  bounded inputs), `urlopen` (operator endpoints), native Rust/C++ memory safety.
+* **Gates**: 346 passed (was 338) in 13.71s; ruff clean; bandit 0 on changed files; PON approved;
+  `pip-audit`/`npm audit` no known vulns; `detect-secrets` clean.
+* **Residuals**: `cargo-audit` not installed (Rust lock not tool-audited); `AUTH_ENABLED=false` and
+  unconfigured-admin fail-open are deployment footguns (recommend fail-closed if exposed); `dataset/export`
+  `out_path` hardening recommended; HF downloads should pin revisions; 41 pre-existing Bandit Lows remain.

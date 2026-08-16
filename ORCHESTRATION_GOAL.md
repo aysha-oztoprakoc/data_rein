@@ -101,3 +101,13 @@ Source: `/home/amdy/data-workspace/docs/ARCHITECTURE.md` + `src/data_workspace/`
 
 **Checkpoint reached.** Directive 2 calls for a `/compact` halt here before
 Phase 3.
+
+### [x] Phase 6: Codebase Pruning & Tech Debt Eradication
+- **Target**: `data_rein` & `odysseus` test suite
+- **Action**: Removed 25MB of leaked root binary artifacts, purged `scripts/legacy`, and migrated legacy `unittest.TestCase` files to native `pytest`.
+- **Output**: See `CLEANUP_PLAN.md` and updated `10_RULES_STATE.md`.
+
+### [x] Phase 7: Training Pipeline & Friction Optimization
+- **Target**: `src/reins/training/` and `src/reins/harness/`
+- **Action**: Optimized data pipeline memory scaling by streaming cursor iteration, hardened QLoRA degradation to explicitly empty VRAM cache before retry, and enabled multithreaded dataset tokenization.
+- **Output**: Improved OOM resilience and faster dataset extraction. See `training_pipeline_optimization.md`.

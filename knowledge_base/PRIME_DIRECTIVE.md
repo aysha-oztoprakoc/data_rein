@@ -73,7 +73,9 @@ written into `config/model_router.json`.
 
 There is one canonical, tracked skills tree: **`skills/`** (indexed by
 `skills/MANIFEST.md`). It is the single editable source for every harness skill —
-`data_rein`, `agy-pon-compliance`, `kad_pon`, `hermes-persona`, `omarchy-aesthetics`.
+`data_rein`, `agy-pon-compliance`, `deep-research-paper`, `hermes-persona`,
+`kad_pon`, `omarchy-aesthetics`, `pon_testing_suite`, `prompt-optimizer`,
+`utfpr-tcc-abnt`.
 Skills are lean: their deep knowledge lives in the wiki, not embedded copies.
 
 Each environment receives them as symlinks via `reins skills install` (idempotent),

@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DATA_REIN // Sovereign AI Harness — Interactive Master Manual</title>
+  <style>
+    :root {
+      --bg-void: #090202;
+      --bg-surface: #140404;
+      --bg-panel: rgba(32, 0, 0, 0.75);
+      --bg-card: rgba(45, 6, 6, 0.65);
+      --bg-card-hover: rgba(70, 12, 12, 0.85);
+      --red-bright: #ff1100;
+      --red-primary: #ff4040;
+      --red-accent: #ff3c3c;
+      --red-glow: rgba(255, 64, 64, 0.35);
+      --red-border: rgba(255, 64, 64, 0.3);
+      --red-border-active: #ff4040;
+      --text-main: #f5f0f0;
+      --text-muted: #b89c9c;
+      --text-dim: #705858;
+      --gold-warn: #ffcf3d;
+      --cyan-info: #26bdfd;
+      --green-ok: #00ff88;
+      --radius-pill: 50px;
+      --radius-panel: 24px;
+      --radius-card: 16px;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-void);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(255, 17, 0, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(255, 64, 64, 0.08) 0%, transparent 45%);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-void);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #4a0d0d;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--red-primary);
+    }
+
+    /* Header & Hero */
+    header {
+      border-bottom: 1px solid var(--red-border);
+      background: rgba(20, 4, 4, 0.85);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--red-bright), var(--bg-surface));
+      border: 2px solid var(--red-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--red-glow);
+      font-family: var(--font-mono);
+      font-weight: 900;
+      font-size: 18px;
+      color: #fff;
+    }
+
+    .brand-title {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #fff;
+    }
+
+    .brand-title span {
+      color: var(--red-primary);
+      text-shadow: 0 0 10px var(--red-glow);
+    }
+
+    .brand-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      background: rgba(255, 64, 64, 0.15);
+      border: 1px solid var(--red-border);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--red-primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    nav {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .nav-btn {
+      background: rgba(255, 64, 64, 0.08);
+      border: 1px solid var(--red-border);
+      color: var(--text-muted);
+      padding: 8px 18px;
+      border-radius: var(--radius-pill);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-btn:hover, .nav-btn.active {
+      background: var(--red-primary);
+      color: #fff;
+      border-color: var(--red-bright);
+      box-shadow: 0 0 15px var(--red-glow);
+    }
+
+    /* Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* Hero Banner */
+    .hero {
+      background: linear-gradient(180deg, rgba(45, 6, 6, 0.4) 0%, rgba(20, 4, 4, 0.2) 100%);
+      border: 1px solid var(--red-border);
+      border-radius: var(--radius-panel);
+      padding: 40px;
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, transparent, var(--red-bright), transparent);
+    }
+
+    .hero-title {
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+
+    .hero-title span {
+      color: var(--red-primary);
+      text-shadow: 0 0 20px var(--red-glow);
+    }
+
+    .hero-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 900px;
+      margin-bottom: 24px;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .stat-box {
+      background: rgba(25, 3, 3, 0.8);
+      border: 1px solid var(--red-border);
+      border-radius: var(--radius-card);
+      padding: 16px 20px;
+      transition: all 0.2s ease;
+    }
+
+    .stat-box:hover {
+      border-color: var(--red-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(255, 64, 64, 0.15);
+    }
+
+    .stat-num {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--red-primary);
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Section Headers */
+    .section-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #fff;
+    }
+
+    .section-title::before {
+      content: '//';
+      color: var(--red-primary);
+      font-family: var(--font-mono);
+      font-weight: 900;
+    }
+
+    /* Search & Filter Bar */
+    .search-panel {
+      background: var(--bg-panel);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--red-border);
+      border-radius: var(--radius-panel);
+      padding: 20px;
+      margin-bottom: 32px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .search-input-wrap {
+      flex: 1;
+      min-width: 280px;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(10, 2, 2, 0.9);
+      border: 1px solid var(--red-border);
+      border-radius: var(--radius-pill);
+      padding: 12px 20px 12px 42px;
+      color: #fff;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--red-primary);
+      box-shadow: 0 0 15px var(--red-glow);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-pill {
+      background: rgba(40, 5, 5, 0.6);
+      border: 1px solid var(--red-border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-pill:hover, .filter-pill.active {
+      background: var(--red-primary);
+      color: #fff;
+      border-color: var(--red-bright);
+    }
+
+    /* Grid Layouts */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--red-border);
+      border-radius: var(--radius-card);
+      padding: 22px;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--red-primary);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(255, 64, 64, 0.2);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .card-tag {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      background: rgba(255, 64, 64, 0.15);
+      border: 1px solid var(--red-border);
+      color: var(--red-primary);
+    }
+
+    .card-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 64, 64, 0.15);
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+    }
+
+    .btn-action {
+      background: rgba(255, 64, 64, 0.1);
+      border: 1px solid var(--red-border);
+      color: var(--red-primary);
+      padding: 5px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+      background: var(--red-primary);
+      color: #fff;
+    }
+
+    /* Code Blocks & Command Snippets */
+    .cmd-box {
+      background: #0d0202;
+      border: 1px solid var(--red-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #ff9999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 8px 0;
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--red-border);
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: var(--red-primary);
+      color: #fff;
+      border-color: var(--red-bright);
+    }
+
+    /* Architecture Visualizer Box */
+    .arch-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--red-border);
+      border-radius: var(--radius-panel);
+      padding: 28px;
+      margin-bottom: 40px;
+      position: relative;
+    }
+
+    .arch-svg-wrap {
+      width: 100%;
+      overflow-x: auto;
+      padding: 20px 0;
+      text-align: center;
+    }
+
+    /* Simulator Terminal */
+    .terminal-window {
+      background: #080101;
+      border: 1px solid var(--red-border);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      margin-bottom: 40px;
+    }
+
+    .terminal-header {
+      background: #190303;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--red-border);
+    }
+
+    .term-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #4a0d0d;
+    }
+
+    .term-dot.active {
+      background: var(--red-primary);
+      box-shadow: 0 0 8px var(--red-glow);
+    }
+
+    .term-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 8px;
+    }
+
+    .terminal-body {
+      padding: 20px;
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      color: #f0e6e6;
+      min-height: 200px;
+      max-height: 350px;
+      overflow-y: auto;
+      line-height: 1.7;
+    }
+
+    .term-prompt {
+      color: var(--red-primary);
+      font-weight: 700;
+    }
+
+    .term-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .term-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      outline: none;
+    }
+
+    /* Table Styles */
+    .data-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--red-border);
+      border-radius: var(--radius-card);
+      background: var(--bg-panel);
+      margin-bottom: 40px;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13.5px;
+    }
+
+    .data-table th {
+      background: rgba(35, 4, 4, 0.9);
+      color: var(--red-primary);
+      font-family: var(--font-mono);
+      font-weight: 700;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--red-border);
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    .data-table td {
+      padding: 12px 18px;
+      border-bottom: 1px solid rgba(255, 64, 64, 0.1);
+      color: var(--text-main);
+    }
+
+    .data-table tr:hover td {
+      background: rgba(255, 64, 64, 0.05);
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #2a0404;
+      border: 1px solid var(--red-primary);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: var(--radius-pill);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      box-shadow: 0 0 20px var(--red-glow);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--red-border);
+      background: var(--bg-surface);
+      padding: 32px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    footer a {
+      color: var(--red-primary);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">DR</div>
+      <div>
+        <div class="brand-title">DATA_<span>REIN</span></div>
+        <div class="brand-badge">Sovereign Dual-Node AI Platform</div>
+      </div>
+    </div>
+    <nav>
+      <a href="#overview" class="nav-btn active">Overview</a>
+      <a href="#skills" class="nav-btn">Skills (53)</a>
+      <a href="#models" class="nav-btn">Model Fleet (15)</a>
+      <a href="#omnirouter" class="nav-btn">OmniRouter</a>
+      <a href="#architecture" class="nav-btn">Architecture (PON)</a>
+      <a href="#cli" class="nav-btn">CLI Matrix</a>
+      <a href="#playground" class="nav-btn">Terminal Sim</a>
+    </nav>
+  </header>
+
+  <div class="container">
+
+    <!-- Hero Section -->
+    <section class="hero" id="overview">
+      <div class="hero-title">Welcome to the <span>Autonomous AI Nexus</span></div>
+      <p class="hero-desc">
+        <code>data_rein</code> is an event-driven, local-first multi-agent harness engineered for sovereign systems research, recursive code generation, and multimodal knowledge synthesis without wasteful polling or vendor lock-in.
+      </p>
+      
+      <div class="hero-stats">
+        <div class="stat-box">
+          <div class="stat-num" id="stat-skills">53</div>
+          <div class="stat-label">Executable Skills</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" id="stat-models">15</div>
+          <div class="stat-label">Installed Local Models</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">11</div>
+          <div class="stat-label">Model Providers</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" id="stat-wiki">813</div>
+          <div class="stat-label">Unified Wiki Pages</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">0.0%</div>
+          <div class="stat-label">Idle CPU (PON Zero-Polling)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Architecture Diagram -->
+    <section class="arch-box" id="architecture">
+      <div class="section-title">Reactive Architecture & Dual-Node Cluster (PON)</div>
+      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+        Zero Polling · Fact Base Elements (FBE) · Strict Role Split: <code>amdy</code> (Ryzen 7 7700 + RX 9060 XT 8GB) executes methods; <code>tell</code> (GTX 1060 6GB) stores durable state.
+      </p>
+      <div class="arch-svg-wrap">
+        <svg viewBox="0 0 1100 320" width="100%" height="300" xmlns="http://www.w3.org/2000/svg" style="font-family: var(--font-mono);">
+          <defs>
+            <linearGradient id="gradRed" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ff1100" stop-opacity="0.8"/>
+              <stop offset="100%" stop-color="#4a0404" stop-opacity="0.9"/>
+            </linearGradient>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="6" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
+          <!-- Nodes Box amdy -->
+          <rect x="40" y="30" width="460" height="260" rx="18" fill="rgba(30, 4, 4, 0.6)" stroke="#ff4040" stroke-width="1.5" />
+          <text x="60" y="65" fill="#ff4040" font-weight="700" font-size="16">NODE: amdy [Execution Engine]</text>
+          <text x="60" y="85" fill="#a89090" font-size="12">Ryzen 7 7700 · RX 9060 XT (8GB VRAM) · Main REPL</text>
+
+          <!-- amdy internal components -->
+          <rect x="60" y="105" width="190" height="60" rx="10" fill="#200000" stroke="rgba(255,64,64,0.4)" />
+          <text x="75" y="130" fill="#fff" font-weight="600" font-size="13">OmniRouter Core</text>
+          <text x="75" y="150" fill="#ff9999" font-size="11">11 Providers · Combos</text>
+
+          <rect x="270" y="105" width="210" height="60" rx="10" fill="#200000" stroke="rgba(255,64,64,0.4)" />
+          <text x="285" y="130" fill="#fff" font-weight="600" font-size="13">Local Models (Ollama)</text>
+          <text x="285" y="150" fill="#ff9999" font-size="11">15 Models · Residency Coord</text>
+
+          <rect x="60" y="185" width="420" height="85" rx="10" fill="#150202" stroke="rgba(255,64,64,0.3)" />
+          <text x="75" y="210" fill="#fff" font-weight="600" font-size="13">Agent Armada & CLI Surfaces</text>
+          <text x="75" y="232" fill="#a89090" font-size="11">data-agy · data-hermes · data-code · data-mcp (:8765)</text>
+          <text x="75" y="252" fill="#ff4040" font-size="11">reins CLI · 53 Canonical Skills Linked</text>
+
+          <!-- Signal Flow Arrow -->
+          <path d="M 500 160 L 595 160" stroke="#ff4040" stroke-width="2" stroke-dasharray="6,4" fill="none" filter="url(#glow)" />
+          <polygon points="600,160 590,154 590,166" fill="#ff4040" />
+          <text x="505" y="145" fill="#ffcf3d" font-size="10" font-weight="700">MQTT / inotify</text>
+
+          <!-- Nodes Box tell -->
+          <rect x="600" y="30" width="460" height="260" rx="18" fill="rgba(30, 4, 4, 0.6)" stroke="#ff4040" stroke-width="1.5" />
+          <text x="620" y="65" fill="#ff4040" font-weight="700" font-size="16">NODE: tell [Durable State & Failover]</text>
+          <text x="620" y="85" fill="#a89090" font-size="12">Intel Core i5 · GTX 1060 (6GB VRAM) · WAL Store</text>
+
+          <!-- tell internal components -->
+          <rect x="620" y="105" width="200" height="60" rx="10" fill="#200000" stroke="rgba(255,64,64,0.4)" />
+          <text x="635" y="130" fill="#fff" font-weight="600" font-size="13">Monolith Wiki DB</text>
+          <text x="635" y="150" fill="#ff9999" font-size="11">813 Pages · 171 Memories</text>
+
+          <rect x="840" y="105" width="200" height="60" rx="10" fill="#200000" stroke="rgba(255,64,64,0.4)" />
+          <text x="855" y="130" fill="#fff" font-weight="600" font-size="13">Universal Task Trail</text>
+          <text x="855" y="150" fill="#ff9999" font-size="11">task_trail.sqlite3 (WAL)</text>
+
+          <rect x="620" y="185" width="420" height="85" rx="10" fill="#150202" stroke="rgba(255,64,64,0.3)" />
+          <text x="635" y="210" fill="#fff" font-weight="600" font-size="13">Autonomous Services</text>
+          <text x="635" y="232" fill="#a89090" font-size="11">data-ody (Daemon Fallback) · Obsidian Vault Mirror</text>
+          <text x="635" y="252" fill="#00ff88" font-size="11">Zero Polling · Event Triggered Only</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Skills Explorer -->
+    <section id="skills">
+      <div class="section-title">The 53 Canonical Skills Matrix</div>
+      
+      <div class="search-panel">
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="skillSearch" class="search-input" placeholder="Search 53 skills by name, trigger, or keyword (e.g. PON, TDD, Claude, Archify)...">
+        </div>
+        <div class="filter-pills" id="skillFilterPills">
+          <button class="filter-pill active" data-filter="all">All (53)</button>
+          <button class="filter-pill" data-filter="core">Harness & PON</button>
+          <button class="filter-pill" data-filter="engineering">Engineering & TDD</button>
+          <button class="filter-pill" data-filter="productivity">Productivity & Writing</button>
+          <button class="filter-pill" data-filter="architecture">Architecture & Visuals</button>
+        </div>
+      </div>
+
+      <div class="grid-3" id="skillsGrid">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- Model Fleet & VRAM Calculator -->
+    <section id="models">
+      <div class="section-title">Local Model Zoo & VRAM Budget Coordinator</div>
+      
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Model Name</th>
+              <th>Parameters</th>
+              <th>VRAM Footprint</th>
+              <th>Target Tier</th>
+              <th>Hardware Fit</th>
+              <th>Quick Run Command</th>
+            </tr>
+          </thead>
+          <tbody id="modelsTableBody">
+            <!-- Injected via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- OmniRouter & Providers -->
+    <section id="omnirouter">
+      <div class="section-title">OmniRouter: 11 Providers & Active Combos</div>
+      
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title" style="color: var(--red-primary);">Supported Model Providers (11)</div>
+          <p class="card-desc" style="margin-top: 8px;">
+            OmniRouter dynamically infers and balances workloads across 11 integrated providers with automatic 429 cooldowns and budget tracking:
+          </p>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; color: var(--text-muted); margin-top: 10px;">
+            <li>🔴 <strong>Ollama (Local Node):</strong> 15 models served on <code>127.0.0.1:11434</code> (Local zero-cost tier).</li>
+            <li>🔴 <strong>LM Studio (Local JIT):</strong> Qwen 2.5 Coder 7B on port <code>1234</code> for OpenCode.</li>
+            <li>🔴 <strong>Google Gemini:</strong> Gemini 2.0 Flash / Pro via encrypted vault API key.</li>
+            <li>🔴 <strong>Anthropic Claude:</strong> Claude 3.7 Sonnet / Haiku via explicit cloud escalation.</li>
+            <li>🔴 <strong>OpenAI:</strong> GPT-4o, GPT-4o-mini, o3-mini via OpenAI standard endpoints.</li>
+            <li>🔴 <strong>DeepSeek:</strong> DeepSeek-V3 / DeepSeek-R1 (OpenAI-compatible protocol).</li>
+            <li>🔴 <strong>xAI (Grok):</strong> Grok-3 / Grok-3-mini via <code>https://api.x.ai/v1</code>.</li>
+            <li>🔴 <strong>Moonshot (Kimi):</strong> Moonshot-v1 models for bilingual reasoning.</li>
+            <li>🔴 <strong>ZhipuAI (GLM):</strong> GLM-4-Flash for ultra-fast structured worker tasks.</li>
+            <li>🔴 <strong>OpenRouter:</strong> Universal fallback aggregator with strict budget caps.</li>
+            <li>🔴 <strong>ComfyUI:</strong> Local image/diagram and audio synthesis engine.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="color: var(--red-primary);">Encrypted Vault & Quota Safeguards</div>
+          <p class="card-desc" style="margin-top: 8px;">
+            No plaintext API keys ever touch configuration files or git logs. All keys are encrypted via Fernet vault:
+          </p>
+          <div class="cmd-box">
+            <span>reins secret list</span>
+            <button class="copy-btn" onclick="copyText('reins secret list')">Copy</button>
+          </div>
+          <div class="cmd-box">
+            <span>reins secret set DEEPSEEK_API_KEY sk-...</span>
+            <button class="copy-btn" onclick="copyText('reins secret set DEEPSEEK_API_KEY sk-...')">Copy</button>
+          </div>
+          <div class="cmd-box">
+            <span>reins combos list</span>
+            <button class="copy-btn" onclick="copyText('reins combos list')">Copy</button>
+          </div>
+          <div class="cmd-box">
+            <span>reins tokens status</span>
+            <button class="copy-btn" onclick="copyText('reins tokens status')">Copy</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Master CLI Matrix -->
+    <section id="cli">
+      <div class="section-title">Master CLI Cheat Sheet (`reins`)</div>
+      
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>reins paths</code></td>
+              <td>System</td>
+              <td>Print all canonical harness paths (wiki, vault, directives)</td>
+              <td><button class="btn-action" onclick="copyText('reins paths')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><code>reins directive</code></td>
+              <td>Constitutional</td>
+              <td>Print the Prime Directive master law</td>
+              <td><button class="btn-action" onclick="copyText('reins directive')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><code>reins skills list</code></td>
+              <td>Skills</td>
+              <td>List all 53 registered canonical skills</td>
+              <td><button class="btn-action" onclick="copyText('reins skills list')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><code>reins skills install</code></td>
+              <td>Skills</td>
+              <td>Symlink skills into all 6 agent environments</td>
+              <td><button class="btn-action" onclick="copyText('reins skills install')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><code>reins wiki search "&lt;q&gt;"</code></td>
+              <td>Wiki</td>
+              <td>Full-text FTS5 search across 813 pages & 171 memories</td>
+              <td><button class="btn-action" onclick="copyText('reins wiki search \"PON\"')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><code>reins wiki add-memory "&lt;fact&gt;"</code></td>
+              <td>Wiki</td>
+              <td>Add persistent fact to Ody Memory Vault</td>
+              <td><button class="btn-action" onclick="copyText('reins wiki add-memory \"amdy has RX 9060 XT GPU\" -c system')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><code>reins local status</code></td>
+              <td>Local AI</td>
+              <td>Check Ollama / LM Studio server health</td>
+              <td><button class="btn-action" onclick="copyText('reins local status')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><code>reins coord status</code></td>
+              <td>VRAM</td>
+              <td>Check GPU VRAM residency & active models (8GB budget)</td>
+              <td><button class="btn-action" onclick="copyText('reins coord status')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><code>reins ask "&lt;prompt&gt;"</code></td>
+              <td>Inference</td>
+              <td>Fast question routed to lightweight local model</td>
+              <td><button class="btn-action" onclick="copyText('reins ask \"Explain PON in 1 sentence\"')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><code>reins run "&lt;cat&gt;" "&lt;prompt&gt;"</code></td>
+              <td>Inference</td>
+              <td>Execute task on category's highest ranked combo</td>
+              <td><button class="btn-action" onclick="copyText('reins run rlm-primary \"Write async queue worker\"')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><code>reins digest &lt;file&gt;</code></td>
+              <td>Multimodal</td>
+              <td>Ingest image/audio/video/text into wiki with OCR/Whisper</td>
+              <td><button class="btn-action" onclick="copyText('reins digest /path/to/diagram.png')">Copy</button></td>
+            </tr>
+            <tr>
+              <td><code>reins trail list</code></td>
+              <td>Task Trail</td>
+              <td>Show active and completed tasks across all agents</td>
+              <td><button class="btn-action" onclick="copyText('reins trail list')">Copy</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Terminal Simulator / Playground -->
+    <section id="playground">
+      <div class="section-title">Interactive Terminal Playground</div>
+      
+      <div class="terminal-window">
+        <div class="terminal-header">
+          <div class="term-dot active"></div>
+          <div class="term-dot"></div>
+          <div class="term-dot"></div>
+          <div class="term-title">reins@data-rein:~ (Interactive REPL Simulator)</div>
+        </div>
+        <div class="terminal-body" id="termOutput">
+          <div style="color: var(--text-dim);">// data_rein Sovereign REPL initialized. Type 'help', 'skills', 'wiki', 'models', or run 'reins ask ...'</div>
+          <div style="color: var(--red-primary);">// Cluster status: amdy [ONLINE 8GB VRAM] · tell [ONLINE 6GB VRAM] · PON Compliance: 100%</div>
+        </div>
+        <div style="padding: 12px 20px; background: #120202; border-top: 1px solid var(--red-border); display: flex; align-items: center; gap: 8px;">
+          <span class="term-prompt">reins $</span>
+          <input type="text" id="termInput" class="term-input" placeholder="Type a command (e.g. 'reins ask Explain PON', 'reins skills list', 'reins wiki stats')...">
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <div id="toast">Command copied to clipboard</div>
+
+  <footer>
+    <div>DATA_REIN SOVEREIGN AI HARNESS // <a href="#overview">TOP</a> // ALL RIGHTS SOVEREIGN</div>
+    <div style="margin-top: 6px;">Sync first · One wiki · Any model · Zero polling · Degrade, never crash.</div>
+  </footer>
+
+  <script>
+    // Skills Data (53 Canonical Skills)
+    const skillsData = [
+      { name: "data_rein", cat: "core", desc: "Universal harness entry, mandatory memory sync (PRIME_DIRECTIVE), and paths discovery." },
+      { name: "agy-pon-compliance", cat: "core", desc: "The PON architectural law: zero polling, amdy/tell role split, FBE, and graceful degradation." },
+      { name: "kad_pon", cat: "core", desc: "Concrete C++ PON engine patterns (SharedAttribute, Rules, inotify + MQTT reactive pipelines)." },
+      { name: "hermes-persona", cat: "core", desc: "Assume the Data-Hermes synthetic orchestrator persona + tactical mission directives." },
+      { name: "omarchy-aesthetics", cat: "core", desc: "Mandatory Omarchy Cyberpunk aesthetic: True Blood Red (#ff4040) on Deep Blood Black (#200000)." },
+      { name: "pon_testing_suite", cat: "core", desc: "Security and stability static-analysis test gate wired into pre-push git hooks." },
+      { name: "prompt-optimizer", cat: "core", desc: "Two-phase remote prompt compilation (compile_prompt_remote) and bounded local execution." },
+      { name: "deep-research-paper", cat: "productivity", desc: "Modular academic paper generation with chunking, literature organization, and Plan-Draft-Revise." },
+      { name: "utfpr-tcc-abnt", cat: "productivity", desc: "Strict UTFPR/ABNT standard formatting (NBR 14724, 10520, 6023) for monographs and papers." },
+      { name: "archify", cat: "architecture", desc: "Standalone interactive HTML/SVG architecture, sequence, and signal flow diagram generator." },
+      { name: "book-to-skill", cat: "productivity", desc: "Ingests PDF/EPUB/DOCX books into structured, executable agent skills with frameworks." },
+      { name: "code-review", cat: "engineering", desc: "Two-axis code review (Standards vs Spec) executed via parallel subagents." },
+      { name: "codebase-design", cat: "architecture", desc: "Shared vocabulary for designing deep modules, seams, and AI-navigable architectures." },
+      { name: "diagnosing-bugs", cat: "engineering", desc: "Scientific root-cause diagnosis loop for elusive bugs and performance regressions." },
+      { name: "domain-modeling", cat: "architecture", desc: "Builds and sharpens ubiquitous domain terminology and architecture decisions." },
+      { name: "git-guardrails-claude-code", cat: "engineering", desc: "Safety hooks blocking destructive git operations (push, reset --hard, clean)." },
+      { name: "grilling", cat: "productivity", desc: "Relentlessly stress-tests and grills architectural plans before implementation." },
+      { name: "grill-me", cat: "productivity", desc: "Interactive interview process to resolve underspecified requirements and design decisions." },
+      { name: "grill-with-docs", cat: "productivity", desc: "Deep design verification using primary documentation and architectural RFCs." },
+      { name: "handoff", cat: "productivity", desc: "Produces structured state handoffs for transitioning context to subsequent agent turns." },
+      { name: "claude-handoff", cat: "productivity", desc: "Session continuity and context packaging specifically tuned for Claude Code." },
+      { name: "implement", cat: "engineering", desc: "Precision implementation workflow enforcing TDD red-green cycles." },
+      { name: "improve-codebase-architecture", cat: "architecture", desc: "Refactoring and modularity analysis to eliminate technical debt and circular imports." },
+      { name: "loop-me", cat: "productivity", desc: "Iterative refinement and validation loop for continuous code execution." },
+      { name: "migrate-to-shoehorn", cat: "engineering", desc: "Migrates test assertions from unsafe 'as' casts to @total-typescript/shoehorn." },
+      { name: "obsidian-vault", cat: "productivity", desc: "Manages Obsidian vault notes, wikilinks, and bi-directional index pages." },
+      { name: "prototype", cat: "engineering", desc: "Builds throwaway proof-of-concept prototypes to validate interface hypotheses." },
+      { name: "qa", cat: "engineering", desc: "Interactive conversational QA session to file reproducible GitHub issues." },
+      { name: "request-refactor-plan", cat: "engineering", desc: "Generates atomic, incremental refactor plans formatted as tiny commits." },
+      { name: "research", cat: "productivity", desc: "Investigates technical questions against primary sources and outputs markdown findings." },
+      { name: "resolving-merge-conflicts", cat: "engineering", desc: "Systematic resolution of in-progress git merge and rebase conflicts." },
+      { name: "scaffold-exercises", cat: "engineering", desc: "Generates structured coding exercise directories with problems, solutions, and tests." },
+      { name: "setup-pre-commit", cat: "engineering", desc: "Configures Husky, lint-staged, Prettier, and test gates for git commits." },
+      { name: "setup-matt-pocock-skills", cat: "engineering", desc: "Installs and links Matt Pocock's complete developer productivity skill suite." },
+      { name: "setup-ts-deep-modules", cat: "architecture", desc: "Scaffolds deep TypeScript module boundaries with strict encapsulation." },
+      { name: "tdd", cat: "engineering", desc: "Test-Driven Development workflow: Red-Green-Refactor with isolated mocks." },
+      { name: "teach", cat: "productivity", desc: "Pedagogical explainer mode breaking down complex computer science concepts." },
+      { name: "to-questionnaire", cat: "productivity", desc: "Converts ambiguous requests into structured, actionable multiple-choice questions." },
+      { name: "to-spec", cat: "engineering", desc: "Transforms rough feature ideas into rigorous, testable functional specifications." },
+      { name: "to-tickets", cat: "engineering", desc: "Breaks comprehensive specifications into bite-sized GitHub issues/tickets." },
+      { name: "triage", cat: "engineering", desc: "Rapidly inspects and prioritizes incoming bugs, errors, and task backlogs." },
+      { name: "ubiquitous-language", cat: "architecture", desc: "Maintains a standardized glossary of domain concepts across the codebase." },
+      { name: "wait-what", cat: "productivity", desc: "Clarification mode for uncovering hidden assumptions in user instructions." },
+      { name: "wayfinder", cat: "architecture", desc: "Maps codebase navigation paths and caller/callee graphs for unfamiliar repos." },
+      { name: "wizard", cat: "productivity", desc: "Multi-step interactive setup wizard for complex toolchain configurations." },
+      { name: "writing-beats", cat: "productivity", desc: "Structures long-form writing into narrative beats and logical arguments." },
+      { name: "writing-for-agents", cat: "productivity", desc: "Optimizes prompts, documentation, and error messages for consumption by AI agents." },
+      { name: "writing-fragments", cat: "productivity", desc: "Composes modular documentation fragments for effortless reusability." },
+      { name: "writing-great-skills", cat: "productivity", desc: "Guidelines and best practices for authoring powerful, executable agent skills." },
+      { name: "writing-shape", cat: "productivity", desc: "Visualizes and enforces the macro structure of essays and technical reports." },
+      { name: "ask-matt", cat: "productivity", desc: "Consults Matt Pocock's TypeScript and architecture mental models." },
+      { name: "design-an-interface", cat: "architecture", desc: "Generates radically different interface designs for a module to compare shapes." },
+      { name: "edit-article", cat: "productivity", desc: "Editorial review and polish for technical articles and documentation." }
+    ];
+
+    // Local Models Data (15 Installed Models)
+    const modelsData = [
+      { name: "qwen2.5-coder:7b", params: "7B", vram: "4.40 GB", tier: "Local Tier 1", fit: "amdy / tell", cmd: "reins run rlm-primary \"...\"" },
+      { name: "llama3.1:8b", params: "8B", vram: "4.65 GB", tier: "Local Tier 1", fit: "amdy", cmd: "reins ask \"...\"" },
+      { name: "deepseek-r1:8b", params: "8B", vram: "4.90 GB", tier: "Local Tier 1", fit: "amdy", cmd: "reins run rlm-worker-heavy \"...\"" },
+      { name: "deepseek-r1:14b", params: "14B", vram: "8.20 GB", tier: "Local Heavy", fit: "amdy (High VRAM)", cmd: "reins run rlm-worker-heavy \"...\"" },
+      { name: "gemma3:4b", params: "4B", vram: "2.80 GB", tier: "Local Tier 2", fit: "amdy / tell", cmd: "reins run general \"...\"" },
+      { name: "qwen2.5-coder:1.5b", params: "1.5B", vram: "1.20 GB", tier: "Local Fast", fit: "amdy / tell", cmd: "reins run rlm-worker-fast \"...\"" },
+      { name: "deepseek-r1:1.5b", params: "1.5B", vram: "1.10 GB", tier: "Local Fast", fit: "amdy / tell", cmd: "reins run rlm-worker-fast \"...\"" },
+      { name: "bakllava:latest", params: "7B", vram: "4.50 GB", tier: "Vision OCR", fit: "amdy", cmd: "reins digest diagram.png" },
+      { name: "moondream:1.8b", params: "1.8B", vram: "1.40 GB", tier: "Vision Fast", fit: "amdy / tell", cmd: "reins digest chart.png" },
+      { name: "phi4-mini:latest", params: "3.8B", vram: "2.50 GB", tier: "Local Fast", fit: "amdy / tell", cmd: "reins classify \"...\"" },
+      { name: "phi3.5:3.8b", params: "3.8B", vram: "2.40 GB", tier: "Local Fast", fit: "amdy / tell", cmd: "reins run classify \"...\"" },
+      { name: "llama3.2:3b", params: "3B", vram: "2.00 GB", tier: "Local Fast", fit: "amdy / tell", cmd: "reins run general \"...\"" },
+      { name: "qwen3.5:9b", params: "9B", vram: "5.40 GB", tier: "Local Tier 1", fit: "amdy", cmd: "reins run general \"...\"" },
+      { name: "qwen3:8b", params: "8B", vram: "4.80 GB", tier: "Local Tier 1", fit: "amdy", cmd: "reins run general \"...\"" },
+      { name: "codegemma:7b", params: "7B", vram: "4.50 GB", tier: "Code Tier", fit: "amdy", cmd: "reins run rlm-primary \"...\"" }
+    ];
+
+    // Render Skills Grid
+    function renderSkills(filter = 'all', query = '') {
+      const grid = document.getElementById('skillsGrid');
+      grid.innerHTML = '';
+      
+      const filtered = skillsData.filter(s => {
+        const matchesFilter = filter === 'all' || s.cat === filter;
+        const matchesQuery = !query || s.name.toLowerCase().includes(query.toLowerCase()) || s.desc.toLowerCase().includes(query.toLowerCase());
+        return matchesFilter && matchesQuery;
+      });
+
+      filtered.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div>
+            <div class="card-header">
+              <div class="card-title">${s.name}</div>
+              <div class="card-tag">${s.cat}</div>
+            </div>
+            <div class="card-desc">${s.desc}</div>
+          </div>
+          <div class="card-footer">
+            <span>skills/${s.name}</span>
+            <button class="btn-action" onclick="copyText('reins wiki search \\\"${s.name}\\\"')">Search Wiki</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // Render Models Table
+    function renderModels() {
+      const tbody = document.getElementById('modelsTableBody');
+      tbody.innerHTML = '';
+      modelsData.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong><code>${m.name}</code></strong></td>
+          <td>${m.params}</td>
+          <td><span style="color: var(--red-primary); font-weight: 700;">${m.vram}</span></td>
+          <td><span class="card-tag">${m.tier}</span></td>
+          <td>${m.fit}</td>
+          <td><button class="btn-action" onclick="copyText('${m.cmd}')">Copy Cmd</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Copy to Clipboard Toast
+    function copyText(text) {
+      navigator.clipboard.writeText(text);
+      const toast = document.getElementById('toast');
+      toast.innerText = `Copied: ${text}`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // Filter Pills Click
+    document.querySelectorAll('#skillFilterPills .filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('#skillFilterPills .filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        const filter = pill.getAttribute('data-filter');
+        const query = document.getElementById('skillSearch').value;
+        renderSkills(filter, query);
+      });
+    });
+
+    // Search Input
+    document.getElementById('skillSearch').addEventListener('input', (e) => {
+      const activeFilter = document.querySelector('#skillFilterPills .filter-pill.active').getAttribute('data-filter');
+      renderSkills(activeFilter, e.target.value);
+    });
+
+    // Terminal Simulator Logic
+    const termInput = document.getElementById('termInput');
+    const termOutput = document.getElementById('termOutput');
+
+    termInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const cmd = termInput.value.trim();
+        if (!cmd) return;
+        
+        termOutput.innerHTML += `<div><span class="term-prompt">reins $</span> ${cmd}</div>`;
+        termInput.value = '';
+
+        setTimeout(() => {
+          let response = '';
+          const lower = cmd.toLowerCase();
+
+          if (lower === 'help') {
+            response = `<div style="color: #a89090;">Available simulation commands:
+  reins skills list       - List all registered skills
+  reins wiki stats        - Show wiki page counts
+  reins local status      - Check Ollama model server
+  reins coord status      - View GPU VRAM allocation
+  reins ask &lt;prompt&gt;       - Test local model response
+  clear                   - Clear terminal screen</div>`;
+          } else if (lower === 'clear') {
+            termOutput.innerHTML = '';
+            return;
+          } else if (lower.includes('skills list')) {
+            response = `<div style="color: #ff9999;">// 53 canonical skills registered -> /home/amdy/data_rein/skills
+  agy-pon-compliance  archify  ask-matt  book-to-skill  code-review  data_rein
+  deep-research-paper  diagnosing-bugs  domain-modeling  hermes-persona  kad_pon
+  omarchy-aesthetics  pon_testing_suite  prompt-optimizer  tdd  utfpr-tcc-abnt ... [53 total]</div>`;
+          } else if (lower.includes('wiki stats')) {
+            response = `<div style="color: #ff9999;">// monolith wiki -> knowledge_base/wiki.db
+   pages    : 813
+   memories : 171
+   categories: 68 active categories (FTS5 search enabled)</div>`;
+          } else if (lower.includes('local status')) {
+            response = `<div style="color: #00ff88;">// local model plane: UP (127.0.0.1:11434)
+   store    : /home/amdy/data_rein/ai_models/models
+   models   : 15 served on demand</div>`;
+          } else if (lower.includes('coord status')) {
+            response = `<div style="color: #ffcf3d;">// coordinator: 4.65 / 7.20 GB VRAM active
+  llama3.1:8b       ready      4.65GB VRAM (amdy node)</div>`;
+          } else if (lower.startsWith('reins ask')) {
+            response = `<div style="color: #fff;">// llama3.1:8b @ amdy [ollama]:
+"The Notification-Oriented Paradigm (PON) eliminates active spin-waits by ensuring execution happens strictly when state attributes trigger reactive rules."</div>`;
+          } else {
+            response = `<div style="color: var(--gold-warn);">// Command recognized in simulation. Executing through local harness coordinator... [OK]</div>`;
+          }
+
+          termOutput.innerHTML += `<div>${response}</div>`;
+          termOutput.scrollTop = termOutput.scrollHeight;
+        }, 150);
+      }
+    });
+
+    // Initialize
+    renderSkills();
+    renderModels();
+  </script>
+</body>
+</html>

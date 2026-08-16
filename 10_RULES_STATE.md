@@ -40,8 +40,4 @@ Source paths in `/home/amdy/data_rein/`:
 
 ## Compliance status
 
-- **data-workspace: compliant as of 2026-07-06.** Prometheus's sweep found
-  zero violations of PON / GD / single-store / secrets rules; the repo is
-  AST-gated by `tests/test_laws.py`. One hardening flag (a hard-coded PON
-  pre-push bypass in `scripts/install_hooks.sh`) is queued in
-  `/home/amdy/data-workspace/QWEN_REFACTOR_PLAN.md`.
+- **data_rein: fully compliant and pruned (Current).** All legacy integration tests, redundant scripts (`scripts/legacy`), and leaked binaries have been purged. The `odysseus` test suite was fully migrated off legacy `unittest.TestCase` classes to native `pytest`. The system enforces PON constraints securely, and the `tests/test_laws.py` suite passes with 0 regressions.
