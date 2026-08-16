@@ -24,6 +24,8 @@ dependencies = [
     "websockets>=16.0",
     "pydantic>=2.13.0",
     "defusedxml>=0.7.1",
+    # Event-driven file watching for the PON wiki watcher (reins.services.wiki_watcher).
+    "watchdog>=4.0.0",
 ]
 
 [project.optional-dependencies]
@@ -59,6 +61,34 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = [
     "src/reins"
+]
+
+# A pip package should ship only code and packaging metadata, not the harness's
+# local data/knowledge trees. Without this the sdist ballooned to ~290MB by
+# vendoring third_party/, knowledge_base/ PDFs, ComfyUI and per-node data dirs.
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/**",
+    "tests/**",
+    "scripts/**",
+    "pyproject.toml",
+    "uv.lock",
+    "README.md",
+    "LICENSE",
+    "AGENTS.md",
+    "CLAUDE.md",
+]
+exclude = [
+    "**/__pycache__",
+    "**/*.pyc",
+    ".venv",
+    "third_party",
+    "knowledge_base",
+    "tulpas",
+    "data-oby",
+    "ComfyUI",
+    "data_harness",
+    "data",
 ]
 
 [tool.pytest.ini_options]

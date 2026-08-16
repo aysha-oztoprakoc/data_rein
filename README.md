@@ -1,9 +1,10 @@
 # data_rein — Universal AI Harness
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-ff4040)](LICENSE)
-![Python](https://img.shields.io/badge/python-3.10%2B-ff4040)
+![Python](https://img.shields.io/badge/python-3.11-ff4040)
 ![Architecture](https://img.shields.io/badge/architecture-PON-ff4040)
 ![Local--first](https://img.shields.io/badge/models-local--first-ff4040)
+[![CI](https://github.com/aysha-oztoprakoc/data_rein/actions/workflows/ci.yml/badge.svg)](https://github.com/aysha-oztoprakoc/data_rein/actions/workflows/ci.yml)
 
 A personal, self-hosted harness that lets a fleet of AI agents — Claude Code, OpenCode,
 Antigravity, and a graphical dashboard (Odysseus) — share one knowledge base, one
@@ -83,20 +84,59 @@ agent the same three things:
 
 ## Quick start
 
+The harness runs from a checkout (it hosts its own knowledge base, skills tree and
+config on disk, so it is *not* a fully self-contained library install). The pip
+artifacts build and install cleanly (`uv build`; `reins` console-script is verified),
+but a live deployment is this repo itself.
+
 ```bash
-uv sync
-uv sync --extra media   # local audio/video transcription
-reins directive          # print the Prime Directive (read this first)
-reins wiki stats          # sanity-check the knowledge store
-reins local status         # check the local Ollama model fleet
-reins ask "hello"          # smoke-test the router end to end
+git clone https://github.com/aysha-oztoprakoc/data_rein.git
+cd data_rein
+uv sync --group dev          # locked deps + dev tooling; use `--extra` for opt-ins
+reins directive               # print the Prime Directive (read this first)
+reins wiki stats              # sanity-check the knowledge store
+reins local status             # check the local Ollama model fleet
+reins ask "hello"              # smoke-test the router end to end
 reins digest /path/to/files --recursive
 reins train prepare /tmp/train.jsonl --max-chars 8192
 reins train run --dataset /tmp/train.jsonl --dry-run
 ```
 
+Opt-in capability groups (declared as project **extras**, installed with
+`uv sync --extra <name>`):
+
+| Extra | Provides |
+|---|---|
+| `ingestion` | MinerU layout-aware PDF extraction (degrades to PyMuPDF when absent) |
+| `media` | Local speech-to-text for audio/video |
+| `train` | QLoRA fine-tuning stack (heavy GPU deps) |
+
 See `AGENTS.md` for the full agent contract (boot sequence, CLI reference, skills) —
 it's the same file every agent in this harness reads before doing anything else.
+
+## Contributing
+
+This repo is public-readable and follows a production-grade contribution flow.
+
+- **Report a bug / request a feature** — use the [issue templates](.github/ISSUE_TEMPLATE/).
+- **Open a PR** — use the [PR template](.github/pull_request_template.md). It encodes
+  the PON/local-first laws and the verification checklist.
+- **The CI gate** (`.github/workflows/ci.yml`, on every push/PR) runs: `uv sync
+  --locked` → `compileall` → `pytest` → `ruff` → `bandit -ll` → `detect-secrets`
+  (baselined) → `basedpyright` (ratcheting baseline). A PR must pass all of it.
+
+```bash
+uv sync --locked --group dev
+uv run pytest tests/ -q            # tests
+uv run ruff check src tests scripts   # lint
+uv run bandit -r src -q -ll           # security (Medium/High)
+uv run basedpyright --baselinefile .basedpyright-baseline.txt  # type ratchet
+uv lock --check                       # lockfile consistency
+```
+
+Keep installs honest: any new runtime import must be declared in `pyproject.toml`
+(not just present in your working venv), and keep the sdist lean
+(`uv build` — no vendored data trees).
 
 ## Status & roadmap
 
@@ -111,7 +151,7 @@ not aspirational.
 | Text/document/image/audio/video ingestion pipeline | ✅ Live |
 | Odysseus dashboard (Docker, MCP-HTTP bridge) | 🟡 Built, not yet run end-to-end |
 | ComfyUI image generation | 🟡 Dispatch code wired; ComfyUI's own Python/torch env not set up yet |
-| Repo security hardening (public-readiness) | ✅ Audited — no secrets in tracked history |
+| Repo security hardening + CI gate | ✅ Audited — no secrets in tracked history; CI runs ruff/bandit/detect-secrets/basedpyright on every push |
 | Local speech-to-text extraction | ✅ Live through optional `media` extra |
 | Embedding-based (semantic) wiki search | ⬜ Planned — currently keyword (FTS5) only |
 
