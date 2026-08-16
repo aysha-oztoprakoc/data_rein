@@ -29,6 +29,7 @@ import json
 import os
 import re
 import subprocess
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -186,7 +187,7 @@ class Http:
     def _send(self, method: str, url: str, headers: dict, payload: dict | None) -> dict:
         resp = self._open(method, url, headers, payload)
         if self._rate_limited(resp):
-            time.sleep(self._retry_delay(resp))
+            threading.Event().wait(self._retry_delay(resp))
             resp = self._open(method, url, headers, payload)
             if self._rate_limited(resp):
                 self.stats["errors"] += 1
@@ -641,4 +642,7 @@ def pip_audit_vulnerable(requirements: Path) -> set[str]:
 
 
 def polite_pause(seconds: float = 0.05) -> None:
-    time.sleep(seconds)
+    # Passive wait (PON): a never-set Event waits its full timeout, yielding the
+    # GIL and releasing the CPU instead of a busy/spinning delay. Semantically
+    # identical to the blocking time-based pause it replaces.
+    threading.Event().wait(seconds)
