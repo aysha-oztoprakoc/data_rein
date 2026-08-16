@@ -365,7 +365,15 @@ Core interactive processes run via `data-harness-daemon.sh` inside a resilient `
 * **odysseus hygiene fully closed**: local `dev` line preserved on the fork as
   `aysha-oztoprakoc/odysseus:dev-data_rein` (1,857 commits, tip b0919501, pushed this session);
   stale `probe-onto` + `phase8-rebase` branches and all scratch worktrees removed.
-  **PR odysseus-dev/odysseus#6078 OPEN/MERGEABLE** awaiting upstream maintainer merge.
-* **Trailing gap**: `TrailRecorder` + `reins trail plan/step/finish` + `tests/test_trail_recorder.py`
-  implemented but still uncommitted/untracked at close-out (see `git status` — they are the
-  recorder used to log this plan). Should be committed + pushed in the next session.
+  **PR odysseus-dev/odysseus#6078 CLOSED** (2026-08-16, per standing fork policy below).
+* **Trailing gap (resolved)**: `TrailRecorder` + `reins trail plan/step/finish` + the test were
+  committed in `f3d7305` (this is the recorder that logs this plan), pushed to `origin/prod-ready`.
+
+## STANDING POLICY — fork-only work (2026-08-16)
+
+* **All future work on odysseus (and any contribution-capable project) stays on the user's own
+  fork.** No new upstream PRs; keep branches on `aysha-oztoprakoc/odysseus` (e.g.
+  `fix/xxe-docx-hardening`, `dev-data_rein`). Do not push/PR to `odysseus-dev/odysseus` `dev`/`main`.
+* **PR #6078 was closed** per this directive; the XXE/docx hardening change remains on the fork
+  branches `fix/xxe-docx-hardening` + `dev-data_rein`, archive in `docs/odysseus-phase8/`.
+* Mirror of the same policy stored in the wiki (`wiki_add_memory`, uid `fa3ea3f0...`).
