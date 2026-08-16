@@ -1,6 +1,6 @@
 [project]
 name = "data_rein"
-version = "0.1.0"
+version = "0.2.0"
 description = "Universal AI harness: shared wiki, model-agnostic router, and task trail for a fleet of local-first coding agents (PON architecture)"
 readme = "README.md"
 requires-python = ">=3.10"
