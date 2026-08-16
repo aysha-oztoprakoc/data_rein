@@ -52,6 +52,11 @@ def knowledge_base() -> Path:
     return _resolve("DATA_REIN_KB", "knowledge_base")
 
 
+def skills() -> Path:
+    """The canonical skills source tree (see skills/MANIFEST.md)."""
+    return _resolve("DATA_REIN_SKILLS", "skills")
+
+
 def prime_directive() -> Path:
     """The single master constitution loaded by every environment."""
     return _resolve("DATA_REIN_PRIME_DIRECTIVE", "knowledge_base", "PRIME_DIRECTIVE.md")
@@ -199,6 +204,7 @@ def summary() -> dict[str, str]:
     return {
         "home": str(home()),
         "knowledge_base": str(knowledge_base()),
+        "skills": str(skills()),
         "prime_directive": str(prime_directive()),
         "aesthetic_directive": str(aesthetic_directive()),
         "shared_context": str(shared_context()),

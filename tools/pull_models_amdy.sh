@@ -10,9 +10,16 @@ done
 echo "Ollama is up! Starting AMDY model pulls..."
 
 # Default Chat
+ollama pull qwen3.5:9b
 ollama pull llama3.1:8b
 ollama pull qwen2.5:7b
 ollama pull llama3.2:3b
+ollama pull phi4-mini
+
+# Extraction and Training (SOTA mid-2026 for 8GB VRAM)
+ollama pull llama3.3:8b
+ollama pull gemma3:4b
+ollama pull qwen3:8b
 
 # Utility
 ollama pull qwen2.5-coder:7b

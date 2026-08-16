@@ -26,6 +26,7 @@ def register(
 
     wsub.add_parser("stats", help="Show page/memory counts and categories")
     wsub.add_parser("consolidate", help="Rebuild the wiki from all sources (idempotent)")
+    wsub.add_parser("watch", help="Start reactive inotify file watcher for auto-consolidation")
 
     p = wsub.add_parser("search", help="Full-text search pages + memories")
     p.add_argument("query")
@@ -69,6 +70,11 @@ def register(
     
     ctst = csub.add_parser("test", help="Test a combo")
     ctst.add_argument("id", help="Combo ID")
+
+    cset = csub.add_parser("set", help="Set/bind primary model combo for an archetype category")
+    cset.add_argument("category", help="Archetype category (e.g. plan, build, deepsearch, etc.)")
+    cset.add_argument("combo_id", help="Combo ID or model name")
+    cset.add_argument("--node", default="amdy", choices=["amdy", "tell", "cloud"])
 
     # reins local ... (local model server lifecycle)
     local_p = subparsers.add_parser("local", help="Manage the local Ollama model plane")
@@ -689,6 +695,20 @@ def _handle_wiki(args: argparse.Namespace) -> bool:
         external_io.run([sys.executable, str(script)], check=False)
         return True
 
+    if sub == "watch":
+        import threading
+        from reins.services.wiki_watcher import start_wiki_watcher, stop_wiki_watcher
+
+        print("// starting PON reactive inotify wiki watcher...")
+        stop_event = threading.Event()
+        start_wiki_watcher(debounce_seconds=2.0)
+        try:
+            stop_event.wait()
+        except KeyboardInterrupt:
+            print("\n// stopping wiki watcher...")
+            stop_wiki_watcher()
+        return True
+
     db = WikiDB()
     try:
         if sub == "stats":
@@ -779,6 +799,14 @@ def _handle_combos(args: argparse.Namespace) -> bool:
         else:
             print(f"// failure! ({t1-t0:.2f}s)")
             print(f"   error: {err}")
+        return True
+
+    if sub == "set":
+        node = getattr(args, "node", "amdy")
+        if registry.set_category_model(args.category, args.combo_id, node=node):
+            print(f"// set category '{args.category}' primary model on {node} to '{args.combo_id}'")
+        else:
+            print(f"// combo or model '{args.combo_id}' not found")
         return True
 
     return False

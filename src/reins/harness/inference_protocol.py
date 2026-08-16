@@ -32,11 +32,11 @@ GenerateLocal = Callable[[str, str, str], RouteResult]
 
 _COMPLEX_CATEGORIES = frozenset(
     {
-        "coding: complex",
-        "data processing",
-        "deep search",
-        "prompt optimization",
-        "self-optimization",
+        "sisyphus",
+        "oracle",
+        "explore",
+        "metis",
+        "hephaestus",
     }
 )
 

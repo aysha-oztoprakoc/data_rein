@@ -66,7 +66,7 @@ class HarnessAgent:
             self.trail = None
 
     def infer(self, category: str, prompt: str, node: str = "amdy", rag: bool = False) -> RouteResult:
-        """Route one prompt to the best model for a category (never raises)."""
+        """Route one prompt autonomously to the best model for a category (never raises)."""
         from reins.harness import workflow
 
         return workflow.run(category, prompt, node=node, rag=rag, router=self.router)

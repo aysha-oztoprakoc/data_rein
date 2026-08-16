@@ -110,7 +110,7 @@ class ModelSpec:
         if model.startswith("gemini"):
             return "gemini"
         if model.startswith(("claude", "anthropic")):
-            return "anthropic"
+            return "claude"
         if model.startswith(("gpt", "openai", "o1", "o3")) or ":cloud" in model:
             return "openai"
         if model.startswith("deepseek"):

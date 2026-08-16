@@ -125,10 +125,12 @@ class ModelRouter:
                 for category, routes in config.categories.items()
             }
             self.remote_fallback = [ModelSpec.from_entry(entry) for entry in config.remote_fallback]
+            self._default_remote_fallback = list(self.remote_fallback)
         except (OSError, ValidationError):
             logger.warning("model router configuration failed to load", exc_info=True)
             self.table = {}
             self.remote_fallback = []
+            self._default_remote_fallback = []
 
     def candidates(self, category: str, node: str = "amdy") -> list[ModelSpec]:
         category_entry = self.table.get(category) or self.table.get(category.lower()) or {}
@@ -187,6 +189,24 @@ class ModelRouter:
     def _execute_request(self, request: _RouteRequest) -> RouteResult:
         tried: list[tuple[str, str, str]] = []
         specs = self._policy_candidates(request)
+
+        task_id = None
+        try:
+            from reins.services.task_trail import TaskTrail
+
+            digest = hashlib.sha256(request.prompt.encode()).hexdigest()[:16]
+            plane_str = "cloud" if request.plane is ExecutionPlane.CLOUD_TEXT else "local"
+            task_type = f"model:{plane_str}:{request.category or 'general'}"
+            task_id = TaskTrail().upsert_task(
+                f"route-{digest}-{int(time.time() * 1000)}",
+                task_type=task_type,
+                prompt=request.prompt[:250],
+                target_node=request.node,
+                status="running",
+            )
+        except Exception:
+            logger.warning("could not record task start to TaskTrail", exc_info=True)
+
         for spec in specs:
             if request.plane not in spec.capabilities:
                 if (
@@ -200,8 +220,20 @@ class ModelRouter:
             provider = spec.resolved_provider
             text, error = self._dispatch(provider, spec.model, request.prompt, request.node, spec)
             if text is not None:
+                if task_id:
+                    try:
+                        TaskTrail().update_task(task_id, "success")
+                    except Exception:
+                        logger.warning("could not record task success to TaskTrail", exc_info=True)
                 return RouteResult(text, spec.model, provider, request.node, ok=True, combo_id=str(spec.extra.get("combo_id", "")))
             tried.append((request.node, spec.model, error or "empty"))
+
+        if task_id:
+            try:
+                TaskTrail().update_task(task_id, "failed")
+            except Exception:
+                logger.warning("could not record task failure to TaskTrail", exc_info=True)
+
         if request.plane is ExecutionPlane.LOCAL_TEXT and request.allow_fallback:
             other = "tell" if request.node == "amdy" else "amdy"
             fallback = self._execute_request(replace(request, node=other, allow_fallback=False))
@@ -250,21 +282,70 @@ class ModelRouter:
         match request.plane:
             case ExecutionPlane.LOCAL_TEXT | ExecutionPlane.IMAGE:
                 combos = self._combo_registry.combos_for_category(request.category, request.node)
-                specs = [self._combo_registry.combo_to_spec(c) for c in combos]
-                if not specs:
-                    specs = [ModelSpec(model=self.FALLBACK_MODEL)]
-            case ExecutionPlane.CLOUD_TEXT:
-                if request.provider:
-                    combos = [c for c in self._combo_registry.cloud_fallback_combos() 
-                              if c.provider == request.provider.lower()]
+                if combos:
+                    specs = [self._combo_registry.combo_to_spec(c) for c in combos]
+                    specs = [s for s in specs if s.resolved_provider != "ollama" or self.model_inventory.admit(request.node, s.model)]
                 else:
-                    combos = self._combo_registry.cloud_fallback_combos()
-                specs = [self._combo_registry.combo_to_spec(c) for c in combos]
+                    specs = self.candidates(request.category, request.node)
+            case ExecutionPlane.CLOUD_TEXT:
+                if self.remote_fallback != self._default_remote_fallback:
+                    specs = [
+                        replace(
+                            spec,
+                            capabilities=self.provider_capabilities.get(spec.resolved_provider, frozenset()),
+                        )
+                        for spec in self.remote_fallback
+                    ]
+                    if request.provider:
+                        specs = [spec for spec in specs if spec.resolved_provider == request.provider.lower()]
+                else:
+                    if request.provider:
+                        combos = [c for c in self._combo_registry.cloud_fallback_combos() 
+                                  if c.provider == request.provider.lower()]
+                    else:
+                        combos = self._combo_registry.cloud_fallback_combos()
+                    if combos:
+                        specs = [self._combo_registry.combo_to_spec(c) for c in combos]
+                    else:
+                        specs = [
+                            replace(
+                                spec,
+                                capabilities=self.provider_capabilities.get(spec.resolved_provider, frozenset()),
+                            )
+                            for spec in self.remote_fallback
+                        ]
+                        if request.provider:
+                            specs = [spec for spec in specs if spec.resolved_provider == request.provider.lower()]
             case unreachable:
                 assert_never(unreachable)
         
         now = time.monotonic()
-        specs = [s for s in specs if now > self._rate_limited.get(str(s.extra.get("combo_id", "")), 0)]
+        try:
+            from reins.services.token_ledger import TokenLedger, load_budgets
+            budgets = load_budgets().get("combo_budgets", {})
+            ledger = TokenLedger()
+            
+            allowed_specs = []
+            for s in specs:
+                combo_id = str(s.extra.get("combo_id", ""))
+                
+                if now <= self._rate_limited.get(combo_id, 0):
+                    continue
+                    
+                if combo_id and combo_id in budgets:
+                    combo_config = budgets[combo_id]
+                    budget_limit = combo_config.get("tokens", 0) if isinstance(combo_config, dict) else int(combo_config)
+                    if budget_limit > 0:
+                        usage = ledger.get_combo_usage(combo_id)
+                        if usage >= budget_limit * 0.95:
+                            logger.info("Skipping combo %s, usage (%d) >= 95%% of budget (%d)", combo_id, usage, budget_limit)
+                            continue
+                allowed_specs.append(s)
+            specs = allowed_specs
+        except Exception:
+            logger.warning("combo budget check failed, falling back to all candidates", exc_info=True)
+            specs = [s for s in specs if now > self._rate_limited.get(str(s.extra.get("combo_id", "")), 0)]
+
         return [
             replace(
                 spec,
@@ -349,7 +430,14 @@ class ModelRouter:
         try:
             from reins.services.token_ledger import TokenLedger
 
-            TokenLedger().record(provider, model, usage.get("input_tokens", 0), usage.get("output_tokens", 0))
+            ledger = TokenLedger()
+            if combo_id:
+                try:
+                    ledger.record(provider, model, usage.get("input_tokens", 0), usage.get("output_tokens", 0), combo_id=combo_id)
+                except TypeError:
+                    ledger.record(provider, model, usage.get("input_tokens", 0), usage.get("output_tokens", 0))
+            else:
+                ledger.record(provider, model, usage.get("input_tokens", 0), usage.get("output_tokens", 0))
         except Exception:
             logger.warning("token usage not recorded for %s/%s", provider, model, exc_info=True)
 

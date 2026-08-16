@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOFIA // DATA_REIN KERNEL DASHBOARD</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Orbitron:wght@400;600;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="crt-enabled">
+    <!-- Dynamic Animated Cyberpunk Background -->
+    <div class="dynamic-background-container">
+        <canvas id="bg-cyber-canvas"></canvas>
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+        <div class="glow-orb orb-3"></div>
+        <div class="cyber-grid-perspective"></div>
+    </div>
+
+    <div class="crt-overlay"></div>
+    <div class="scanlines"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+        <div class="brand-container">
+            <div class="brand">
+                <span class="glitch" data-text="SOFIA // KERNEL">SOFIA // KERNEL</span>
+            </div>
+            <div class="ws-badge" id="ws-indicator">
+                <span class="pulse-dot"></span>
+                <span class="ws-text" id="ws-status">INITIALIZING...</span>
+            </div>
+        </div>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-target="monitor">
+                <span class="tab-icon">⚡</span> MONITOR <span class="tab-count-badge" id="tab-count-monitor">--</span>
+            </button>
+            <button class="tab-btn" data-target="wiki">
+                <span class="tab-icon">📚</span> KNOWLEDGE VAULT <span class="tab-count-badge" id="tab-count-vault">--</span>
+            </button>
+            <button class="tab-btn" data-target="skills">
+                <span class="tab-icon">🛠️</span> SKILLS <span class="tab-count-badge" id="tab-count-skills">--</span>
+            </button>
+            <button class="tab-btn" data-target="models">
+                <span class="tab-icon">🔮</span> ARCHETYPES
+            </button>
+            <button class="tab-btn" data-target="testbed">
+                <span class="tab-icon">🧪</span> PROMPT LAB
+            </button>
+        </nav>
+
+        <div class="quick-controls">
+            <button class="mini-btn" id="btn-scanlines-toggle" title="Toggle CRT Scanlines">CRT: ON</button>
+            <button class="mini-btn" id="btn-quick-consolidate" title="Run Wiki Consolidation">RE-SYNC WIKI</button>
+            <button class="mini-btn" id="btn-quick-skills-sync" title="Install / Link Skills">INSTALL SKILLS</button>
+        </div>
+    </header>
+
+    <main class="content-wrapper">
+        <!-- ===================================================================
+             1. MONITOR & TELEMETRY SECTION
+             =================================================================== -->
+        <section id="monitor" class="view-section active">
+            <div class="hero-banner">
+                <div class="hero-text">
+                    <h1>REACTIVE <span class="highlight">TELEMETRY</span></h1>
+                    <p class="subtitle">// Notification-Oriented Paradigm (PON) • Zero Polling • Dual Node Cluster (`amdy` & `tell`)</p>
+                </div>
+                <div class="cluster-nodes">
+                    <div class="node-badge node-amdy">
+                        <span class="node-title">EXEC NODE: AMDY</span>
+                        <span class="node-sub">RX 9060 XT (8GB) • Ryzen 7</span>
+                    </div>
+                    <div class="node-badge node-tell">
+                        <span class="node-title">STATE NODE: TELL</span>
+                        <span class="node-sub">GTX 1060 (6GB) • i5 7th-gen</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real-time Metrics Grid -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-label">CPU UTILIZATION</span>
+                        <span class="metric-icon">💻</span>
+                    </div>
+                    <div class="metric-value" id="val-cpu">--%</div>
+                    <div class="metric-bar-bg"><div class="metric-bar" id="bar-cpu" style="width: 0%"></div></div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-label">SYSTEM MEMORY</span>
+                        <span class="metric-icon">💾</span>
+                    </div>
+                    <div class="metric-value" id="val-ram">-- GB</div>
+                    <div class="metric-sub" id="val-ram-pct">--% allocated</div>
+                    <div class="metric-bar-bg"><div class="metric-bar" id="bar-ram" style="width: 0%"></div></div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-label">TASK TRAIL STATE</span>
+                        <span class="metric-icon">🚦</span>
+                    </div>
+                    <div class="task-stats-row">
+                        <div class="stat-pill pill-success" id="val-tasks-success">0 OK</div>
+                        <div class="stat-pill pill-running" id="val-tasks-running">0 RUN</div>
+                        <div class="stat-pill pill-failed" id="val-tasks-failed">0 ERR</div>
+                    </div>
+                    <div class="metric-sub" id="val-tasks-total">Total: 0 tasks recorded</div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-label">UNIFIED KNOWLEDGE VAULT</span>
+                        <span class="metric-icon">📖</span>
+                    </div>
+                    <div class="metric-value" id="val-wiki-total-items">--</div>
+                    <div class="metric-sub" id="val-wiki-breakdown">-- pages • -- memories</div>
+                </div>
+            </div>
+
+            <!-- Visual Harness Flow Topology (Archify / PON Diagram) -->
+            <div class="panel" style="margin-bottom: 28px;">
+                <div class="panel-header-row">
+                    <div class="panel-title-group">
+                        <h2>HARNESS ARCHITECTURE & EXECUTION TOPOLOGY</h2>
+                        <span class="badge-pill">PON-COMPLIANT</span>
+                    </div>
+                </div>
+                <div class="iso-wrapper">
+                    <div class="iso-container">
+                        <div class="iso-world">
+                            <svg class="paths" viewBox="0 0 800 600">
+                                <path id="path-data-1" class="path-line path-data" d="M 440 160 L 240 160" />
+                                <path id="path-data-2" class="path-line path-data" d="M 440 240 L 440 320 L 200 320" />
+                                <path id="path-control-1" class="path-line path-control" d="M 420 360 L 420 280 L 180 280 L 180 200" />
+                                <path id="path-control-2" class="path-line path-control" d="M 660 240 L 660 400 L 480 400" />
+                                <path id="path-data-3" class="path-line path-data" d="M 480 420 L 600 420" />
+                                
+                                <!-- Payloads in motion -->
+                                <circle class="payload-dot" r="3">
+                                    <animateMotion dur="2.5s" repeatCount="indefinite">
+                                        <mpath href="#path-data-1"/>
+                                    </animateMotion>
+                                </circle>
+                                <circle class="payload-dot" r="3">
+                                    <animateMotion dur="3s" repeatCount="indefinite" begin="1s">
+                                        <mpath href="#path-data-2"/>
+                                    </animateMotion>
+                                </circle>
+                                <circle class="payload-dot" r="3">
+                                    <animateMotion dur="2s" repeatCount="indefinite" begin="0.5s">
+                                        <mpath href="#path-data-3"/>
+                                    </animateMotion>
+                                </circle>
+                            </svg>
+
+                            <!-- Nodes with stacked plates -->
+                            <div class="iso-node" id="node-amdy" onclick="showInfo('amdy')" style="left: 120px; top: 120px; --w: 120px; --d: 120px;">
+                                <div class="tag-line"></div>
+                                <div class="iso-tag">EX amdy</div>
+                                <div class="iso-plate" style="--z: 0px"></div>
+                                <div class="iso-plate" style="--z: 15px"></div>
+                                <div class="iso-plate" style="--z: 30px"></div>
+                            </div>
+                            
+                            <div class="iso-node" id="node-tell" onclick="showInfo('tell')" style="left: 120px; top: 280px; --w: 80px; --d: 80px;">
+                                <div class="tag-line"></div>
+                                <div class="iso-tag">FL tell</div>
+                                <div class="iso-plate" style="--z: 0px"></div>
+                                <div class="iso-plate" style="--z: 15px"></div>
+                            </div>
+                            
+                            <div class="iso-node" id="node-core" onclick="showInfo('core')" style="left: 360px; top: 120px; --w: 160px; --d: 160px;">
+                                <div class="tag-line"></div>
+                                <div class="iso-tag">DB core</div>
+                                <div class="iso-plate" style="--z: 0px"></div>
+                                <div class="iso-plate" style="--z: 12px"></div>
+                                <div class="iso-plate" style="--z: 24px"></div>
+                                <div class="iso-plate" style="--z: 36px"></div>
+                                <div class="iso-plate" style="--z: 48px"></div>
+                            </div>
+                            
+                            <div class="iso-node" id="node-router" onclick="showInfo('router')" style="left: 360px; top: 360px; --w: 120px; --d: 80px;">
+                                <div class="tag-line"></div>
+                                <div class="iso-tag">RT router</div>
+                                <div class="iso-plate" style="--z: 0px"></div>
+                                <div class="iso-plate" style="--z: 15px"></div>
+                                <div class="iso-plate" style="--z: 30px"></div>
+                            </div>
+                            
+                            <div class="iso-node" id="node-judge" onclick="showInfo('judge')" style="left: 600px; top: 120px; --w: 120px; --d: 160px;">
+                                <div class="tag-line"></div>
+                                <div class="iso-tag">JG judge</div>
+                                <div class="iso-plate" style="--z: 0px"></div>
+                                <div class="iso-plate" style="--z: 20px"></div>
+                                <div class="iso-plate" style="--z: 40px"></div>
+                            </div>
+                            
+                            <div class="iso-node" id="node-resilience" onclick="showInfo('resilience')" style="left: 600px; top: 360px; --w: 80px; --d: 80px;">
+                                <div class="tag-line"></div>
+                                <div class="iso-tag">RS resil</div>
+                                <div class="iso-plate" style="--z: 0px"></div>
+                                <div class="iso-plate" style="--z: 15px"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="iso-panel">
+                        <h2>Generation loop</h2>
+                        
+                        <div class="legend-item"><div class="legend-color" style="border-bottom: 2px dashed rgba(255,255,255,0.3)"></div> Control Flow</div>
+                        <div class="legend-item"><div class="legend-color" style="background: rgba(88, 166, 255, 0.4)"></div> Payload Lane</div>
+                        <div class="legend-item" style="margin-top: 10px;">
+                            <span style="color:#58a6ff; margin-right:8px; display:inline-block; filter:drop-shadow(0 0 4px #58a6ff);">●</span> Payloads in motion
+                        </div>
+
+                        <div id="default-text" class="default-text" style="margin-top: 24px;">Click on a module to inspect.</div>
+                        
+                        <div id="info-amdy" class="info-block">
+                            <strong>EX amdy</strong>
+                            <p>Primary Execution Node. Handles local workloads via Ollama within a strict 7.2GB VRAM budget.</p>
+                            <div class="citation">HARDWARE.md</div>
+                            <div class="citation">coordinator.json</div>
+                        </div>
+                        <div id="info-tell" class="info-block">
+                            <strong>FL tell</strong>
+                            <p>Failover Node. Lesser server handling degraded workload paths (6.0GB VRAM).</p>
+                            <div class="citation">HARDWARE.md</div>
+                        </div>
+                        <div id="info-core" class="info-block">
+                            <strong>DB core</strong>
+                            <p>Single source of truth containing wiki.db and Task Trail. Event-driven state.</p>
+                            <div class="citation">wiki.db</div>
+                            <div class="citation">ORCHESTRATION_GOAL.md</div>
+                        </div>
+                        <div id="info-router" class="info-block">
+                            <strong>RT router</strong>
+                            <p>Model Router & Action Gates. Evaluates and routes tasks to appropriate executors.</p>
+                            <div class="citation">models.py</div>
+                        </div>
+                        <div id="info-judge" class="info-block">
+                            <strong>JG judge</strong>
+                            <p>Agent as a Judge Framework. Validates dependency graphs.</p>
+                            <div class="citation">KAD/ARCHIMEDES</div>
+                        </div>
+                        <div id="info-resilience" class="info-block">
+                            <strong>RS resil</strong>
+                            <p>Resilience Core. Circuit breakers and disciplined retry policies.</p>
+                            <div class="citation">resilience.py</div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function showInfo(id) {
+                        document.getElementById('default-text').style.display = 'none';
+                        document.querySelectorAll('.info-block').forEach(el => el.classList.remove('active'));
+                        document.getElementById('info-' + id).classList.add('active');
+                    }
+                </script>
+            </div>
+
+            <!-- Task Trail Live Panel -->
+            <div class="panel">
+                <div class="panel-header-row">
+                    <div class="panel-title-group">
+                        <h2>TASK TRAIL MONITOR</h2>
+                        <span class="badge-count" id="trail-count-badge">0</span>
+                    </div>
+                    <div class="trail-filters">
+                        <input type="text" id="task-filter-input" placeholder="Filter tasks by ID, type, node..." class="input-filter">
+                        <div class="filter-pills">
+                            <button class="filter-btn active" data-status="all">ALL</button>
+                            <button class="filter-btn" data-status="running">RUNNING</button>
+                            <button class="filter-btn" data-status="failed">FAILED</button>
+                            <button class="filter-btn" data-status="success">SUCCESS</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>TASK ID</th>
+                                <th>TYPE</th>
+                                <th>NODE</th>
+                                <th>STATUS</th>
+                                <th>PROMPT / SUMMARY</th>
+                                <th>TIME</th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trail-table-body">
+                            <tr><td colspan="7" class="empty-state">Waiting for telemetry stream...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             2. UNIFIED KNOWLEDGE VAULT (WIKI & MEMORIES IN ONE WORKSPACE)
+             =================================================================== -->
+        <section id="wiki" class="view-section">
+            <!-- Top Vault Header with Search & Controls -->
+            <div class="wiki-top-header">
+                <div class="wiki-search-container">
+                    <span class="search-prompt">&gt;</span>
+                    <input type="text" id="vault-global-search" placeholder="Unified FTS5 Search across 814+ documents, 194+ memories, model capabilities, and agent personas..." autocomplete="off">
+                    <button class="clear-search-btn" id="btn-clear-vault-search">✕</button>
+                </div>
+                <div class="wiki-header-actions">
+                    <button class="cyber-btn" id="btn-create-page"><span class="btn-icon">+</span> NEW PAGE</button>
+                    <button class="cyber-btn" id="btn-create-memory"><span class="btn-icon">+</span> INJECT MEMORY</button>
+                </div>
+            </div>
+
+            <!-- Modern 3-Pane Unified Workspace -->
+            <div class="wiki-workspace-layout">
+                <!-- PANE 1: Unified Categories & Collections Sidebar -->
+                <aside class="wiki-sidebar-nav">
+                    <div class="sidebar-section-title">
+                        <span>KNOWLEDGE DOMAINS</span>
+                        <span class="mini-count" id="sidebar-total-categories">--</span>
+                    </div>
+
+                    <div class="sidebar-category-list" id="sidebar-categories-tree">
+                        <!-- Populated dynamically with Pages & Memories category nodes -->
+                    </div>
+                </aside>
+
+                <!-- PANE 2: Document & Memory Feed List -->
+                <section class="wiki-feed-pane">
+                    <div class="feed-header">
+                        <div class="feed-tabs">
+                            <button class="feed-tab-btn active" id="feed-tab-all" data-feed="all">ALL (<span id="feed-all-count">0</span>)</button>
+                            <button class="feed-tab-btn" id="feed-tab-pages" data-feed="pages">PAGES (<span id="feed-pages-count">0</span>)</button>
+                            <button class="feed-tab-btn" id="feed-tab-memories" data-feed="memories">MEMORIES (<span id="feed-memories-count">0</span>)</button>
+                        </div>
+                        <span class="feed-category-label" id="current-category-display">ALL KNOWLEDGE</span>
+                    </div>
+
+                    <div class="feed-items-scroller" id="vault-feed-items">
+                        <!-- Populated dynamically with rich interactive cards -->
+                    </div>
+                </section>
+
+                <!-- PANE 3: Unified Reader & Memory Inspector Canvas -->
+                <article class="wiki-reader-pane" id="vault-reader-container">
+                    <!-- Default Empty State -->
+                    <div class="reader-empty-state" id="reader-empty-view">
+                        <div class="empty-icon">📚</div>
+                        <h2>SELECT KNOWLEDGE TO INSPECT</h2>
+                        <p>Browse documents or memories on the left to read architectural specifications, system papers, and model capabilities.</p>
+                    </div>
+
+                    <!-- Active Document View (for Wiki Pages) -->
+                    <div class="reader-active-view" id="reader-doc-view" style="display: none;">
+                        <header class="reader-doc-header">
+                            <div class="doc-header-meta">
+                                <span class="doc-category-badge" id="doc-view-category">CATEGORY</span>
+                                <span class="doc-trust-badge" id="doc-view-trust">TRUST: 1.0</span>
+                                <span class="doc-date" id="doc-view-date">UPDATED: --</span>
+                            </div>
+                            <h1 class="doc-title" id="doc-view-title">Document Title</h1>
+                            <div class="doc-slug-bar">
+                                <span class="doc-slug-text" id="doc-view-slug">// slug-identifier</span>
+                                <div class="doc-actions-toolbar">
+                                    <button class="doc-action-btn" id="btn-copy-doc-markdown" title="Copy Raw Markdown">📋 COPY MD</button>
+                                    <button class="doc-action-btn" id="btn-copy-doc-slug" title="Copy Document Slug">🔗 COPY SLUG</button>
+                                    <button class="doc-action-btn edit-action" id="btn-open-doc-editor">✏️ EDIT IN STUDIO</button>
+                                    <button class="doc-action-btn danger-action" id="btn-delete-active-doc">🗑️ DELETE</button>
+                                </div>
+                            </div>
+                        </header>
+
+                        <!-- Main Rendered Markdown Area -->
+                        <div class="reader-markdown-content markdown-rendered" id="doc-view-rendered-body">
+                            <!-- Rendered by marked.js -->
+                        </div>
+
+                        <footer class="reader-doc-footer">
+                            <div class="footer-meta-item">
+                                <span class="meta-label">SOURCE PATH:</span>
+                                <span class="meta-val" id="doc-view-source-path">internal://wiki.db</span>
+                            </div>
+                            <div class="footer-meta-item">
+                                <span class="meta-label">OWNER:</span>
+                                <span class="meta-val" id="doc-view-owner">harness</span>
+                            </div>
+                            <div class="footer-meta-item">
+                                <span class="meta-label">METADATA:</span>
+                                <span class="meta-val" id="doc-view-metadata-json">{}</span>
+                            </div>
+                        </footer>
+                    </div>
+
+                    <!-- Active Memory Inspector View (for Atomic & Model Memories) -->
+                    <div class="reader-active-view" id="reader-memory-view" style="display: none;">
+                        <header class="reader-doc-header">
+                            <div class="doc-header-meta">
+                                <span class="memory-category-tag" id="mem-view-category" style="font-size:0.85rem; padding:4px 12px;">MODEL MEMORY</span>
+                                <span class="doc-trust-badge" id="mem-view-trust">TRUST: 1.0</span>
+                                <span class="doc-date" id="mem-view-date">RECORDED: --</span>
+                            </div>
+                            <h1 class="doc-title" id="mem-view-title" style="color:var(--accent-yellow);">Memory Entity</h1>
+                            <div class="doc-slug-bar">
+                                <span class="doc-slug-text" id="mem-view-uid" style="color:var(--dim-gray);">// UID: ---</span>
+                                <div class="doc-actions-toolbar">
+                                    <button class="doc-action-btn" id="btn-copy-mem-text" title="Copy Memory Text">📋 COPY TEXT</button>
+                                    <button class="doc-action-btn danger-action" id="btn-delete-active-mem">🗑️ DELETE</button>
+                                </div>
+                            </div>
+                        </header>
+
+                        <div class="reader-markdown-content" style="padding: 32px;">
+                            <div class="memory-inspector-box">
+                                <div class="memory-text-display" id="mem-view-text">
+                                    <!-- Memory full text content -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <footer class="reader-doc-footer">
+                            <div class="footer-meta-item">
+                                <span class="meta-label">OWNER:</span>
+                                <span class="meta-val" id="mem-view-owner">omnirouter</span>
+                            </div>
+                            <div class="footer-meta-item">
+                                <span class="meta-label">SOURCE:</span>
+                                <span class="meta-val" id="mem-view-source">harness:model_registry</span>
+                            </div>
+                        </footer>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             3. SKILLS MASTER DIRECTORY
+             =================================================================== -->
+        <section id="skills" class="view-section">
+            <div class="section-top-bar">
+                <div class="search-box-large">
+                    <span class="search-prompt">&gt;</span>
+                    <input type="text" id="skills-search-input" placeholder="Search canonical harness skills, tags, or execution parameters...">
+                </div>
+                <button class="cyber-btn" id="btn-create-skill">+ NEW SKILL</button>
+            </div>
+
+            <div class="skills-grid" id="skills-catalog-grid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             4. ARCHETYPES & COMBOS
+             =================================================================== -->
+        <section id="models" class="view-section">
+            <div class="archetypes-container">
+                <div class="panel-header">
+                    <h2>MODEL ARCHETYPES (PRIME AGENT PARADIGM)</h2>
+                    <p class="panel-subtitle">Categories dynamically routed across local Ollama and explicit cloud escalations.</p>
+                </div>
+                <div class="archetypes-grid" id="archetypes-catalog">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top: 30px;">
+                <div class="panel-header">
+                    <h2>OMNIROUTER COMBOS REGISTRY</h2>
+                    <p class="panel-subtitle">Multi-account endpoints with automatic fallback, cooldowns, and budget thresholds.</p>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>COMBO ID</th>
+                                <th>PROVIDER</th>
+                                <th>MODEL</th>
+                                <th>TIER</th>
+                                <th>POWER</th>
+                                <th>SCORE</th>
+                                <th>SECRET KEY</th>
+                            </tr>
+                        </thead>
+                        <tbody id="combos-table-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             5. PROMPT LAB / STUDY TESTBED
+             =================================================================== -->
+        <section id="testbed" class="view-section">
+            <div class="testbed-grid">
+                <div class="testbed-panel">
+                    <div class="panel-header">
+                        <h2>INTERACTIVE HARNESS TESTBED</h2>
+                        <p class="panel-subtitle">Execute prompts against the local model router to test capabilities and study latency.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>TASK CATEGORY / ARCHETYPE</label>
+                        <select id="testbed-category-select" class="cyber-select">
+                            <option value="rlm-worker-fast">rlm-worker-fast (Fast Local / Ollama)</option>
+                            <option value="rlm-primary">rlm-primary (Primary Reasoner)</option>
+                            <option value="rlm-worker-heavy">rlm-worker-heavy (Deep Code & Tasks)</option>
+                            <option value="summarize">summarize (Low Effort Worker)</option>
+                            <option value="classify">classify (Task Categorizer)</option>
+                            <option value="optimize">optimize (Prompt Compiler)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>TEST PROMPT</label>
+                        <textarea id="testbed-prompt-input" rows="6" class="cyber-textarea" placeholder="Enter instructions or test scenario for the harness...">Explain the core Notification-Oriented Paradigm (PON) principles in 3 bullet points.</textarea>
+                    </div>
+
+                    <button class="cyber-btn btn-full" id="btn-run-test-prompt">
+                        <span id="testbed-btn-text">🚀 DISPATCH TO HARNESS</span>
+                    </button>
+                </div>
+
+                <div class="testbed-panel">
+                    <div class="panel-header-row">
+                        <h2>MODEL OUTPUT & METRICS</h2>
+                        <span class="badge-pill" id="testbed-duration-badge">0.00s</span>
+                    </div>
+                    <div class="output-console" id="testbed-output-console">
+                        <span class="console-placeholder">// Output from ModelRouter dispatch will stream here...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===================================================================
+         MODALS & OVERLAYS
+         =================================================================== -->
+
+    <!-- Wiki Page Studio Modal -->
+    <div class="modal-overlay" id="modal-wiki-page">
+        <div class="modal-window modal-wide">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <span class="modal-tag">WIKI STUDIO</span>
+                    <h2 id="wiki-modal-header-title">EDIT PAGE</h2>
+                </div>
+                <button class="modal-close-btn" data-close="modal-wiki-page">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="meta-row">
+                    <div class="form-group flex-2">
+                        <label>PAGE TITLE</label>
+                        <input type="text" id="wiki-edit-title" class="cyber-input" placeholder="Page Title">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>SLUG</label>
+                        <input type="text" id="wiki-edit-slug" class="cyber-input" placeholder="slug-identifier">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>CATEGORY</label>
+                        <input type="text" id="wiki-edit-category" class="cyber-input" placeholder="category">
+                    </div>
+                </div>
+
+                <div class="editor-split-container">
+                    <div class="editor-pane">
+                        <div class="pane-label">MARKDOWN SOURCE</div>
+                        <textarea id="wiki-edit-content" class="code-textarea" placeholder="# Enter markdown content..."></textarea>
+                    </div>
+                    <div class="preview-pane">
+                        <div class="pane-label">LIVE PREVIEW</div>
+                        <div id="wiki-edit-preview" class="markdown-rendered"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cyber-btn btn-danger" id="btn-delete-wiki-page">DELETE PAGE</button>
+                <div class="footer-actions">
+                    <button class="cyber-btn btn-secondary" data-close="modal-wiki-page">CANCEL</button>
+                    <button class="cyber-btn" id="btn-save-wiki-page">SAVE TO WIKI</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skill Studio Modal -->
+    <div class="modal-overlay" id="modal-skill-studio">
+        <div class="modal-window modal-wide">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <span class="modal-tag">SKILL STUDIO</span>
+                    <h2 id="skill-modal-title">EDIT SKILL</h2>
+                </div>
+                <button class="modal-close-btn" data-close="modal-skill-studio">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="skill-edit-slug">
+                <div class="editor-split-container">
+                    <div class="editor-pane">
+                        <div class="pane-label">SKILL.MD (YAML FRONTMATTER + INSTRUCTIONS)</div>
+                        <textarea id="skill-edit-content" class="code-textarea"></textarea>
+                    </div>
+                    <div class="preview-pane">
+                        <div class="pane-label">PARSED PREVIEW</div>
+                        <div id="skill-edit-preview" class="markdown-rendered"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="footer-actions">
+                    <button class="cyber-btn btn-secondary" data-close="modal-skill-studio">CANCEL</button>
+                    <button class="cyber-btn" id="btn-save-skill">SAVE SKILL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Detail Inspector Modal -->
+    <div class="modal-overlay" id="modal-task-detail">
+        <div class="modal-window">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <span class="modal-tag">TASK INSPECTOR</span>
+                    <h2 id="task-modal-id">TASK: ---</h2>
+                </div>
+                <button class="modal-close-btn" data-close="modal-task-detail">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="json-inspector">
+                    <pre id="task-modal-json">// Task record details</pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cyber-btn btn-secondary" data-close="modal-task-detail">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inject Memory Modal (Unified for Model & Vault Memories) -->
+    <div class="modal-overlay" id="modal-create-memory">
+        <div class="modal-window modal-compact">
+            <div class="modal-header">
+                <h2>INJECT VAULT MEMORY</h2>
+                <button class="modal-close-btn" data-close="modal-create-memory">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>TARGET CATEGORY</label>
+                    <input type="text" id="new-memory-category" class="cyber-input" value="models" placeholder="models, agents, system, architecture, pon...">
+                </div>
+                <div class="form-group">
+                    <label>OWNER / SYSTEM</label>
+                    <input type="text" id="new-memory-owner" class="cyber-input" value="omnirouter" placeholder="e.g. omnirouter, data-agy, data-hermes">
+                </div>
+                <div class="form-group">
+                    <label>MEMORY CONTENT / ATOMIC FACT / MODEL CONTEXT</label>
+                    <textarea id="new-memory-text" rows="5" class="cyber-textarea" placeholder="e.g. ollama:qwen2.5-coder:7b | High precision coding engine on port 1234..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cyber-btn btn-secondary" data-close="modal-create-memory">CANCEL</button>
+                <button class="cyber-btn" id="btn-submit-memory">COMMIT MEMORY</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create New Skill Modal -->
+    <div class="modal-overlay" id="modal-create-skill">
+        <div class="modal-window modal-compact">
+            <div class="modal-header">
+                <h2>CREATE CANONICAL SKILL</h2>
+                <button class="modal-close-btn" data-close="modal-create-skill">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>SKILL NAME (KEBAB-CASE)</label>
+                    <input type="text" id="new-skill-name" class="cyber-input" placeholder="e.g. quantum-validator">
+                </div>
+                <div class="form-group">
+                    <label>DESCRIPTION</label>
+                    <input type="text" id="new-skill-desc" class="cyber-input" placeholder="One line summary for model routing">
+                </div>
+                <div class="form-group">
+                    <label>TAGS</label>
+                    <input type="text" id="new-skill-tags" class="cyber-input" value="custom, harness" placeholder="comma separated tags">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cyber-btn btn-secondary" data-close="modal-create-skill">CANCEL</button>
+                <button class="cyber-btn" id="btn-submit-create-skill">GENERATE SKILL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

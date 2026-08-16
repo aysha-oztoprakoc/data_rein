@@ -16,5 +16,6 @@ It exposes three things that make the harness "universal":
 """
 
 from reins.harness import paths
+from reins.harness import autonomous
 
-__all__ = ["paths"]
+__all__ = ["paths", "autonomous"]

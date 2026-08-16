@@ -123,6 +123,22 @@ def unload_model(model: str, host: str = DEFAULT_HOST) -> bool:
     return load_model(model, host=host, keep_alive="0")
 
 
+def pull_model(model: str, host: str = DEFAULT_HOST) -> bool:
+    """Pull a model from the registry (blocks until complete). Degrades to False."""
+    payload = {"name": model, "stream": False}
+    req = urllib.request.Request(
+        f"{_base_url(host)}/api/pull",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with external_io.urlopen(req, timeout=600) as r:  # models can take a while to download
+            return r.status == 200
+    except Exception:
+        log_degradation(__name__)
+        return False
+
+
 def _inotify_wait_ready(host: str, log_path: Path, deadline: float) -> bool:
     """PON-1: block on inotify IN_MODIFY events against the `ollama serve` log
     instead of polling server_up on a fixed interval. Each time the log is

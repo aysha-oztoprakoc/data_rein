@@ -41,7 +41,7 @@ def dispatch_local_generate(args: ActionArgs) -> ActionResult:
     """Route a menial subtask to a local (Ollama) model on amdy. Never reaches cloud."""
     router = ModelRouter()
     res = router.route(
-        _string_arg(args, "category", "general chatting"),
+        _string_arg(args, "category", "momus"),
         _string_arg(args, "prompt"),
         _string_arg(args, "node", "amdy"),
         allow_fallback=True,
@@ -53,6 +53,7 @@ def dispatch_local_generate(args: ActionArgs) -> ActionResult:
         "node": res.node,
         "text": res.text,
         "error": res.error,
+        "combo_id": res.combo_id,
     }
 
 
@@ -79,6 +80,7 @@ def dispatch_cloud_generate(args: ActionArgs) -> ActionResult:
         "error": res.error,
         "task_id": task_id,
         "usage": usage,
+        "combo_id": res.combo_id,
     }
 
 

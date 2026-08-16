@@ -105,12 +105,23 @@ def _schema_valid(tool_name: str, args: ActionArgs) -> bool:
 
 
 def _sanitize_ok(args: ActionArgs) -> bool:
-    """Path arguments must resolve inside the repo root; no traversal outside it."""
+    """Path arguments must resolve inside the repo root; no traversal outside it.
+    Prompts must also pass the KnowledgeValidator to prevent prompt injection."""
     path_value = args.get("path")
-    if not isinstance(path_value, str):
-        return True
-    resolved = (REPO_ROOT / path_value).resolve()
-    return resolved == REPO_ROOT or REPO_ROOT in resolved.parents
+    if isinstance(path_value, str):
+        resolved = (REPO_ROOT / path_value).resolve()
+        if resolved != REPO_ROOT and REPO_ROOT not in resolved.parents:
+            return False
+            
+    # Validate prompt content against poisoning/injection
+    prompt = args.get("prompt") or args.get("text") or args.get("context")
+    if isinstance(prompt, str):
+        from reins.harness.trust_anchor import KnowledgeValidator
+        score = KnowledgeValidator().validate_update(prompt, "action_gate")
+        if score < 0.5:
+            return False
+            
+    return True
 
 
 def _check_stages(

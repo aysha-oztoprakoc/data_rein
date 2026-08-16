@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS pages (
     content     TEXT NOT NULL,
     metadata_json TEXT NOT NULL DEFAULT '{}',
     owner       TEXT DEFAULT 'harness',
+    trust_score REAL DEFAULT 1.0,
     updated_at  REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_pages_category ON pages(category);
@@ -66,9 +67,21 @@ CREATE TABLE IF NOT EXISTS memories (
     source     TEXT,
     owner      TEXT DEFAULT 'harness',
     session_id TEXT,
+    trust_score REAL DEFAULT 1.0,
     timestamp  REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_memories_category ON memories(category);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id          INTEGER PRIMARY KEY,
+    entity_type TEXT NOT NULL,
+    entity_id   TEXT NOT NULL,
+    action      TEXT NOT NULL,
+    previous_hash TEXT,
+    new_hash    TEXT,
+    owner       TEXT,
+    timestamp   REAL NOT NULL
+);
 
 CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(
     title, content, category,
@@ -175,6 +188,13 @@ class WikiDB:
             self.conn.execute(
                 "ALTER TABLE pages ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'"
             )
+        if "trust_score" not in columns:
+            self.conn.execute("ALTER TABLE pages ADD COLUMN trust_score REAL DEFAULT 1.0")
+            
+        mem_columns = {row[1] for row in self.conn.execute("PRAGMA table_info(memories)")}
+        if "trust_score" not in mem_columns:
+            self.conn.execute("ALTER TABLE memories ADD COLUMN trust_score REAL DEFAULT 1.0")
+            
         self.conn.execute(
             "INSERT INTO meta(key, value) VALUES('schema_version', ?) "
             "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -216,17 +236,24 @@ class WikiDB:
         fmt: str = "md",
         metadata_json: str = "{}",
         owner: str = "harness",
+        trust_score: float = 1.0,
     ) -> str:
         """Insert or update a page keyed by slug. Returns the slug used."""
         slug = slug or slugify(source_path or title)
+        new_hash = _hash(title, content, category, fmt, metadata_json, owner)
         with self._tx() as conn:
+            cur = conn.execute("SELECT content FROM pages WHERE slug = ?", (slug,))
+            row = cur.fetchone()
+            previous_hash = _hash(row["content"]) if row else None
+            action = "update" if row else "insert"
+
             conn.execute(
                 """
                 INSERT INTO pages(
                     slug, title, source_path, category, fmt, content,
-                    metadata_json, owner, updated_at
+                    metadata_json, owner, trust_score, updated_at
                 )
-                VALUES(?,?,?,?,?,?,?,?,?)
+                VALUES(?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(slug) DO UPDATE SET
                     title=excluded.title,
                     source_path=excluded.source_path,
@@ -235,6 +262,7 @@ class WikiDB:
                     content=excluded.content,
                     metadata_json=excluded.metadata_json,
                     owner=excluded.owner,
+                    trust_score=excluded.trust_score,
                     updated_at=excluded.updated_at
                 """,
                 (
@@ -246,8 +274,17 @@ class WikiDB:
                     content,
                     metadata_json,
                     owner,
+                    trust_score,
                     time.time(),
                 ),
+            )
+            
+            conn.execute(
+                """
+                INSERT INTO audit_log(entity_type, entity_id, action, previous_hash, new_hash, owner, timestamp)
+                VALUES(?,?,?,?,?,?,?)
+                """,
+                ("page", slug, action, previous_hash, new_hash, owner, time.time())
             )
         return slug
 
@@ -301,7 +338,7 @@ class WikiDB:
             return []
         cur = self.conn.execute(
             """
-            SELECT p.slug, p.title, p.category, p.source_path,
+            SELECT p.slug, p.title, p.category, p.source_path, p.trust_score,
                    snippet(pages_fts, 1, '[', ']', ' ... ', 12) AS snippet,
                    bm25(pages_fts) AS rank
             FROM pages_fts
@@ -324,20 +361,36 @@ class WikiDB:
         owner: str = "harness",
         session_id: Optional[str] = None,
         uid: Optional[str] = None,
+        trust_score: float = 1.0,
     ) -> str:
         """Insert a memory (deduped by content hash). Returns the uid used."""
         uid = uid or _hash(text, category, source or "")
+        new_hash = _hash(text, category, str(source), owner)
         with self._tx() as conn:
+            cur = conn.execute("SELECT text FROM memories WHERE uid = ?", (uid,))
+            row = cur.fetchone()
+            previous_hash = _hash(row["text"]) if row else None
+            action = "update" if row else "insert"
+
             conn.execute(
                 """
-                INSERT INTO memories(uid, text, category, source, owner, session_id, timestamp)
-                VALUES(?,?,?,?,?,?,?)
+                INSERT INTO memories(uid, text, category, source, owner, session_id, trust_score, timestamp)
+                VALUES(?,?,?,?,?,?,?,?)
                 ON CONFLICT(uid) DO UPDATE SET
                     text=excluded.text,
                     category=excluded.category,
-                    source=excluded.source
+                    source=excluded.source,
+                    trust_score=excluded.trust_score
                 """,
-                (uid, text, category, source, owner, session_id, time.time()),
+                (uid, text, category, source, owner, session_id, trust_score, time.time()),
+            )
+            
+            conn.execute(
+                """
+                INSERT INTO audit_log(entity_type, entity_id, action, previous_hash, new_hash, owner, timestamp)
+                VALUES(?,?,?,?,?,?,?)
+                """,
+                ("memory", uid, action, previous_hash, new_hash, owner, time.time())
             )
         return uid
 
@@ -347,7 +400,7 @@ class WikiDB:
             return []
         cur = self.conn.execute(
             """
-            SELECT m.uid, m.category, m.source,
+            SELECT m.uid, m.category, m.source, m.trust_score,
                    snippet(memories_fts, 0, '[', ']', ' ... ', 16) AS snippet,
                    bm25(memories_fts) AS rank
             FROM memories_fts

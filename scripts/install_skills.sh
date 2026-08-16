@@ -22,9 +22,12 @@ TARGETS=(
   "$HOME_DIR/odysseus/data/skills"                       # Odysseus (SKILLS_DIR)
   "$HOME/.claude/skills"                                 # Claude Code
   "$HOME_DIR/.agents/skills"                             # Antigravity, project-local scan path
-  "$HOME/.agents/skills"                                 # Antigravity, global scan path (git hooks etc. reference this)
-  "$HOME/.codex/skills"
-  "$HOME_DIR/odysseus/integrations/codex/skills"
+  "$HOME/.agents/skills"                                 # Antigravity, global scan path
+  "$HOME/.codex/skills"                                  # Codex
+  "$HOME_DIR/odysseus/integrations/codex/skills"        # Odysseus Codex integration
+  "$HOME/.config/opencode/skills"                        # OpenCode global scan path
+  "$HOME_DIR/.opencode/skills"                           # OpenCode project-local scan path
+  "$HOME/.opencode/skills"                               # OpenCode home scan path
 )
 
 root_is_available() {

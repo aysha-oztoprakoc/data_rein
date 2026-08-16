@@ -65,7 +65,7 @@ def test_rag_context_degrades_to_empty(monkeypatch):
 
 
 def test_low_effort_maps_categories():
-    assert workflow.LOW_EFFORT["ask"][0] == "general chatting"
+    assert workflow.LOW_EFFORT["ask"][0] == "momus"
     with pytest.raises(ValueError):
         workflow.low_effort("nonsense", "x")
 

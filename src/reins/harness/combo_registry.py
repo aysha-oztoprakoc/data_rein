@@ -39,6 +39,30 @@ class ComboRegistry:
     def reload(self) -> None:
         self._load()
 
+
+    def save(self) -> None:
+        text = self._config.model_dump_json(indent=4)
+        self._path.write_text(text, encoding="utf-8")
+
+    def add_combo(self, combo: Combo) -> None:
+        # replace if exists
+        c_list = [c for c in self._config.combos if c.id != combo.id]
+        c_list.append(combo)
+        # We need to recreate _config since it's frozen
+        # Pydantic v2 model_copy with update
+        self._config = self._config.model_copy(update={"combos": tuple(c_list)})
+        self._combos = {c.id: c for c in self._config.combos}
+        self.save()
+
+    def remove_combo(self, combo_id: str) -> bool:
+        if combo_id not in self._combos:
+            return False
+        c_list = [c for c in self._config.combos if c.id != combo_id]
+        self._config = self._config.model_copy(update={"combos": tuple(c_list)})
+        self._combos = {c.id: c for c in self._config.combos}
+        self.save()
+        return True
+
     def get_combo(self, combo_id: str) -> Combo | None:
         return self._combos.get(combo_id)
 
@@ -70,6 +94,34 @@ class ComboRegistry:
             capabilities=capabilities,
             extra={"combo_id": combo.id, "secret_key": combo.secret_key, "base_url": combo.base_url, "tier": combo.tier},
         )
+
+    def set_category_model(self, category: str, combo_id: str, node: str = "amdy") -> bool:
+        matching = [c.id for c in self.all_combos() if c.id == combo_id or c.model == combo_id]
+        if matching:
+            combo_id = matching[0]
+
+        cat = self._config.categories.get(category)
+        from reins.harness.model_types import OmniCategory
+        if cat is None:
+            cat = OmniCategory(description=f"Archetype category {category}", amdy=(combo_id,), tell=(), cloud=(combo_id,))
+            new_cats = dict(self._config.categories)
+            new_cats[category] = cat
+        else:
+            if node == "cloud":
+                new_ids = [combo_id] + [cid for cid in cat.cloud if cid != combo_id]
+                new_cat = cat.model_copy(update={"cloud": tuple(new_ids)})
+            elif node == "tell":
+                new_ids = [combo_id] + [cid for cid in cat.tell if cid != combo_id]
+                new_cat = cat.model_copy(update={"tell": tuple(new_ids)})
+            else:
+                new_ids = [combo_id] + [cid for cid in cat.amdy if cid != combo_id]
+                new_cat = cat.model_copy(update={"amdy": tuple(new_ids)})
+            new_cats = dict(self._config.categories)
+            new_cats[category] = new_cat
+
+        self._config = self._config.model_copy(update={"categories": new_cats})
+        self.save()
+        return True
 
     @property
     def config(self) -> OmniRouterConfig:

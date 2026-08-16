@@ -157,21 +157,42 @@ def trigger_digest(path: str, *, recursive: bool = False, enrich: bool = True) -
 
 def _enrich_facts(content: str, source: str, node: str, db: WikiDB) -> int:
     from reins.harness import workflow
+    import json
 
     prompt = (
-        "Extract 3-6 concise, standalone atomic facts from the following document. "
-        + "One fact per line, no numbering, no preamble.\n\n"
+        "Generate 2-3 high-quality synthetic instruction-response pairs based on this document. "
+        "These pairs will be used to fine-tune local LLMs. Format the output strictly as a JSON array of objects "
+        'with "instruction" and "response" keys. No markdown blocks, no preamble, just raw JSON.\n\n'
         + content[:6000]
     )
     result = workflow.run("rag extraction", prompt, node=node)
+    
     if not result.ok or not result.text:
         return 0
     facts = 0
-    for line in result.text.splitlines():
-        fact = line.strip().lstrip("-*0123456789. ").strip()
-        if len(fact) > 12:
-            _ = db.add_memory(fact, category="digested", source=source, owner="digest")
-            facts += 1
+    try:
+        # Strip potential markdown fences (like ```json ... ```)
+        clean_text = result.text.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        if clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+            
+        pairs = json.loads(clean_text.strip())
+        if isinstance(pairs, list):
+            for pair in pairs:
+                if isinstance(pair, dict) and "instruction" in pair and "response" in pair:
+                    record_json = json.dumps({"messages": [
+                        {"role": "user", "content": pair["instruction"]},
+                        {"role": "assistant", "content": pair["response"]}
+                    ]})
+                    _ = db.add_memory(f"SFT_JSON:{record_json}", category="digested/sft", source=source, owner="digest")
+                    facts += 1
+    except Exception:
+        log_degradation(__name__)
+        
     return facts
 
 

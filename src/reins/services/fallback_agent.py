@@ -24,26 +24,46 @@ class OdysseusAgent(HarnessAgent):
 
     role = "data-ody"
 
-    def __init__(self, model_name: str = "qwen2.5-coder:7b"):
+    def __init__(self):
         super().__init__()
-        self.model_name = model_name
+        # Tiered fallback chain optimized for hardware (AMD Ryzen 7, 8GB VRAM) & V2 Budget Plan
+        self.fallback_chain = [
+            {"model": "qwen2.5-coder:1.5b", "type": "local"}, # Fast CPU execution
+            {"model": "qwen2.5-coder:7b", "type": "local"},   # Heavy local execution
+            {"model": "gpt-4o-mini", "type": "cloud"}         # Supreme Court fallback
+        ]
         self.bootstrapper = HarnessBootstrapper()
 
-    def query_ollama(self, prompt: str) -> str:
+    def query_tiered_fallback(self, prompt: str) -> str:
         """
-        Run the local model via the harness local plane (clean HTTP output, model
-        store aware, server auto-started). Degrades to an 'Error: ...' string,
-        never raises.
+        Executes the tiered fallback chain. Degrades gracefully across models
+        and planes (local -> cloud) per the V2 architecture.
         """
-        try:
-            from reins.harness import local
-
-            logger.info(f"Querying local model {self.model_name}...")
-            local.ensure_server()
-            return local.generate(self.model_name, prompt)
-        except Exception as e:  # graceful degradation
-            logger.error(f"Local LLM failed: {e}")
-            return f"Error: {e}"
+        from reins.harness import local
+        from reins.harness.models import ModelRouter
+        
+        last_error = ""
+        for tier in self.fallback_chain:
+            try:
+                logger.info(f"Attempting fallback tier: {tier['model']} ({tier['type']})")
+                if tier["type"] == "local":
+                    local.ensure_server()
+                    return local.generate(tier["model"], prompt)
+                else:
+                    router = ModelRouter()
+                    # We pass the provider explicitly via the model string's prefix, or use openai for gpt models.
+                    provider = "openai" if "gpt" in tier["model"] else tier["model"].split("-")[0]
+                    result = router.route_cloud(prompt, provider=provider)
+                    if result.ok and result.text:
+                        return result.text
+                    last_error = result.error
+            except Exception as e:
+                logger.warning(f"Tier {tier['model']} failed: {e}")
+                last_error = str(e)
+                continue
+                
+        logger.error("All fallback tiers exhausted.")
+        return f"Error: Fallback chain completely exhausted. Last error: {last_error}"
 
     def process_pending(self) -> List[Dict[str, Any]]:
         """
@@ -62,7 +82,7 @@ class OdysseusAgent(HarnessAgent):
             try:
                 self.trail.update_task(task_id, "running_fallback")
                 logger.info(f"[Odysseus] Processing task {task_id}: {task.get('prompt', '')[:50]}...")
-                result = self.query_ollama(task.get("prompt", ""))
+                result = self.query_tiered_fallback(task.get("prompt", ""))
 
                 if not result.startswith("Error"):
                     logger.info(f"[Odysseus] Task {task_id} completed successfully.")

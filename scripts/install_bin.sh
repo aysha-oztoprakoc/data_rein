@@ -36,5 +36,7 @@ link "$HOME_DIR/.venv/bin/basedpyright-langserver" "basedpyright-langserver"
 #    Add a new `wrapper name path` line here any time a new one is written,
 #    then re-run this installer (or `reins bin install`).
 wrapper "sofia" "scripts/sofia_protocol.py"
+wrapper "sofia-ui" "dashboard/app.py"
 
 echo "// [OK] bin commands linked into $BIN_DIR"
+

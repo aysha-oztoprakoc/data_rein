@@ -16,11 +16,13 @@ INSTALLER = REPO_ROOT / "scripts" / "install_skills.sh"
 SKILL_NAMES = (
     "agy-pon-compliance",
     "data_rein",
+    "deep-research-paper",
     "hermes-persona",
     "kad_pon",
     "omarchy-aesthetics",
     "pon_testing_suite",
     "prompt-optimizer",
+    "utfpr-tcc-abnt",
 )
 
 
@@ -51,7 +53,7 @@ def _run_installer(root: Path, home: Path) -> subprocess.CompletedProcess[str]:
 
 
 def test_registry_lists_only_manifest_owned_real_directories(tmp_path: Path) -> None:
-    # Given seven real canonical directories and an unrelated direct symlink.
+    # Given eight real canonical directories and an unrelated direct symlink.
     _skill_tree(tmp_path)
     (tmp_path / "skills" / "foreign").symlink_to(tmp_path / "outside")
 

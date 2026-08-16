@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import ClassVar
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 
 class TrainingMetadata(BaseModel):
@@ -25,13 +25,25 @@ class TrainingMetadata(BaseModel):
     segment_count: int = Field(default=1, ge=1)
 
 
+class Message(BaseModel):
+    role: str
+    content: str
+
+
 class TrainingRecord(BaseModel):
-    """One bounded text sample accepted by the local fine-tuning loop."""
+    """One bounded text or conversation sample accepted by the local fine-tuning loop."""
 
     model_config: ClassVar[ConfigDict] = ConfigDict(frozen=True, extra="forbid")
 
-    text: str = Field(min_length=1)
+    text: str | None = None
+    messages: list[Message] | None = None
     meta: TrainingMetadata = Field(default_factory=TrainingMetadata)
+
+    @model_validator(mode="after")
+    def _validate_content(self) -> TrainingRecord:
+        if not self.text and not self.messages:
+            raise ValueError("training record must contain non-empty text or messages")
+        return self
 
 
 def segment_text(text: str, max_chars: int) -> tuple[str, ...]:

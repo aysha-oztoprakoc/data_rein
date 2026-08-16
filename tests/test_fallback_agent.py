@@ -26,7 +26,7 @@ def test_odysseus_processes_only_explicit_fallback_tasks(
         observed_statuses.append(fallback_task.get("status"))
         return "local result"
 
-    monkeypatch.setattr(agent, "query_ollama", generate)
+    monkeypatch.setattr(agent, "query_tiered_fallback", generate)
 
     # When the reactive fallback drain handles a trail notification.
     acted = agent.process_pending()

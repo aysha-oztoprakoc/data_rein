@@ -17,12 +17,14 @@ from __future__ import annotations
 from reins.services.logger import log_degradation
 
 import json
+import math
 import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, TypedDict
 
 from reins.harness import local, paths
+from reins.harness import vram_sensor
 
 
 class ModelState(Enum):
@@ -41,6 +43,11 @@ class ModelSlot:
     est_gb: float = 0.0
     last_used: float = 0.0
     error: Optional[str] = None
+    access_count: int = 0
+    decayed_access_frequency: float = 0.0
+    load_latency: float = 0.0
+    successful_reuse_count: int = 0
+    failure_penalty: float = 0.0
 
 
 class SlotStatus(TypedDict):
@@ -81,9 +88,12 @@ class ModelCoordinator:
         self.vram_budget_gb: float = cfg.get("vram_budget_gb", 7.2)
         self.kv_overhead_gb: float = cfg.get("kv_overhead_gb", 0.6)
         self.load_headroom_factor: float = cfg.get("load_headroom_factor", 1.10)
+        self.reserved_vram_gb: float = cfg.get("reserved_vram_gb", 0.5)
         self.keep_alive: str = cfg.get("keep_alive", "10m")
         self.model_overrides: dict = cfg.get("model_overrides", {})
+        self.eviction_policy: str = cfg.get("eviction_policy", "lru")
         self.defaults: dict = cfg.get("defaults", {"num_ctx": 2048, "num_thread": 8})
+        self._last_sync_time: float = 0.0
 
     # -- introspection --------------------------------------------------
     def status(self) -> CoordinatorStatus:
@@ -114,6 +124,9 @@ class ModelCoordinator:
     def fits(self, model: str) -> bool:
         self._sync_from_ollama()
         need = self.estimate_gb(model)
+        live_free = vram_sensor.query_free_vram_gb()
+        if live_free is not None:
+            return need <= live_free - self.reserved_vram_gb
         used = sum(s.est_gb for s in self._slots.values()
                    if s.state in (ModelState.READY, ModelState.BUSY) and s.name != model)
         return used + need <= self.vram_budget_gb
@@ -150,7 +163,9 @@ class ModelCoordinator:
         slot = self._slot(model)
         slot.state = ModelState.LOADING
         self._publish_state()
+        t0 = time.time()
         ok = local.load_model(model, host=self.host, keep_alive=self.keep_alive)
+        slot.load_latency = time.time() - t0
         slot.state = ModelState.READY if ok else ModelState.ERROR
         slot.est_gb = need
         slot.last_used = time.time()
@@ -172,7 +187,7 @@ class ModelCoordinator:
         self._sync_from_ollama()
         resident = sorted(
             (s for s in self._slots.values() if s.state == ModelState.READY),
-            key=lambda s: s.last_used,
+            key=lambda s: self._eviction_key(s),
         )
         evicted = []
         freed = 0.0
@@ -186,13 +201,55 @@ class ModelCoordinator:
             freed += slot_gb
         return evicted
 
+    def _calculate_workload_entropy(self) -> float:
+        total_accesses = sum(s.access_count for s in self._slots.values())
+        if total_accesses == 0:
+            return 0.0
+        entropy = 0.0
+        for s in self._slots.values():
+            if s.access_count > 0:
+                p = s.access_count / total_accesses
+                entropy -= p * math.log2(p)
+        return entropy
+
+    def _eviction_key(self, slot: ModelSlot) -> tuple[float, float]:
+        if self.eviction_policy == "entropy_lfu":
+            entropy = self._calculate_workload_entropy()
+            if entropy > 1.0:
+                # Diversity-preserving policy
+                a, b, c, d, e = 0.1, 0.4, 0.4, 0.1, 1.0
+            else:
+                # Recency-heavy policy
+                a, b, c, d, e = 0.6, 0.1, 0.1, 0.2, 1.0
+
+            now = time.time()
+            recency_i = 1.0 / (now - slot.last_used + 1.0) if slot.last_used else 0.0
+            frequency_i = slot.decayed_access_frequency or float(slot.access_count)
+            reuse_probability_i = slot.successful_reuse_count / max(1, slot.access_count)
+            resident_cost_i = slot.est_gb
+            failure_penalty_i = slot.failure_penalty
+
+            score = (
+                a * recency_i +
+                b * frequency_i +
+                c * reuse_probability_i -
+                d * resident_cost_i -
+                e * failure_penalty_i
+            )
+            return (score, slot.last_used)
+        return (slot.last_used, slot.last_used)
+
     # -- generation with OOM defense -------------------------------------
     def generate(self, model: str, prompt: str, options: Optional[dict] = None,
                  timeout: float = 300.0):
         from reins.harness.models import ModelRouter, RouteResult
 
         slot = self._slot(model)
+        if slot.state == ModelState.READY:
+            slot.successful_reuse_count += 1
         slot.state = ModelState.BUSY
+        slot.access_count += 1
+        slot.decayed_access_frequency = slot.decayed_access_frequency * 0.9 + 1.0
         self._publish_state()
         merged_options = {**self.options_for(model), **(options or {})}
 
@@ -207,6 +264,7 @@ class ModelCoordinator:
             except Exception as e:
                 log_degradation(__name__)
                 slot.state, slot.error = ModelState.ERROR, str(e)
+                slot.failure_penalty += 1.0
                 self._publish_state()
                 self.evict_lru(self.estimate_gb(model))
                 if attempt == 0:
@@ -227,11 +285,15 @@ class ModelCoordinator:
         return self._slots[model]
 
     def _sync_from_ollama(self) -> None:
+        now = time.time()
+        if now - self._last_sync_time < 2.0:
+            return
         try:
             resident = {m["name"]: m for m in local.loaded_models(self.host)}
         except Exception:
             log_degradation(__name__)
             return
+        self._last_sync_time = now
         for name, info in resident.items():
             slot = self._slot(name)
             if slot.state not in (ModelState.LOADING, ModelState.UNLOADING):

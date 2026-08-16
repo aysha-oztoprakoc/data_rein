@@ -260,7 +260,7 @@ def test_law_graceful_odysseus_drain_survives_bad_trail(monkeypatch):
     agent = OdysseusAgent()
     # A trail row missing keys must degrade, not crash the drain.
     monkeypatch.setattr(agent.trail, "_load", lambda: [{"status": "pending"}])
-    monkeypatch.setattr(agent, "query_ollama", lambda p: "Error: no model")
+    monkeypatch.setattr(agent, "query_tiered_fallback", lambda p: "Error: no model")
     monkeypatch.setattr(agent.trail, "update_task", lambda *a, **k: None)
     acted = agent.process_pending()  # must not raise
     assert isinstance(acted, list)

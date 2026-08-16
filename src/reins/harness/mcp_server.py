@@ -360,6 +360,171 @@ def judge_submit_graph(graph_id: str, nodes: str, edges: str = "[]") -> str:
 
 
 @mcp.tool()
+def route_cloud(prompt: str, provider: str = "") -> str:
+    """
+    Route a prompt directly to a remote cloud model provider (Claude, Gemini, OpenAI, DeepSeek, OpenRouter, xAI, etc.).
+    Automatically logged to the universal Task Trail.
+    """
+    return escalate_cloud(prompt, provider=provider)
+
+
+@mcp.tool()
+def combo_list() -> str:
+    """
+    Return JSON representation of all combos and their current health/cooldown status.
+    """
+    from reins.harness.combo_registry import ComboRegistry
+    registry = ComboRegistry()
+    
+    # In a more complete implementation, this might include real health status
+    # by querying the routing stats or cooldown states.
+    result = []
+    for c in registry.all_combos():
+        result.append({
+            "id": c.id,
+            "provider": c.provider,
+            "model": c.model,
+            "tier": c.tier,
+            "base_url": c.base_url,
+            "score": c.score,
+            "power": c.power,
+        })
+    return json.dumps(result)
+
+
+@mcp.tool()
+def combo_route(combo_id: str, prompt: str) -> str:
+    """
+    Explicitly route a prompt to a specific combo ID.
+    """
+    from reins.harness.combo_registry import ComboRegistry
+    from reins.harness.models import ModelRouter
+    
+    registry = ComboRegistry()
+    combo = registry.get_combo(combo_id)
+    if not combo:
+        return json.dumps({"ok": False, "error": f"combo not found: {combo_id}"})
+        
+    router = ModelRouter()
+    spec = registry.combo_to_spec(combo)
+    text, error = router._dispatch(combo.provider, combo.model, prompt, "amdy", spec)
+    
+    return json.dumps({
+        "ok": not error,
+        "model": combo.model,
+        "provider": combo.provider,
+        "combo_id": combo.id,
+        "text": text,
+        "error": error,
+    })
+
+
+@mcp.tool()
+def models_set(category: str, combo_id: str, node: str = "amdy") -> str:
+    """
+    Dynamically change/bind the active model or combo ID for an archetype category (e.g. plan, build, deepsearch, etc.).
+    """
+    from reins.harness.combo_registry import ComboRegistry
+
+    registry = ComboRegistry()
+    ok = registry.set_category_model(category, combo_id, node=node)
+    if ok:
+        return json.dumps({"ok": True, "category": category, "assigned_combo": combo_id, "node": node})
+    return json.dumps({"ok": False, "error": f"combo or model '{combo_id}' not found"})
+
+
+@mcp.tool()
+def models_show() -> str:
+    """
+    Show all archetype categories and their mapped model combo IDs.
+    """
+    from reins.harness.combo_registry import ComboRegistry
+
+    registry = ComboRegistry()
+    cats = {}
+    for cat_name, cat_obj in registry.config.categories.items():
+        cats[cat_name] = {
+            "description": cat_obj.description,
+            "amdy": list(cat_obj.amdy),
+            "tell": list(cat_obj.tell),
+            "cloud": list(cat_obj.cloud),
+        }
+    return json.dumps(cats)
+
+
+@mcp.tool()
+def skills_list() -> str:
+    """List all canonical skills available in the harness."""
+    try:
+        from reins.harness.skill_registry import canonical_skills
+        skills = canonical_skills()
+        result = [{"name": s.name, "description": s.description} for s in skills]
+        return json.dumps(result)
+    except Exception as e:
+        log_degradation(__name__)
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+def skill_get(skill_name: str) -> str:
+    """Get the full SKILL.md text for a specific canonical skill."""
+    try:
+        from reins.harness.skill_registry import canonical_skills
+        skills = canonical_skills()
+        for s in skills:
+            if s.name == skill_name:
+                text = (s.path / "SKILL.md").read_text(encoding="utf-8")
+                return json.dumps({"name": s.name, "content": text})
+        return json.dumps({"error": f"skill not found: {skill_name}"})
+    except Exception as e:
+        log_degradation(__name__)
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+def skill_route(skill_name: str, combo_id: str, prompt: str) -> str:
+    """
+    Execute a specific skill using a remote combo model via OmniRouter.
+    Reads the SKILL.md and prepends it as system context to the prompt.
+    """
+    from reins.harness.combo_registry import ComboRegistry
+    from reins.harness.models import ModelRouter
+    from reins.harness.skill_registry import canonical_skills
+
+    registry = ComboRegistry()
+    combo = registry.get_combo(combo_id)
+    if not combo:
+        return json.dumps({"ok": False, "error": f"combo not found: {combo_id}"})
+
+    skills = canonical_skills()
+    skill_match = next((s for s in skills if s.name == skill_name), None)
+    if not skill_match:
+        return json.dumps({"ok": False, "error": f"skill not found: {skill_name}"})
+
+    try:
+        skill_text = (skill_match.path / "SKILL.md").read_text(encoding="utf-8")
+    except Exception as e:
+        log_degradation(__name__)
+        return json.dumps({"ok": False, "error": f"failed to read skill: {e}"})
+
+    full_prompt = f"{skill_text}\n\nTask to execute using the skill above:\n{prompt}"
+
+    router = ModelRouter()
+    spec = registry.combo_to_spec(combo)
+    text, error = router._dispatch(combo.provider, combo.model, full_prompt, "amdy", spec)
+
+    return json.dumps({
+        "ok": not error,
+        "model": combo.model,
+        "provider": combo.provider,
+        "combo_id": combo.id,
+        "skill": skill_name,
+        "text": text,
+        "error": error,
+    })
+
+
+@mcp.tool()
 def token_usage_status(provider: str = "") -> str:
     """Show self-tracked cloud usage and configured rolling-window budgets."""
     report = budget_report()

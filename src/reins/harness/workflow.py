@@ -19,15 +19,20 @@ from dataclasses import dataclass
 from typing import Callable, Iterable, Optional
 
 from reins.harness.models import ModelRouter, RouteResult
+from reins.harness.resilience import BreakerRegistry, CircuitOpenError
+from reins.harness.trust_anchor import KnowledgeValidator
+
+_breaker_registry = BreakerRegistry()
+_validator = KnowledgeValidator()
 
 
 # Category presets: which task-router category each shortcut maps to, and the
 # preferred node (small/fast nodes for low-effort work).
 LOW_EFFORT = {
-    "ask": ("general chatting", "tell"),      # quick Q&A -> small quantized models
-    "summarize": ("data processing", "amdy"),
-    "classify": ("data organizing", "tell"),
-    "optimize": ("prompt optimization", "tell"),
+    "ask": ("momus", "tell"),      # quick Q&A -> small quantized models
+    "summarize": ("metis", "amdy"),
+    "classify": ("metis", "tell"),
+    "optimize": ("metis", "tell"),
 }
 
 
@@ -54,11 +59,54 @@ def run(
     rag: bool = False,
     router: Optional[ModelRouter] = None,
 ) -> RouteResult:
-    """Route one prompt to the best local model for a category. Never raises."""
+    """Route one prompt autonomously to the best model for a category. Never raises."""
     router = router or ModelRouter()
     if rag:
         prompt = _rag_context(prompt) + prompt
-    return router.route(category, prompt, node)
+        
+    breaker_key = f"model_router:{category}:{node}"
+    breaker = _breaker_registry.get(breaker_key)
+    
+    if breaker.state.name == "OPEN":
+        return RouteResult(text=None, model="circuit_breaker", provider="system", node=node, ok=False, error="Circuit open due to repeated anomalous outputs")
+        
+    try:
+        def _operation():
+            res = router.route(category, prompt, node=node)
+            if res.ok and res.text:
+                score = _validator.validate_update(res.text, "model")
+                if score < 0.5:
+                    raise ValueError(f"Poisoned output detected (trust_score={score})")
+            return res
+            
+        return breaker.call(_operation)
+    except CircuitOpenError:
+        return RouteResult(text=None, model="circuit_breaker", provider="system", node=node, ok=False, error="Circuit open due to repeated anomalous outputs")
+    except Exception as e:
+        logger.warning("workflow operation failed: %s", e, exc_info=True)
+        return RouteResult(text=None, model="unknown", provider="system", node=node, ok=False, error=str(e))
+
+def robust_aggregate(prompts: list[str], category: str, node: str = "amdy", rag: bool = False) -> RouteResult:
+    """Run multiple prompts and use TrimmedMean logic to aggregate results by discarding anomalous outputs."""
+    results = []
+    for prompt in prompts:
+        res = run(category, prompt, node=node, rag=rag)
+        if res.ok and res.text:
+            results.append(res)
+    
+    if not results:
+        return RouteResult(text=None, model="aggregate", provider="system", node=node, ok=False, error="No successful results to aggregate")
+        
+    # Trimmed Mean / FLTrust heuristic:
+    if len(results) > 2:
+        results.sort(key=lambda r: len(r.text or ""))
+        trim_count = max(1, len(results) // 10)
+        valid_results = results[trim_count:-trim_count]
+    else:
+        valid_results = results
+        
+    combined = "\n\n".join(r.text for r in valid_results if r.text)
+    return RouteResult(text=combined, model="aggregate", provider="system", node=node, ok=True, error=None)
 
 
 def low_effort(kind: str, prompt: str, rag: bool = False) -> RouteResult:

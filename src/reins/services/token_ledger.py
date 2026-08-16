@@ -118,10 +118,11 @@ class TokenLedger:
                 total += e.get("total_tokens", 0)
         return total
 
-    def usage_in(self, seconds: float, provider: Optional[str] = None) -> Dict[str, int]:
+    def usage_in(self, seconds: float, provider: Optional[str] = None) -> Dict[str, Any]:
         """Aggregate requests/tokens in the trailing ``seconds`` window."""
         cutoff = time.time() - seconds
         requests = tokens_in = tokens_out = 0
+        combos = {}
         for e in self._load():
             if e.get("timestamp", 0) < cutoff:
                 continue
@@ -130,8 +131,16 @@ class TokenLedger:
             requests += 1
             tokens_in += e.get("input_tokens", 0)
             tokens_out += e.get("output_tokens", 0)
+            
+            combo_id = e.get("combo_id", "")
+            if combo_id:
+                if combo_id not in combos:
+                    combos[combo_id] = {"requests": 0, "total_tokens": 0}
+                combos[combo_id]["requests"] += 1
+                combos[combo_id]["total_tokens"] += e.get("total_tokens", 0)
+                
         return {"requests": requests, "input_tokens": tokens_in, "output_tokens": tokens_out,
-                "total_tokens": tokens_in + tokens_out}
+                "total_tokens": tokens_in + tokens_out, "combos": combos}
 
     def providers(self) -> List[str]:
         return sorted({e.get("provider", "unknown") for e in self._load()})
