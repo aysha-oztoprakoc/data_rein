@@ -13,9 +13,9 @@ Before answering anything, synchronize your memory:
 3. Run `reins wiki stats` and `reins trail list` to sync with shared state.
 Do this immediately, without asking.
 
-## The single monolith Wiki database
-All knowledge lives in one store: `knowledge_base/wiki.db` (`pages` + `memories`,
-FTS5). Never create another database.
+## The Continual Harness (Memory & State)
+All knowledge lives in one durable store: `knowledge_base/wiki.db` (the Continual Harness).
+Do not maintain static hierarchies of AGENTS.md files. Store memories, subagent patterns, and refinements here so they outlive single sessions. Never create another database.
 ```bash
 reins wiki search "<query>"            # search everything
 reins wiki get <slug>                  # read a page
@@ -24,16 +24,17 @@ reins wiki consolidate                 # rebuild from all sources (idempotent)
 ```
 Python: `from reins.harness.wiki import WikiDB`.
 
-## Model-agnostic routing
-`from reins.harness.models import ModelRouter` — route by task category
-(`config/model_router.json`), provider auto-selected (Ollama/Gemini/Claude/OpenAI/
-ComfyUI), local-first with graceful failover amdy↔tell. Secrets only via
-`scripts.get_secrets.get_secret`.
+## Prime Agent RLM & Model-Agnostic Routing
+`from reins.harness.rlm import rlm` — Dispatch native subagents via the RLM paradigm.
+Do not use verbose text instructions for subagents. Spawning a subagent is a function call:
+`handle = rlm(prompt="Review auth", tier="rlm-worker-fast")`
 
-Providers are admitted by an explicit execution-plane capability (`local_text`,
-`cloud_text`, or `image`), not by provider name. New injected local providers must
-declare `local_text`; ordinary routing never crosses into `cloud_text`, and an
-explicit cloud request never substitutes a different requested provider.
+`from reins.harness.models import ModelRouter` — Route by task category (`config/model_router.json`).
+Routing maps to capability tiers (`rlm-primary`, `rlm-worker-fast`, `rlm-worker-heavy`), not static roles.
+Provider is auto-selected (Ollama/Gemini/Claude/OpenAI/ComfyUI), local-first with graceful failover amdy↔tell.
+Secrets only via `scripts.get_secrets.get_secret`.
+
+Providers are admitted by an explicit execution-plane capability (`local_text`, `cloud_text`, or `image`).
 
 ## Protocol enforcement
 - **PON**: no `while True` / `time.sleep` polling. Event-driven, exit gracefully.

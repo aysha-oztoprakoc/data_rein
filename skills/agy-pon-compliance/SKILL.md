@@ -15,7 +15,8 @@ law is section 4 of `knowledge_base/PRIME_DIRECTIVE.md`.
    status checks. Wait via blocking I/O, reactive pipes, or MQTT subscription.
    Idle CPU must be ~0%.
 2. **Strict amdy/tell split.** `amdy` executes (Methods); durable state lives on
-   `tell`. Execution nodes hold no local state and wake only when notified.
+   `tell`. Execution nodes hold no durable state; transient admission and cache
+   state may exist locally, and execution wakes only when notified.
 3. **FBE abstraction.** Model data/logic as Fact Base Elements. Entities never
    chain-call each other — they change Attributes, which fire notifications to
    Rules and Methods reactively.

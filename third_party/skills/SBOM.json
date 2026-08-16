@@ -1,0 +1,35 @@
+{
+  "schema": "data-rein.third-party-skills/1",
+  "policy": "These repositories are vendored reference material, not canonical harness skills. They are never installed by reins skills install.",
+  "components": [
+    {
+      "name": "reverse-skill",
+      "source": "https://github.com/zhaoxuya520/reverse-skill.git",
+      "revision": "dd7c50dc38e778373cd037b3f47d5e132ef43a2f",
+      "content_sha256": "6b3e050a4ef700e90e468aba888b2e243c935c1f07fc5f9548eb4d42c1148b68",
+      "allowed": true
+    },
+    {
+      "name": "pocock-skills",
+      "source": "https://github.com/mattpocock/skills.git",
+      "revision": "8b78b531ab965735c5dc74f6f7a219e1e37326df",
+      "content_sha256": "a233253ae849fac898ae75274269b98fab583cd3a62c7a5fb6ccdbbe0e26d7c8",
+      "allowed": true
+    },
+    {
+      "name": "caveman",
+      "source": "https://github.com/JuliusBrussee/caveman.git",
+      "revision": "c72984e4392c7a154e55c11dbf445f01ce5c35d4",
+      "content_sha256": "ade3c4709e3071388d2ffc15964fb1aa23bb184229e38b0def3b9bf4f8e21431",
+      "allowed": true
+    },
+    {
+      "name": "trailofbits-skills",
+      "source": "https://github.com/trailofbits/skills.git",
+      "revision": "4db88ee79db0a68bbe049fe827e272ee2bc19510",
+      "content_sha256": "f7b14dfd1c8b7b7d88f03d583f80c1ff0987bf7f7030f6bf58f148574e58724e",
+      "license": "CC-BY-SA-4.0",
+      "allowed": true
+    }
+  ]
+}
