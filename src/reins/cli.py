@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import subprocess
+import time
 from reins.services.task_trail import TaskTrail
 from reins.harness import external_io
 
@@ -70,6 +71,47 @@ def clear_trail():
     trail = TaskTrail()
     trail.clear()
     print("Task trail cleared successfully.")
+
+
+def record_plan_cmd(task_type: str, title: str) -> str:
+    """reins trail plan <type> "<title>" — open a durable plan record."""
+    from reins.services.trail_recorder import TrailRecorder
+
+    task_id = TrailRecorder().record_plan(
+        task_id=f"plan-{task_type}-{int(time.time())}",
+        task_type=f"plan:{task_type}",
+        prompt=title,
+    )
+    print(f"Plan recorded: {task_id}")
+    return task_id
+
+
+def record_step_cmd(
+    plan_id: str,
+    summary: str,
+    status: str = "success",
+    commits: list[str] | None = None,
+    files: list[str] | None = None,
+) -> None:
+    """reins trail step <plan_id> "<summary>" — append an executed step."""
+    from reins.services.trail_recorder import TrailRecorder
+
+    TrailRecorder().append_step(
+        plan_id,
+        summary,
+        status=status,
+        commits=commits,
+        files=files,
+    )
+    print(f"Step recorded on {plan_id}: {summary}")
+
+
+def finish_plan_cmd(plan_id: str) -> None:
+    """reins trail finish <plan_id> — mark a plan complete."""
+    from reins.services.trail_recorder import TrailRecorder
+
+    TrailRecorder().finish_plan(plan_id)
+    print(f"Plan finished: {plan_id}")
 
 
 def sync_trail():
@@ -168,6 +210,17 @@ def main() -> None:
     trail_sub.add_parser("list", help="List trail tasks")
     trail_sub.add_parser("clear", help="Clear trail")
     trail_sub.add_parser("sync", help="Sync AGY tasks into Hermes trail")
+    plan_p = trail_sub.add_parser("plan", help="Record a plan (opens a durable plan entry)")
+    plan_p.add_argument("task_type", help="plan category, e.g. production-readiness")
+    plan_p.add_argument("title", help="short plan/title line")
+    step_p = trail_sub.add_parser("step", help="Append an executed step to a plan")
+    step_p.add_argument("plan_id", help="plan task id returned by `reins trail plan`")
+    step_p.add_argument("summary", help="what was executed")
+    step_p.add_argument("--status", default="success", help="success|failed|running")
+    step_p.add_argument("--commit", action="append", default=[], help="commit sha (repeatable)")
+    step_p.add_argument("--file", action="append", default=[], help="file path changed (repeatable)")
+    finish_p = trail_sub.add_parser("finish", help="Mark a plan complete")
+    finish_p.add_argument("plan_id", help="plan task id")
     queue_parser = trail_sub.add_parser("queue", help="Queue a chunked task for local-model pickup")
     queue_parser.add_argument("goal", help="task goal/prompt")
     queue_parser.add_argument("--type", dest="task_type", default="generic")
@@ -272,6 +325,19 @@ def main() -> None:
                 print("No queued chunked tasks for this node.")
             else:
                 print(json.dumps(result, indent=2))
+        elif args.subcmd == "plan":
+            recorded_id = record_plan_cmd(args.task_type, args.title)
+            print(f"Plan task id: {recorded_id}")
+        elif args.subcmd == "step":
+            record_step_cmd(
+                args.plan_id,
+                args.summary,
+                status=args.status,
+                commits=args.commit or None,
+                files=args.file or None,
+            )
+        elif args.subcmd == "finish":
+            finish_plan_cmd(args.plan_id)
         else:
             trail_parser.print_help()
     elif args.command == "ody":
