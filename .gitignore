@@ -35,18 +35,18 @@ knowledge_base/wiki.db-wal
 # --- Heavyweight / regenerable / machine-local dirs ---
 # Nix binary-cache store + local signing keypair live under config/keys (above).
 # wiki_vault/ is a derived Obsidian export (regenerate via scripts/export_to_obsidian.py).
-# native/reins-pon-engine is a nested git repo published separately (submodule).
+# native/reins-pon-engine is a git submodule (published separately).
 # DATA/ is stray local Claude Code project state that leaked into the repo root.
 /nix-cache/
 /wiki_vault/
 /scratch/
 /result
-/native/
 /DATA/
 /opencode.db
 node_modules/
 .opencode/node_modules/
 .opencode/skills/
+/native/*/target/
 
 # --- Stray environment / home dotfiles that leaked into the repo root ---
 .bashrc
