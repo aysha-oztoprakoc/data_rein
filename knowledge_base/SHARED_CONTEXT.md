@@ -377,3 +377,29 @@ Core interactive processes run via `data-harness-daemon.sh` inside a resilient `
 * **PR #6078 was closed** per this directive; the XXE/docx hardening change remains on the fork
   branches `fix/xxe-docx-hardening` + `dev-data_rein`, archive in `docs/odysseus-phase8/`.
 * Mirror of the same policy stored in the wiki (`wiki_add_memory`, uid `fa3ea3f0...`).
+
+## Sofia³ — greenfield SOFIA dashboard replaces dashboard/ (2026-08-16)
+
+* **Task Trail**: `404570d3-addb-4ccf-9be3-3264f4b54550` (sofia3-impl) -> in progress.
+* **What**: `sofia3/` is the new dashboard — FastAPI backend (`sofia3/backend/`) +
+  Vite/React/TS frontend (`sofia3/frontend/`), served at `http://127.0.0.1:8088` by the
+  same systemd unit (`systemd/sofia-dashboard.service`, ExecStart now
+  `.venv/bin/python -m sofia3.backend.app`, no reload). Old `dashboard/` is retired (git rm).
+* **Screens**: Tasks (live WebSocket stream — pushed by inotify on the Trail DB +
+  MQTT, zero polling), Wiki (browse/search/read 1698 pages + 197 memories), Graph
+  (2234 nodes / 4238 edges via vendored semantica ContextGraph in `third_party/semantica/`,
+  semantica NOT a pip dep — full package drags torch/transformers/opencv/faiss; only
+  `context`+`utils` vendored, MIT license kept).
+* **API**: `/api/tasks`, `/api/tasks/summary`, `/api/wiki/*`, `/api/graph` (+`/stats`, `/invalidate`),
+  `/api/agents/{status,budgets}`, `/api/coord`, `/api/models`, `/api/combos`, `/api/tokens`,
+  `/api/hardware`, `/api/train`, `/api/skills`, `/api/panel/summary`, `/api/health`, WS `/ws`
+  (origin-guarded to 127.0.0.1:8088). OpenAPI at `/openapi.json`.
+* **Graph source of truth**: reads the monolith `knowledge_base/wiki.db` + Task Trail
+  `~/.config/data_nexus/task_trail.sqlite3` + `config/model_catalog.json` (the canonical model
+  list; `model_registry.json` is the SysProfiler hardware profile, NOT the model list).
+  60s TTL cache, reactive invalidation on trail pushes. Memory→Page edges resolve via
+  filename basename mapping (`memory.source` is a basename, `page.source_path` is full path).
+* **Tests**: `tests/test_sofia3_api.py` — 9 passed (API + WS push + origin guard + graph).
+* **Sofia³ note**: MQTT topics on the harness publish only a resume pulse
+  (`data_rein/trail/updated`); per-task trail writes do NOT publish MQTT, so the dashboard's
+  live signal is inotify on the trail DB with MQTT as redundant channel.

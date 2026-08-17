@@ -85,3 +85,4 @@ __pycache__/
 /unittest
 # Added by code-review-graph
 .code-review-graph/
+*.tsbuildinfo

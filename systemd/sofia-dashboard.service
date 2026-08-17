@@ -5,7 +5,7 @@ After=network.target ollama-harness.service
 [Service]
 Type=simple
 WorkingDirectory=/home/amdy/data_rein
-ExecStart=/home/amdy/data_rein/.venv/bin/python /home/amdy/data_rein/dashboard/app.py
+ExecStart=/home/amdy/data_rein/.venv/bin/python -m sofia3.backend.app
 Restart=always
 RestartSec=3
 Environment=PYTHONUNBUFFERED=1

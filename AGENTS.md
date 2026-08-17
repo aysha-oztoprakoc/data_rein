@@ -65,10 +65,23 @@ scan path. Skills are also ingested into the wiki (`reins wiki search`).
 
 `reins bin install` (`scripts/install_bin.sh`) symlinks every installed
 console-script (`reins` itself) and wraps every custom dashboard/TUI script
-(currently `sofia` → `scripts/sofia_protocol.py`) into `~/.local/bin`, so they
-run from any shell without `cd`ing into the repo or typing `.venv/bin/<x>`.
+(currently `sofia` → `scripts/sofia_protocol.py`, `sofia-ui` →
+`sofia3/backend/app.py`) into `~/.local/bin`, so they run from any shell
+without `cd`ing into the repo or typing `.venv/bin/<x>`.
 Adding a new custom command: add one `wrapper <name> <path>` line to
 `scripts/install_bin.sh`, then re-run `reins bin install` (idempotent).
+
+## Sofia³ UI (the dashboard)
+
+`sofia3/` is the greenfield SOFIA dashboard — a FastAPI backend
+(`sofia3/backend/app.py`, systemd unit `systemd/sofia-dashboard.service`,
+served at `http://127.0.0.1:8088`) plus a Vite + React + TypeScript frontend
+(`sofia3/frontend/`, built into `sofia3/frontend/dist/` and served statically).
+It replaces the retired `dashboard/`. Screens: Tasks (live via WebSocket +
+inotify/MQTT push — zero polling), Wiki (browse/search/read pages + memories),
+Graph (knowledge graph via vendored `third_party/semantica` ContextGraph).
+The wiki DB and Task Trail remain the source of truth; the UI only reads.
+Backend API docs at `/openapi.json`.
 
 ## OpenCode: the interactive front end
 
