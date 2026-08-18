@@ -3,250 +3,271 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>data_rein — Universal AI Harness & PON Graph Engineering Architecture</title>
-  <meta name="description" content="Model-agnostic, zero-polling autonomous agent harness with graph engineering, KùzuDB/ChromaDB vector RAG, and an automated quality control meta-harness.">
+  <title>data_rein // Cyberpunk Netrunner Terminal & PON Graph Engine</title>
+  <meta name="description" content="Model-agnostic zero-polling autonomous agent harness with PON graph engineering, KùzuDB vector RAG, and deterministic Quality Control Meta-Harness.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="scanlines">
+
+  <!-- Top HUD Telemetry Bar -->
+  <div class="hud-telemetry-bar">
+    <div class="container telemetry-flex">
+      <div class="telemetry-item">
+        <span class="dot-status"></span>
+        <span>NETRUNNER DECK: LINKED</span>
+      </div>
+      <div class="telemetry-item">
+        <span>PROTOCOL: <strong style="color: var(--color-cyber-yellow);">PON KAD 1.1</strong></span>
+      </div>
+      <div class="telemetry-item">
+        <span>CPU IDLE: <strong style="color: var(--color-matrix-green);">0.0% (PASSIVE I/O)</strong></span>
+      </div>
+      <div class="telemetry-item">
+        <span>TESTS: <strong style="color: var(--color-neon-cyan);">391/391 (100%)</strong></span>
+      </div>
+    </div>
+  </div>
 
   <!-- Navbar -->
   <nav class="navbar" id="main-nav">
     <div class="container nav-content">
       <div class="brand">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-blue);">
-          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-          <polyline points="2 17 12 22 22 17"></polyline>
-          <polyline points="2 12 12 17 22 12"></polyline>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-cyber-yellow);">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
         </svg>
-        <span>data_rein</span>
-        <span class="brand-badge">v0.2.0 • PON KAD 1.1</span>
+        <span>DATA_REIN</span>
+        <span class="brand-badge">PROD // v0.2.0</span>
       </div>
-      <ul class="nav-links">
-        <li><a href="#topology">Topology</a></li>
-        <li><a href="#pillars">Architecture</a></li>
-        <li><a href="#simulator">Live Simulator</a></li>
-        <li><a href="#cli">CLI Reference</a></li>
-        <li><a href="https://github.com/aysha-oztoprakoc/data_rein" class="btn btn-secondary" id="nav-github-link" target="_blank" rel="noopener">GitHub</a></li>
-      </ul>
+
+      <div class="nav-controls">
+        <ul class="nav-links">
+          <li><a href="#terminal-deck">Deck</a></li>
+          <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#qc-gate">QC Ratchet</a></li>
+          <li><a href="#cluster">Cluster</a></li>
+        </ul>
+
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="hud-toggle-btn active" id="btn-toggle-audio">🔊 AUDIO: ON</button>
+          <button class="hud-toggle-btn active" id="btn-toggle-scanlines">📺 CRT: ON</button>
+          <a href="https://github.com/aysha-oztoprakoc/data_rein" class="cyber-btn cyber-btn-cyan" style="padding: 0.35rem 0.85rem; font-size: 0.75rem;" target="_blank" rel="noopener">GITHUB</a>
+        </div>
+      </div>
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <header class="hero" id="hero-section">
-    <div class="container hero-grid">
-      <div class="hero-text">
-        <div class="hero-tag">
-          <span class="dot"></span>
-          <span>Zero Polling • Reactive Event Mesh • Model-Agnostic</span>
-        </div>
-        <h1 class="hero-title">The Universal Agent Harness & PON Graph Engine</h1>
-        <p class="hero-desc">
-          An event-driven orchestration system built for fleet autonomy. Decouples stateless execution nodes from central state stores, accelerates local GPU models on NixOS, and enforces code quality with a deterministic meta-harness.
+  <!-- Hero & Netrunner Terminal Deck -->
+  <header class="hero-deck" id="terminal-deck">
+    <div class="container deck-grid">
+      <div class="deck-info">
+        <div class="deck-tag">Universal Agent Harness // PON Graph Engine</div>
+        <h1>Sovereign Multi-Node Agentic Mesh</h1>
+        <p>
+          High-performance, model-agnostic execution environment engineered under the <strong>Notification-Oriented Paradigm (PON)</strong>. Decouples stateless execution methods from NixOS fact stores with sub-millisecond reactive dispatch.
         </p>
-        <div class="hero-actions">
-          <a href="#simulator" class="btn btn-primary" id="btn-hero-simulator">Explore Simulator</a>
-          <a href="#topology" class="btn btn-secondary" id="btn-hero-cluster">Cluster Status</a>
+
+        <div class="deck-actions">
+          <a href="#terminal-window" class="cyber-btn cyber-btn-yellow" onclick="document.getElementById('term-input').focus();">Engage Terminal</a>
+          <a href="#architecture" class="cyber-btn cyber-btn-cyan">Inspect Spec</a>
+        </div>
+
+        <div class="hud-box" style="padding: 1.25rem; margin-top: 1rem;">
+          <div style="font-size: 0.75rem; color: var(--color-neon-cyan); font-weight: 700; margin-bottom: 0.5rem; text-transform: uppercase;">
+            // CONSTITUTIONAL MOTOR TRIPOD (PROJECT SOFIA)
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; font-size: 0.8rem;">
+            <div>
+              <strong style="color: #fff;">1. PON Engine</strong>
+              <div style="color: var(--text-dim); font-size: 0.75rem;">Zero-polling blocking I/O</div>
+            </div>
+            <div>
+              <strong style="color: #fff;">2. Graceful Degrade</strong>
+              <div style="color: var(--text-dim); font-size: 0.75rem;">Immortal circuit breakers</div>
+            </div>
+            <div>
+              <strong style="color: #fff;">3. Test-Driven</strong>
+              <div style="color: var(--text-dim); font-size: 0.75rem;">391/391 AST enforced</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Live Cluster Overview -->
-      <div class="cluster-card" id="topology">
-        <div class="cluster-header">
-          <span class="cluster-title">Distributed Cluster Topology</span>
-          <button class="btn btn-secondary" id="btn-ping-tell" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Probe Cluster</button>
-        </div>
-        <div class="nodes-container">
-          <div class="node-item" id="node-amdy">
-            <div class="node-info">
-              <h4>amdy <span style="font-size: 0.75rem; color: var(--text-muted);">[192.168.0.3]</span></h4>
-              <p>Stateless Execution Node (Methods) • 0% CPU Idle</p>
-            </div>
-            <div class="node-specs">
-              <span class="node-status-badge badge-online">ONLINE</span>
-              <div style="color: var(--text-secondary); margin-top: 0.25rem;">AMD RX 9060 XT (8GB)</div>
-            </div>
+      <!-- Interactive Netrunner Terminal Program -->
+      <div class="terminal-program hud-box" id="terminal-window">
+        <div class="terminal-header">
+          <div class="terminal-title">
+            <span class="dot-status"></span>
+            <span>NETRUNNER TERMINAL DECK // CYBER_SHELL_v2.0</span>
           </div>
+          <span style="font-size: 0.7rem; color: var(--text-dim); font-family: var(--font-mono);">HOST: amdy [192.168.0.3]</span>
+        </div>
 
-          <div class="node-item" id="node-tell">
-            <div class="node-info">
-              <h4>tell <span style="font-size: 0.75rem; color: var(--text-muted);">[192.168.0.4]</span></h4>
-              <p>NixOS State Store • Mosquitto Broker • Ollama Plane</p>
-            </div>
-            <div class="node-specs">
-              <span class="node-status-badge badge-online">ONLINE</span>
-              <div style="color: var(--text-secondary); margin-top: 0.25rem;">NVIDIA GTX 1060 (6GB)</div>
-            </div>
-          </div>
+        <div class="terminal-quick-bar">
+          <span style="font-size: 0.7rem; color: var(--text-muted);">EXEC:</span>
+          <button class="quick-cmd-btn" data-cmd="reins run code 'optimize parser' --rag">reins run</button>
+          <button class="quick-cmd-btn" data-cmd="reins wiki search 'PON'">reins wiki</button>
+          <button class="quick-cmd-btn" data-cmd="reins tokens status">reins tokens</button>
+          <button class="quick-cmd-btn" data-cmd="reins qc eval">reins qc</button>
+          <button class="quick-cmd-btn" data-cmd="reins cluster probe">reins cluster</button>
+          <button class="quick-cmd-btn" data-cmd="help">help</button>
+          <button class="quick-cmd-btn" data-cmd="clear">clear</button>
         </div>
-        <div id="ping-tell-status" style="margin-top: 1rem; font-size: 0.8rem; font-family: var(--font-mono); color: var(--text-muted);">
-          ● Mesh active: MQTT port 1883 & Ollama CUDA port 11434 synced over local network.
+
+        <div class="terminal-body" id="term-body">
+          <div class="terminal-history" id="term-history"></div>
+          <div class="terminal-prompt-line">
+            <span class="terminal-prompt-prefix">netrunner@amdy:~$</span>
+            <input type="text" class="terminal-input" id="term-input" placeholder="type 'help' or command..." autocomplete="off" spellcheck="false">
+          </div>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Core Pillars Section -->
-  <section class="section" id="pillars">
+  <!-- Architectural Pillars -->
+  <section class="section" id="architecture">
     <div class="container">
-      <div class="section-header">
-        <div class="section-tag">Core Architecture</div>
-        <h2 class="section-title">Engineered for Mathematical Reliability</h2>
-        <p>No arbitrary guessing or fragile polling loops. Every state mutation is an event with circuit-breaker protection.</p>
+      <div class="section-head">
+        <div class="section-tag">Core Specifications</div>
+        <h2>High-Vis Cybernetic Architecture</h2>
+        <p>Mathematical rigor applied to agentic orchestration, memory grounding, and hardware utilization.</p>
       </div>
 
       <div class="grid-3">
-        <div class="card" id="card-pon">
-          <div class="card-icon">⚡</div>
-          <h3 class="card-title">PON (Zero-Polling) Paradigm</h3>
-          <p class="card-desc">CPU stays at 0% consumption when awaiting events. All cross-node communication uses blocking I/O and reactive MQTT topics rather than scan loops or timers.</p>
-          <div class="card-meta">Invariant: test_laws.py AST Enforced</div>
+        <div class="hud-box hud-card" id="pillar-pon">
+          <span class="hud-card-badge badge-yellow">// KAD 1.1 LAW</span>
+          <h3>PON Zero-Polling Engine</h3>
+          <p>Strict elimination of false reactivity (`while True` loops & scan polling). Methods wake instantly when instigates by Fact Base state notifications on blocking MQTT streams.</p>
+          <div class="hud-card-footer">INVARIANT: 0% CPU Idle Consumption</div>
         </div>
 
-        <div class="card" id="card-qc">
-          <div class="card-icon">🛡️</div>
-          <h3 class="card-title">Automated QC Meta-Harness</h3>
-          <p class="card-desc">Deterministic quality control gate evaluating Radon cyclomatic complexity and differential coverage. Enforces the Ratchet Principle and merges LOW-risk code autonomously.</p>
-          <div class="card-meta">Ratchet: Zero Technical Debt Growth</div>
+        <div class="hud-box hud-card" id="pillar-qc">
+          <span class="hud-card-badge badge-red">// DETERMINISTIC GATE</span>
+          <h3>QC Meta-Harness & Ratchet</h3>
+          <p>Continuous quality ratcheting. Calculates Radon cyclomatic complexity and differential coverage. High complexity (>20) and coverage regressions are blocked at the gate.</p>
+          <div class="hud-card-footer">ACTION: Autonomous LOW-Risk Merge</div>
         </div>
 
-        <div class="card" id="card-kuzu">
-          <div class="card-icon">🕸️</div>
-          <h3 class="card-title">Kùzu Graph & Vector RAG</h3>
-          <p class="card-desc">Multi-modal knowledge pipeline chunking Markdown and memories into embedded relational graph nodes with ChromaDB vector deduplication.</p>
-          <div class="card-meta">Database: Kùzu Graph Engine</div>
+        <div class="hud-box hud-card" id="pillar-kuzu">
+          <span class="hud-card-badge badge-cyan">// GRAPH RAG PLANE</span>
+          <h3>Kùzu Graph & ChromaDB</h3>
+          <p>Multi-modal knowledge graph pipeline chunking Markdown, ADRs, and memories into embedded relational graph nodes with cosine semantic deduplication.</p>
+          <div class="hud-card-footer">DB: KùzuDB Relational Engine</div>
         </div>
 
-        <div class="card" id="card-vram">
-          <div class="card-icon">🧠</div>
-          <h3 class="card-title">VRAM Residency Coordinator</h3>
-          <p class="card-desc">Hardware-aware model plane managing JIT weights loading and entropy-based LRU evictions within local 8GB GPU memory constraints.</p>
-          <div class="card-meta">Coordinator: amdy ↔ tell Failover</div>
+        <div class="hud-box hud-card" id="pillar-vram">
+          <span class="hud-card-badge badge-cyan">// VRAM COORDINATOR</span>
+          <h3>JIT Hardware Plane</h3>
+          <p>Hardware-aware model plane managing JIT weights loading and entropy-based LRU evictions within local 8GB GPU memory constraints.</p>
+          <div class="hud-card-footer">GPU: RX 9060 XT (amdy) ↔ GTX 1060 (tell)</div>
         </div>
 
-        <div class="card" id="card-judge">
-          <div class="card-icon">⚖️</div>
-          <h3 class="card-title">Agent-as-a-Judge Protocol</h3>
-          <p class="card-desc">Lead Agent verification evaluating action proposals across three distinct personas: Archimedes (validity), Socrates (rationale), and Sofia (fact-grounding).</p>
-          <div class="card-meta">Gate: ActionGate Sandboxing</div>
+        <div class="hud-box hud-card" id="pillar-judge">
+          <span class="hud-card-badge badge-yellow">// MULTI-AGENT JUDGE</span>
+          <h3>Agent-as-a-Judge Protocol</h3>
+          <p>Multi-persona validator evaluating proposed system actions: Archimedes (validity), Socrates (rationale), and Sofia (fact-grounding).</p>
+          <div class="hud-card-footer">GATE: ActionGate Sandbox</div>
         </div>
 
-        <div class="card" id="card-resilience">
-          <div class="card-icon">🔄</div>
-          <h3 class="card-title">Graceful Degradation (GD)</h3>
-          <p class="card-desc">Immortal against network faults and I/O exceptions. All external sockets, subprocesses, and HTTP requests are shielded by circuit breakers.</p>
-          <div class="card-meta">Audit: TaskTrail State Logging</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Interactive Live Simulator -->
-  <section class="section" id="simulator" style="background: rgba(255, 255, 255, 0.01);">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-tag">Interactive Playground</div>
-        <h2 class="section-title">Live Pipeline & Ratchet Simulator</h2>
-        <p>Test the reactive Fact Base Element (FBE) dispatch loop and evaluate the Automated QC Gate in real-time.</p>
-      </div>
-
-      <div class="sim-container">
-        <div class="sim-nav">
-          <button class="sim-tab-btn active" data-tab="fbe" id="tab-btn-fbe">1. FBE Graph Loop</button>
-          <button class="sim-tab-btn" data-tab="qc" id="tab-btn-qc">2. QC Gate & Ratchet</button>
-        </div>
-
-        <!-- FBE Panel -->
-        <div class="sim-body" id="sim-panel-fbe">
-          <div class="sim-controls">
-            <h3 style="font-size: 1.1rem;">Simulate FBE Event Sequence</h3>
-            <p style="font-size: 0.9rem;">Trigger a raw file drop event and watch the PON Graph Engine traverse nodes asynchronously.</p>
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-              <label for="sim-prompt-input" style="font-size: 0.85rem; font-family: var(--font-mono); color: var(--text-muted);">Incoming Task Payload</label>
-              <input type="text" id="sim-prompt-input" value="Refactor parser utility with strict bounds" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 0.6rem; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.9rem;">
-            </div>
-            <button class="sim-btn-trigger" id="btn-run-fbe-sim">Trigger Event Loop</button>
-          </div>
-          <div class="sim-output" id="fbe-log-output">// Output log will appear here upon event trigger...
-// Zero-polling idle state: 0% CPU</div>
-        </div>
-
-        <!-- QC Panel -->
-        <div class="sim-body" id="sim-panel-qc" style="display: none;">
-          <div class="sim-controls">
-            <h3 style="font-size: 1.1rem;">Quality Control Ratchet Calculator</h3>
-            <p style="font-size: 0.9rem;">Adjust change parameters to evaluate the deterministic merge disposition.</p>
-            
-            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-              <label style="font-size: 0.85rem; font-family: var(--font-mono); color: var(--text-muted);">Max Cyclomatic Complexity (Hotspot): <strong id="qc-cc-val" style="color: var(--accent-blue);">3</strong></label>
-              <input type="range" id="qc-cc-input" min="1" max="30" value="3" style="width: 100%;">
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-              <label style="font-size: 0.85rem; font-family: var(--font-mono); color: var(--text-muted);">Coverage Delta: <strong id="qc-cov-val" style="color: var(--accent-emerald);">+2.5%</strong></label>
-              <input type="range" id="qc-cov-input" min="-15" max="15" step="0.5" value="2.5" style="width: 100%;">
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-              <label style="font-size: 0.85rem; font-family: var(--font-mono); color: var(--text-muted);">Risk Classification</label>
-              <select id="qc-risk-select" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 0.5rem; border-radius: var(--radius-sm); font-family: var(--font-mono);">
-                <option value="LOW">LOW (Formatting / Utilities / Non-critical)</option>
-                <option value="MEDIUM">MEDIUM (Ordinary Features / API modifications)</option>
-                <option value="HIGH">HIGH (Authentication / Cryptography / Database Migration)</option>
-              </select>
-            </div>
-          </div>
-
-          <div style="background: #06090e; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.5rem; display: flex; flex-direction: column; justify-content: center;" id="qc-result-box">
-            <!-- Dynamic QC Result -->
-          </div>
+        <div class="hud-box hud-card" id="pillar-resilience">
+          <span class="hud-card-badge badge-red">// RESILIENCE SHIELD</span>
+          <h3>Graceful Degradation (GD)</h3>
+          <p>All external subprocesses, sockets, and MQTT operations are wrapped with circuit breakers (`CLOSED -> OPEN -> HALF_OPEN`) preventing thread deadlocks.</p>
+          <div class="hud-card-footer">AUDIT: TaskTrail State Logging</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- CLI Reference -->
-  <section class="section" id="cli">
+  <!-- Interactive QC Ratchet Simulator -->
+  <section class="section" id="qc-gate">
     <div class="container">
-      <div class="section-header">
-        <div class="section-tag">Developer Toolkit</div>
-        <h2 class="section-title">Canonical Command Reference</h2>
-        <p>Manage knowledge, trigger local models, and inspect cluster state from any shell.</p>
+      <div class="section-head">
+        <div class="section-tag">Quality Gate Telemetry</div>
+        <h2>Automated QC Ratchet Simulator</h2>
+        <p>Evaluate code changes against the deterministic ratchet principles in real-time.</p>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem;">
-        <div class="cluster-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <code style="color: var(--accent-blue); font-weight: 600;">reins paths</code>
-            <button class="btn btn-secondary btn-copy" data-copy="reins paths" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Copy</button>
+      <div class="qc-deck hud-box">
+        <div class="qc-control-group">
+          <div class="range-wrap">
+            <div class="range-label">
+              <span>Max Cyclomatic Complexity (Hotspot):</span>
+              <strong id="qc-cc-val" style="color: var(--color-neon-cyan);">4</strong>
+            </div>
+            <input type="range" id="qc-cc-slider" min="1" max="30" value="4">
           </div>
-          <p style="font-size: 0.9rem;">Prints canonical storage, database, and configuration paths across the active node.</p>
+
+          <div class="range-wrap">
+            <div class="range-label">
+              <span>Differential Test Coverage Delta:</span>
+              <strong id="qc-cov-val" style="color: var(--color-matrix-green);">+3.5%</strong>
+            </div>
+            <input type="range" id="qc-cov-slider" min="-15" max="15" step="0.5" value="3.5">
+          </div>
+
+          <div class="range-wrap">
+            <label style="font-size: 0.82rem; color: var(--text-bright);">Change Risk Classification:</label>
+            <select class="select-cyber" id="qc-risk-select">
+              <option value="LOW">LOW (Formatting / Utilities / Non-critical)</option>
+              <option value="MEDIUM">MEDIUM (Ordinary Features / API adjustments)</option>
+              <option value="HIGH">HIGH (Authentication / Cryptography / DB Migrations)</option>
+            </select>
+          </div>
         </div>
 
-        <div class="cluster-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <code style="color: var(--accent-blue); font-weight: 600;">reins run "code" "prompt" --rag</code>
-            <button class="btn btn-secondary btn-copy" data-copy="reins run &quot;code&quot; &quot;prompt&quot; --rag" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Copy</button>
+        <div class="qc-monitor-box" id="qc-monitor-box">
+          <!-- Dynamic QC Status injected by app.js -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cluster Topology Matrix -->
+  <section class="section" id="cluster">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-tag">Distributed Mesh</div>
+        <h2>Live Cluster Topology Matrix</h2>
+        <p>Decoupled multi-node architecture separating execution methods from central state stores.</p>
+      </div>
+
+      <div class="cluster-matrix">
+        <div class="hud-box node-box" id="node-matrix-amdy">
+          <div class="node-box-head">
+            <div>
+              <h3 style="font-size: 1.1rem; color: var(--color-cyber-yellow);">amdy // EXECUTION NODE</h3>
+              <span style="font-size: 0.75rem; color: var(--text-dim); font-family: var(--font-mono);">IP: 192.168.0.3 • Stateless Methods</span>
+            </div>
+            <span class="hud-card-badge badge-cyan">ONLINE</span>
           </div>
-          <p style="font-size: 0.9rem;">Routes prompt autonomously to the best local model with Kùzu graph context injection.</p>
+          <p style="font-size: 0.85rem; margin-bottom: 0.75rem;">
+            Runs stateless execution workers, Antigravity CLI, Sofia³ frontend, and local GPU acceleration (AMD Radeon RX 9060 XT 8GB VRAM).
+          </p>
+          <div style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--color-neon-cyan);">
+            CPU CONSUMPTION: 0.0% IDLE (AWAITING NOTIFICATIONS)
+          </div>
         </div>
 
-        <div class="cluster-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <code style="color: var(--accent-blue); font-weight: 600;">reins wiki search "query"</code>
-            <button class="btn btn-secondary btn-copy" data-copy="reins wiki search &quot;query&quot;" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Copy</button>
+        <div class="hud-box node-box" id="node-matrix-tell">
+          <div class="node-box-head">
+            <div>
+              <h3 style="font-size: 1.1rem; color: var(--color-cyber-yellow);">tell // FACT BASE SERVER</h3>
+              <span style="font-size: 0.75rem; color: var(--text-dim); font-family: var(--font-mono);">IP: 192.168.0.4 • NixOS State Store</span>
+            </div>
+            <span class="hud-card-badge badge-yellow">ONLINE</span>
           </div>
-          <p style="font-size: 0.9rem;">Performs full-text BM25 and semantic graph search across all ingested pages & memories.</p>
-        </div>
-
-        <div class="cluster-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <code style="color: var(--accent-blue); font-weight: 600;">reins bin install</code>
-            <button class="btn btn-secondary btn-copy" data-copy="reins bin install" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Copy</button>
+          <p style="font-size: 0.85rem; margin-bottom: 0.75rem;">
+            Hosts Mosquitto MQTT v2 reactive event broker, central SQLite WikiDB / Kùzu Graph, and CUDA-accelerated Ollama plane (NVIDIA GTX 1060 6GB).
+          </p>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+            <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--color-matrix-green);">PORT 1883 & 11434 ACTIVE</span>
+            <button class="cyber-btn cyber-btn-cyan" id="btn-probe-matrix" style="padding: 0.25rem 0.6rem; font-size: 0.7rem;">PROBE MESH</button>
           </div>
-          <p style="font-size: 0.9rem;">Symlinks and wraps all harness tools (<code>reins</code>, <code>sofia</code>, <code>sofia-ui</code>) into <code>~/.local/bin</code>.</p>
+          <div id="matrix-probe-log" style="margin-top: 0.5rem; font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-dim);"></div>
         </div>
       </div>
     </div>
@@ -255,8 +276,12 @@
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
-      <p>data_rein • Governed by <a href="#hero-section">The Prime Directive</a> & Notification-Oriented Paradigm (PON KAD 1.1).</p>
-      <p style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">100% Test Coverage • 391/391 Tests Passing • Zero Polling Verified</p>
+      <p style="font-family: var(--font-mono); color: var(--text-dim);">
+        DATA_REIN // GOVERNED BY <span style="color: var(--color-cyber-yellow);">THE PRIME DIRECTIVE</span> & <span style="color: var(--color-neon-cyan);">PON KAD 1.1</span>
+      </p>
+      <p style="margin-top: 0.35rem; font-size: 0.75rem; color: var(--text-muted);">
+        100% Deterministic Test Coverage • 391/391 Tests Approved • Zero Polling Guaranteed
+      </p>
     </div>
   </footer>
 
