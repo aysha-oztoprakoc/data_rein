@@ -26,6 +26,7 @@
 
 - **PON** — zero polling; event-driven; strict amdy(exec)/tell(state) split; FBE.
 - **Graceful degradation** — degrade, never crash; log failures to the Task Trail.
+- **PLAN-1 (Planning Phase Separation)** — When `/plan`, `/grill-me`, `/grilling`, or planning skills are invoked: NEVER modify workspace files or run mutating commands. Research and elaborate a detailed plan artifact (or interview tree) ONLY, then HALT tool calls and await explicit user approval.
 - **Aesthetic** — `knowledge_base/AESTHETIC_DIRECTIVE.md` governs all output.
 
 ## Quick reference

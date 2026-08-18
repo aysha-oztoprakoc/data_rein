@@ -1,0 +1,33 @@
+---
+import DetailLayout from '../layouts/DetailLayout.astro';
+---
+
+<DetailLayout 
+  title="Sofia³ Dashboard" 
+  heading="Sofia³ Web Dashboard & Task Trail"
+  description="The high-performance interactive UI and Tiered Task Trail API."
+>
+  <p>The Sofia³ dashboard has been engineered as a zero-polling reactive command center. Leveraging an <strong>Omarchy Cyberpunk</strong> design system, it provides a panoramic view of the cluster without incurring polling loops or CPU overhead.</p>
+
+  <h2>Redux Telemetry Widgets</h2>
+  <ul>
+    <li><strong>HardwareWidget:</strong> Tracks GPU, VRAM, RAM, and CPU specs, rendering model admission capabilities in real time.</li>
+    <li><strong>OmniRouterWidget:</strong> Visualizes token budget utilization and provider combo tiers (via Recharts).</li>
+    <li><strong>PonHealthWidget:</strong> Validates the 0% idle CPU state, watching the inotify SQLite WAL and MQTT bus connection.</li>
+    <li><strong>CoordWidget:</strong> Reports the resident model slot, allocated VRAM, and dynamic agent budgets.</li>
+    <li><strong>TasksWidget:</strong> A live stream of autonomous events powered by the Tiered Task Trail API.</li>
+  </ul>
+
+  <h2>Tiered Task Trail API</h2>
+  <p>The universal task trail has been refactored to protect LLM context windows and reduce websocket payload bloat.</p>
+  <ul>
+    <li><strong>Summary View API:</strong> The websocket bridge serves a lightweight payload (`task_id`, `status`, `title`) to ensure high-performance streaming across nodes.</li>
+    <li><strong>Lazy Loaded Details:</strong> The full JSON payload of a task's execution graph is fetched asynchronously via REST only upon user interaction.</li>
+    <li><strong>Parent/Child Folding:</strong> Micro-tasks and remote compilation steps are folded into their parent process, hiding execution noise from the main timeline.</li>
+    <li><strong>Soft-Archiving:</strong> Long-running continuous agents will smoothly archive old tasks, performing garbage collection to prevent UI freezing.</li>
+  </ul>
+
+  <h2>LiveBridge WebSocket Architecture</h2>
+  <p>Sofia³’s <code>LiveBridge</code> strictly adheres to the <strong>Notification-Oriented Paradigm (PON)</strong>:</p>
+  <p>The backend subscribes to the <code>data_rein/trail/task/#</code> MQTT channels and an inotify watcher on the SQLite WAL. State changes instantly wake an `asyncio` worker that fans out the latest state vector to all connected clients. No <code>while True: sleep(1)</code> polling loops exist anywhere in the pipeline.</p>
+</DetailLayout>

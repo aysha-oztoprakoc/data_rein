@@ -34,8 +34,8 @@ This directory is the **single source of truth** for every skill...
 | `git-cleanup` | Safely analyzes and cleans up local git branches and worktrees by categorizing them as merged, squash-merged, superseded, or active work. |
 | `git-guardrails-claude-code` | Set up Claude Code hooks to block dangerous git commands (push, reset --hard, clean, branch -D, etc.) before they execute. Use when user wants to prevent destructive git operations, add git safety hooks, or block git push/reset in Claude Code. |
 | `github-triage` | Triages a repository's open GitHub issues and pull requests via the gh CLI. Optionally reviews and merges ready PRs — incrementally merging passing automated/bot PRs and maintainer-approved ones, and spawning review subagents for never-reviewed ones — then closes already-resolved issues with comments citing the resolving PR or commit, cross-links issues with their pending fix PRs, and assigns local-only priority and change-size estimates for everything outstanding. Use when triaging, grooming, or reviewing a repository's open issues and PRs. |
-| `grill-me` | A relentless interview to sharpen a plan or design. |
-| `grill-with-docs` | A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as we go. |
+| `grill-me` | A relentless interview to sharpen a plan or design. Purely conversational and read-only; never makes code edits or executes mutating actions. |
+| `grill-with-docs` | A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as we go. Never modifies existing source code or executes mutating tasks. |
 | `handoff` | Compact the current conversation into a handoff document for another agent to pick up. |
 | `hermes-persona` | Assume the Data-Hermes persona: the fused orchestrator of the data_rein harness. Handover context + mission objectives. |
 | `implement` | Implement a piece of work based on a spec or set of tickets. |
@@ -49,7 +49,7 @@ This directory is the **single source of truth** for every skill...
 | `property-based-testing` | Provides guidance for property-based testing across multiple languages and smart contracts. Use when writing tests, reviewing code with serialization/validation/parsing patterns, designing features, or when property-based testing would provide stronger coverage than example-based tests. |
 | `prototype` | Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, or explore what a UI should look like. |
 | `qa` | Interactive QA session where user reports bugs or issues conversationally, and the agent files GitHub issues. Explores the codebase in the background for context and domain language. Use when user wants to report bugs, do QA, file issues conversationally, or mentions "QA session". |
-| `request-refactor-plan` | Create a detailed refactor plan with tiny commits via user interview, then file it as a GitHub issue. Use when user wants to plan a refactor, create a refactoring RFC, or break a refactor into safe incremental steps. |
+| `request-refactor-plan` | Create a detailed refactor plan with tiny commits via user interview, then file it as a GitHub issue. Purely planning and issue specification; never edits code or executes refactor steps directly. |
 | `resolving-merge-conflicts` | Use when you need to resolve an in-progress git merge/rebase conflict. |
 | `second-opinion` | Runs external LLM code reviews (OpenAI Codex or Google Gemini CLI) on uncommitted changes, branch diffs, or specific commits. Use when the user asks for a second opinion, external review, codex review, gemini review, or mentions /second-opinion. |
 | `secure-workflow-guide` | Guides through Trail of Bits' 5-step secure development workflow. Runs Slither scans, checks special features (upgradeability/ERC conformance/token integration), generates visual security diagrams, helps document security properties for fuzzing/verification, and reviews manual security areas. |
@@ -96,7 +96,7 @@ This directory is the **single source of truth** for every skill...
 | `fuzzing-dictionary` | > |
 | `fuzzing-obstacles` | > |
 | `graph-evolution` | > |
-| `grilling` | Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases. |
+| `grilling` | Grill the user relentlessly about a plan, decision, or idea. Purely conversational interview and design tree exploration; strictly forbids modifying workspace code or executing mutating actions. |
 | `harness-writing` | > |
 | `insecure-defaults` | >- |
 | `interpreting-culture-index` | Interprets Culture Index (CI) surveys, behavioral profiles, and personality assessment data. Supports individual profile interpretation, team composition analysis (gas/brake/glue), burnout detection, profile comparison, hiring profiles, manager coaching, interview transcript analysis for trait prediction, candidate debrief, onboarding planning, and conflict mediation. Accepts extracted JSON or PDF input via OpenCV extraction script. |

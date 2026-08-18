@@ -74,6 +74,8 @@ def test_legacy_json_trail_is_imported_once(
         "status": "success",
         "timestamp": 1.0,
         "attempts": 2,
+        "parent_task_id": None,
+        "is_archived": False,
         "custom": {"source": "json"},
     }
     assert legacy.is_file()

@@ -1,0 +1,103 @@
+---
+import Base from './Base.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  heading: string;
+}
+
+const { title, description, heading } = Astro.props;
+---
+
+<Base title={`${title} | data_rein`} description={description}>
+  <Navbar />
+  
+  <header class="detail-hero">
+    <div class="container">
+      <div class="detail-tag">// PROTOCOL DETAIL</div>
+      <h1>{heading}</h1>
+    </div>
+  </header>
+
+  <main class="detail-main">
+    <div class="container content-container">
+      <slot />
+    </div>
+  </main>
+
+  <Footer />
+</Base>
+
+<style>
+  .detail-hero {
+    padding: 3.5rem 0 2rem;
+    background: #090202;
+    border-bottom: 1px solid var(--color-border-primary);
+  }
+
+  .detail-tag {
+    color: var(--color-text-highlight);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.85rem;
+    font-family: var(--font-mono);
+  }
+
+  .detail-tag::before {
+    content: "▸ ";
+    color: var(--color-danger);
+  }
+
+  .detail-main {
+    padding: 3rem 0 5rem;
+  }
+
+  .content-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  :global(.content-container h2) {
+    color: #ffffff;
+    font-family: var(--font-mono);
+    font-size: 1.2rem;
+    margin: 2.5rem 0 1rem;
+    border-bottom: 1px solid var(--color-border-primary);
+    padding-bottom: 0.5rem;
+  }
+
+  :global(.content-container p) {
+    color: var(--color-text-dim);
+    line-height: 1.7;
+    margin-bottom: 1.25rem;
+  }
+
+  :global(.content-container ul) {
+    color: var(--color-text-dim);
+    line-height: 1.7;
+    margin-bottom: 1.25rem;
+    padding-left: 1.5rem;
+  }
+
+  :global(.content-container li) {
+    margin-bottom: 0.5rem;
+  }
+
+  :global(.content-container strong) {
+    color: #ffffff;
+  }
+
+  :global(.content-container a) {
+    color: var(--color-text-highlight);
+    text-decoration: none;
+  }
+
+  :global(.content-container a:hover) {
+    text-decoration: underline;
+  }
+</style>

@@ -1,0 +1,23 @@
+---
+import DetailLayout from '../layouts/DetailLayout.astro';
+---
+
+<DetailLayout 
+  title="QC Gate" 
+  heading="Quality Control Pipeline"
+  description="Deterministic testing and verification for the data_rein harness."
+>
+  <p>Every commit, PR, and agent execution path is validated against the deterministic Quality Control (QC) pipeline.</p>
+
+  <h2>Verification Suite</h2>
+  <p>The standard verification suite checks functionality, style, and architectural compliance across the entire working tree.</p>
+  <ul>
+    <li><strong>pytest Suite:</strong> Over 390 core unit and integration tests strictly verified via GitHub Actions.</li>
+    <li><strong>PON Tester:</strong> Validates `os.system` boundaries, circuit breaker implementations, and zero-polling limits.</li>
+    <li><strong>Type & Lint:</strong> Zero-tolerance policy on Ruff and basedpyright (0 errors, 0 warnings).</li>
+    <li><strong>Security Scans:</strong> Bandit and `pip-audit` to guarantee no known vulnerabilities.</li>
+  </ul>
+
+  <h2>Automated Quality Control</h2>
+  <p>Any failure in the QC pipeline blocks execution and logs a failover task to the Universal Task Trail. Agents cannot circumvent these checks when submitting pull requests or modifying the shared knowledge base.</p>
+</DetailLayout>

@@ -11,7 +11,7 @@
 ## 0. MANDATORY INITIALIZATION PROTOCOL (do this before answering anything)
 
 The executable engineering laws are defined in `knowledge_base/TEN_LAWS.md`.
-They decompose this constitution into PON-1..3, GD-1..3, TDD-1..3, and NIX-1;
+They decompose this constitution into PON-1..3, GD-1..3, TDD-1..3, NIX-1, and PLAN-1;
 all clients load and apply them with this directive.
 
 On every new session or invocation inside this workspace, **before** responding to
@@ -203,6 +203,31 @@ is mandatory.
 
 ---
 
-## 7. THE CONTRACT (one line)
+## 7. PLAN-1 — STRICT TWO-PHASE PLANNING & INTERVIEW PROTOCOL
 
-> Sync first · one wiki · any model · zero polling · degrade, never crash · stay on-brand.
+When `/plan`, `/grill-me`, `/grilling`, `request-refactor-plan`, or any planning/interview
+skill is invoked, all agents operating across any harness environment MUST adhere strictly
+to hard two-phase separation:
+
+1. **Phase 1: Planning, Research & Interview (Read-Only / Artifact-Only):**
+   - **Allowed Actions**: Codebase exploration via read-only tools (`view_file`, `grep_search`,
+     `find_by_name`, `list_dir`, graph queries), interactive interview questions (`ask_question`),
+     and writing/updating structured planning artifacts in `<Artifact Directory>`
+     (`implementation_plan.md`, `refactor_plan.md`, `walkthrough.md`).
+   - **Forbidden Actions**: Absolutely NO modifying code files (`replace_file_content`), NO
+     creating non-artifact files (`write_to_file`), and NO running state-modifying shell
+     commands (package installations, git commits/pushes, running services, or builds meant
+     for execution).
+   - **Mandatory Halt**: As soon as the plan artifact is written or the interview questions are
+     presented, the agent **MUST STOP calling tools immediately** and wait for explicit user
+     feedback or approval.
+2. **Phase 2: Execution (Only Upon Explicit User Approval):**
+   - Modifying code or executing mutating commands is PERMITTED ONLY AFTER the user explicitly
+     approves the plan (e.g. clicking "Proceed", saying "approved", "execute", "go ahead").
+
+---
+
+## 8. THE CONTRACT (one line)
+
+> Sync first · one wiki · any model · zero polling · plan before edit · degrade, never crash · stay on-brand.
+

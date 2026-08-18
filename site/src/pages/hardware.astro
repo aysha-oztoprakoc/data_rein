@@ -1,0 +1,30 @@
+---
+import DetailLayout from '../layouts/DetailLayout.astro';
+---
+
+<DetailLayout 
+  title="Hardware" 
+  heading="Cluster Hardware Topology"
+  description="Specifications and configuration of the data_rein dual-node cluster."
+>
+  <p>The harness operates across a sovereign, multi-node infrastructure. The model routing system dynamically respects hardware boundaries, relying on the live registry provided by SysProfiler.</p>
+
+  <h2>Node: amdy (Primary Execution)</h2>
+  <ul>
+    <li><strong>GPU:</strong> AMD Radeon RX 9060 XT (8 GB VRAM)</li>
+    <li><strong>CPU:</strong> AMD Ryzen 7 7700 (8 cores / 16 threads)</li>
+    <li><strong>RAM:</strong> 16 GB DDR5</li>
+    <li><strong>Role:</strong> Primary execution bridge, CLI terminal (`data-agy`), interactive OpenCode workspace.</li>
+  </ul>
+
+  <h2>Node: tell (State & Fallback)</h2>
+  <ul>
+    <li><strong>GPU:</strong> NVIDIA GeForce GTX 1060 (6 GB VRAM)</li>
+    <li><strong>CPU:</strong> Intel Core i5 7th-gen (4 cores / 4 threads)</li>
+    <li><strong>RAM:</strong> 16 GB DDR4</li>
+    <li><strong>Role:</strong> Universal Task Trail, Wiki database, Hermes daemon (`data-hermes`), backup inference.</li>
+  </ul>
+
+  <h2>Topology & Network</h2>
+  <p>Communication between nodes uses supervised streamable-HTTP MCP bridges and local MQTT messaging (`data_rein/trail/updated`), completely bypassing external network dependencies for local workloads.</p>
+</DetailLayout>

@@ -78,6 +78,7 @@ then re-install. List: `reins skills list`.
 
 - **PON:** no polling, no `while True`, no `sleep` spin-waits. Event-driven only.
 - **Graceful degradation:** degrade to a lesser model/node; never crash.
+- **PLAN-1 (Planning Phase Separation):** When planning/grilling skills are invoked, research and generate the plan/interview ONLY. Do not edit code or execute commands before explicit user approval.
 - **Aesthetic:** all generated text/UI/images obey `knowledge_base/AESTHETIC_DIRECTIVE.md`
   (Blood Red `#ff4040` on Black `#200000`, gritty synthetic voice).
 

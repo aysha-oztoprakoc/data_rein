@@ -18,31 +18,54 @@
 
 **`data_rein`** is a distributed, model-agnostic orchestration harness built under the strict **Notification-Oriented Paradigm (PON KAD 1.1)**. It coordinates a fleet of autonomous agent environments (**Antigravity CLI**, **OpenCode**, **Claude Code**, **Codex**, and **Sofia³ UI**) across physical machines with **zero polling (0% CPU idle)**, central **KùzuDB / ChromaDB vector graph memory**, and an **Automated Quality Control Meta-Harness**.
 
-```
-                           ┌────────────────────────────────────────┐
-                           │      CENTRAL FACT BASE (tell node)     │
-                           │   Mosquitto MQTT v2 · NixOS Store      │
-                           │   wiki.db · Kùzu Graph · Chroma Vector │
-                           └───────────────────┬────────────────────┘
-                                               │
-                                      MQTT Reactive Topics
-                                               │
-               ┌───────────────────────────────┴───────────────────────────────┐
-               │                                                               │
-┌──────────────▼──────────────┐                                 ┌──────────────▼──────────────┐
-│     amdy EXECUTION NODE     │                                 │      tell COMPUTE PLANE     │
-│   Stateless Worker Nodes    │                                 │   CUDA Ollama Fleet (Port   │
-│   AMD RX 9060 XT (8GB VRAM) │                                 │   11434) · GTX 1060 (6GB)   │
-│   Sofia³ UI (FastAPI/React) │                                 │   Central Ingestion Engine  │
-└──────────────┬──────────────┘                                 └─────────────────────────────┘
-               │
-   ┌───────────┴───────────┬───────────────────────┬───────────────────────┐
-   │                       │                       │                       │
-┌──▼─────────────────┐  ┌──▼─────────────────┐  ┌──▼─────────────────┐  ┌──▼─────────────────┐
-│ PON Graph Engine   │  │ QC Meta-Harness    │  │ ModelCoordinator   │  │ Agent-as-a-Judge   │
-│ Asynchronous FBE   │  │ Radon CC < 20      │  │ VRAM 8GB JIT Slot  │  │ Archimedes/Socrates│
-│ Event Dispatcher   │  │ Cov Delta Ratchet  │  │ Entropy Evictions  │  │ Sofia Grounding    │
-└────────────────────┘  └────────────────────┘  └────────────────────┘  └────────────────────┘
+```mermaid
+graph TD
+    %% Styling
+    classDef central fill:#1a1b26,stroke:#7aa2f7,stroke-width:2px,color:#c0caf5
+    classDef exec fill:#1a1b26,stroke:#f7768e,stroke-width:2px,color:#c0caf5
+    classDef compute fill:#1a1b26,stroke:#9ece6a,stroke-width:2px,color:#c0caf5
+    classDef engine fill:#24283b,stroke:#bb9af7,stroke-width:1px,color:#c0caf5
+    classDef mqtbus fill:none,stroke:#ff9e64,stroke-width:2px,color:#ff9e64,stroke-dasharray: 5 5
+
+    %% Nodes
+    subgraph TELL [CENTRAL FACT BASE / tell node]
+        MQTT[Mosquitto MQTT v2]
+        DB[wiki.db / Kùzu / Chroma]
+        TT[Tiered Task Trail DB]
+    end
+    
+    subgraph AMDY [EXECUTION NODE / amdy node]
+        Sofia[Sofia³ UI / FastAPI WebSocket]
+        Workers[Stateless Agent Workers]
+    end
+    
+    subgraph COMPUTE [COMPUTE PLANE / tell node]
+        Ollama[CUDA Ollama Fleet]
+        Ingest[Central Ingestion Engine]
+    end
+    
+    %% Engine Subs
+    PON[PON Graph Engine]
+    QC[QC Meta-Harness]
+    Coord[VRAM Coordinator]
+    AAJ[Agent-as-a-Judge]
+
+    %% Connections
+    MQTT <==>|Reactive Topic Bus<br/>0% CPU Polling| AMDY
+    MQTT <==>|Reactive Topic Bus| COMPUTE
+    TT -.->|Live inotify + MQTT| Sofia
+    
+    AMDY --> PON
+    AMDY --> QC
+    AMDY --> Coord
+    AMDY --> AAJ
+    
+    %% Apply classes
+    class TELL central
+    class AMDY exec
+    class COMPUTE compute
+    class PON,QC,Coord,AAJ engine
+    class MQTT mqtbus
 ```
 
 ---
@@ -79,8 +102,13 @@
 - Employs entropy and LRU heuristics to JIT-evict idle model weights before loading new workloads.
 
 ### 5. Sofia³ UI Dashboard (`sofia3/`)
-- Greenfield FastAPI backend (`sofia3/backend/app.py`, default port `8088`) with real-time WebSocket push updates.
-- High-performance Vite + React + TypeScript frontend (`sofia3/frontend/`) featuring live knowledge graph visualization, task monitoring, and zero-polling state streaming.
+- Greenfield FastAPI backend (`sofia3/backend/app.py`, default port `8088`) with real-time WebSocket push updates via `LiveBridge`.
+- High-performance Vite + React + TypeScript frontend (`sofia3/frontend/`) featuring live knowledge graph visualization, Redux telemetry widgets, and an interactive Omarchy cyberpunk layout.
+
+### 6. Tiered Task Trail API (`src/reins/services/task_trail.py`)
+- **Zero-Polling Reactivity:** Task status updates trigger instant MQTT broadcasts (`data_rein/trail/task/#`), eliminating dashboard polling.
+- **LLM Context Protection:** A tiered `summary_view()` API prevents context-window bloat by providing a lightweight feed, while full task execution JSONs are lazy-loaded via REST endpoints.
+- **Garbage Collection:** Soft-archiving and hierarchical parent-child task folding ensures infinite uptime without UI degradation.
 
 ---
 

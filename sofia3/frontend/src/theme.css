@@ -606,3 +606,434 @@ body {
     grid-template-rows: 55fr 45fr;
   }
 }
+
+/* ------------------------------------------------------------------ Dynamic Grid */
+.grid-main {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  background: var(--color-bg-void);
+}
+
+.grid-item {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: rgba(255, 64, 64, 0.25) !important;
+  border: 1px dashed #ff4040 !important;
+  border-radius: 4px;
+}
+
+.react-resizable-handle {
+  opacity: 0.4;
+}
+.react-resizable-handle:hover {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------ Topbar Buttons */
+.widget-toggles {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-toggle {
+  background: rgba(20, 4, 4, 0.6);
+  border: 1px solid var(--color-border-primary);
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+}
+
+.btn-toggle:hover {
+  border-color: #ff4040;
+  color: #fff;
+}
+
+.btn-toggle.active {
+  background: rgba(255, 64, 64, 0.15);
+  border-color: #ff4040;
+  color: #ff4040;
+  box-shadow: 0 0 8px rgba(255, 64, 64, 0.3);
+}
+
+/* ------------------------------------------------------------------ Widgets */
+.widget-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border-primary);
+  backdrop-filter: blur(10px);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--color-bg-panel-solid);
+  border-bottom: 1px solid var(--color-border-primary);
+  cursor: move;
+  user-select: none;
+}
+
+.widget-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--color-text-highlight);
+  text-shadow: var(--glow-highlight);
+}
+
+.widget-body {
+  flex: 1 1 auto;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.widget-footer {
+  padding: 6px 12px;
+  border-top: 1px solid var(--color-border-primary);
+  background: rgba(10, 2, 2, 0.6);
+  font-size: 10px;
+}
+
+/* ------------------------------------------------------------------ Badges & Meters */
+.badge {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.badge-accent {
+  background: rgba(0, 255, 255, 0.15);
+  border: 1px solid #00ffff;
+  color: #00ffff;
+}
+
+.badge-ok {
+  background: rgba(0, 255, 128, 0.15);
+  border: 1px solid #00ff80;
+  color: #00ff80;
+}
+
+.badge-err {
+  background: rgba(255, 0, 60, 0.2);
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
+}
+
+.badge-local {
+  background: rgba(255, 207, 61, 0.15);
+  border: 1px solid var(--color-warning);
+  color: var(--color-warning);
+}
+
+.badge-cloud {
+  background: rgba(0, 180, 255, 0.15);
+  border: 1px solid #00b4ff;
+  color: #00b4ff;
+}
+
+.meter-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  margin: 4px 0 8px 0;
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff4040, #00ffff);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ------------------------------------------------------------------ Sub-Panes & Nodes */
+.grid-nodes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.node-box {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--color-border-primary);
+  padding: 10px;
+  border-radius: 2px;
+}
+
+.node-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 64, 64, 0.2);
+  padding-bottom: 4px;
+}
+
+.node-tag {
+  color: #ff4040;
+  font-size: 10px;
+  margin-right: 4px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 3px;
+}
+
+.stat-label {
+  color: var(--color-text-dim);
+}
+
+.stat-val {
+  color: var(--color-text-body);
+}
+
+.stat-val.highlight {
+  color: #00ffff;
+  font-weight: bold;
+}
+
+.split-sub {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  height: 100%;
+}
+
+.sub-pane {
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border-primary);
+  padding: 10px;
+  border-radius: 2px;
+}
+
+.sub-title {
+  font-size: 10px;
+  color: var(--color-text-highlight);
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.combo-scroll, .budget-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.combo-row, .budget-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 64, 64, 0.15);
+  font-size: 11px;
+}
+
+.combo-id {
+  color: #ddd;
+}
+
+.combo-badge {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.agent-tag {
+  color: #00ffff;
+  font-weight: bold;
+}
+
+/* ------------------------------------------------------------------ PON Widget */
+.pon-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pon-stat {
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--color-border-primary);
+  padding: 8px;
+}
+
+.pon-label {
+  font-size: 9px;
+  color: var(--color-text-dim);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.pon-val {
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.text-green {
+  color: #00ff80;
+}
+
+.text-accent {
+  color: #00ffff;
+}
+
+/* ------------------------------------------------------------------ Tasks Feed */
+.task-summary-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  font-size: 9px;
+  padding: 2px 6px;
+  border: 1px solid var(--color-border-primary);
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--color-text-dim);
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.pill:hover, .pill-active {
+  border-color: #ff4040;
+  color: #fff;
+  background: rgba(255, 64, 64, 0.2);
+}
+
+.pill-running.pill-active {
+  border-color: #00ffff;
+  color: #00ffff;
+}
+
+.pill-success.pill-active {
+  border-color: #00ff80;
+  color: #00ff80;
+}
+
+.pill-failed.pill-active {
+  border-color: #ff003c;
+  color: #ff003c;
+}
+
+.task-list-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.task-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 60px;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.task-row:hover {
+  background: rgba(255, 64, 64, 0.1);
+  border-color: #ff4040;
+}
+
+.task-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-badge {
+  font-size: 8px;
+  padding: 2px 4px;
+  font-weight: bold;
+  border-radius: 2px;
+}
+
+.badge-running {
+  background: rgba(0, 255, 255, 0.2);
+  color: #00ffff;
+  border: 1px solid #00ffff;
+}
+
+.badge-success {
+  background: rgba(0, 255, 128, 0.2);
+  color: #00ff80;
+  border: 1px solid #00ff80;
+}
+
+.badge-failed {
+  background: rgba(255, 0, 60, 0.2);
+  color: #ff003c;
+  border: 1px solid #ff003c;
+}
+
+.badge-pending {
+  background: rgba(255, 255, 255, 0.1);
+  color: #888;
+  border: 1px solid #555;
+}
+
+.task-type {
+  font-size: 10px;
+  color: var(--color-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-prompt {
+  font-size: 11px;
+  color: #eee;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-node {
+  font-size: 10px;
+  color: var(--color-text-highlight);
+  text-align: right;
+}
+
+.json-block {
+  background: #080202;
+  border: 1px solid var(--color-border-primary);
+  padding: 8px;
+  color: #00ffff;
+  font-size: 10px;
+  overflow-x: auto;
+  max-height: 250px;
+}
+

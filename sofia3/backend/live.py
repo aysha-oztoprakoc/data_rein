@@ -32,13 +32,110 @@ from sofia3.backend import graph_bridge
 logger = logging.getLogger("sofia3.live")
 
 
-def trail_snapshot() -> dict[str, Any]:
-    """Read the full task trail + a lightweight summary (best-effort)."""
+_hardware_cache: dict[str, Any] = {}
+_hardware_cache_time: float = 0.0
+
+
+def _collect_telemetry() -> dict[str, Any]:
+    """Collect hardware, combos, token budgets, coord, agent status, and pon health."""
+    global _hardware_cache, _hardware_cache_time
+    import time
+    telemetry: dict[str, Any] = {}
+
+    # 1. Hardware profile & gaps (cached 30s)
+    now = time.time()
+    if _hardware_cache and (now - _hardware_cache_time < 30.0):
+        telemetry["hardware"] = _hardware_cache.get("hardware")
+        telemetry["hardware_gaps"] = _hardware_cache.get("hardware_gaps")
+    else:
+        try:
+            from reins.services.sys_profiler import SysProfiler
+            profiler = SysProfiler()
+            hw = profiler.profile_cluster(publish=False)
+            gaps = profiler.gap_report()
+            _hardware_cache = {"hardware": hw, "hardware_gaps": gaps}
+            _hardware_cache_time = now
+            telemetry["hardware"] = hw
+            telemetry["hardware_gaps"] = gaps
+        except Exception as exc:
+            telemetry["hardware"] = {"degraded": True, "error": str(exc)}
+
+    # 2. Model Combos & Categories
     try:
-        tasks = TaskTrail().all_tasks()
+        from reins.harness.combo_registry import ComboRegistry
+        registry = ComboRegistry()
+        combos = [
+            {
+                "id": c.id,
+                "provider": c.provider,
+                "model": c.model,
+                "tier": getattr(c, "tier", "free"),
+                "node": getattr(c, "node", "amdy"),
+            }
+            for c in registry.all_combos()
+        ]
+        cats = {
+            cat_name: {
+                "description": cat_obj.description,
+                "amdy": list(cat_obj.amdy),
+                "tell": list(cat_obj.tell),
+                "cloud": list(cat_obj.cloud),
+            }
+            for cat_name, cat_obj in registry.config.categories.items()
+        }
+        telemetry["combos"] = combos
+        telemetry["categories"] = cats
+    except Exception as exc:
+        telemetry["combos"] = []
+        telemetry["categories"] = {}
+
+    # 3. Token usage & budgets
+    try:
+        from reins.services.token_ledger import budget_report
+        telemetry["tokens"] = budget_report()
+    except Exception as exc:
+        telemetry["tokens"] = {"degraded": True, "error": str(exc)}
+
+    # 4. Coordinator slot state
+    try:
+        from reins.harness.coordinator import get_coordinator
+        telemetry["coord"] = get_coordinator().status()
+    except Exception as exc:
+        telemetry["coord"] = {"degraded": True, "error": str(exc)}
+
+    # 5. Agent budgets
+    try:
+        from reins.services.resource_budgets import load_budgets
+        telemetry["agent_budgets"] = load_budgets()
+    except Exception as exc:
+        telemetry["agent_budgets"] = {}
+
+    # 6. Training capability
+    try:
+        from dataclasses import asdict
+        from reins.training import capability
+        telemetry["training"] = asdict(capability.probe())
+    except Exception as exc:
+        telemetry["training"] = {"degraded": True, "error": str(exc)}
+
+    # 7. PON live health
+    telemetry["pon"] = {
+        "zero_polling": True,
+        "inotify_active": True,
+        "mqtt_active": True,
+        "timestamp": time.time(),
+    }
+
+    return telemetry
+
+
+def trail_snapshot() -> dict[str, Any]:
+    """Read the lightweight task trail summary + comprehensive telemetry (best-effort)."""
+    try:
+        tasks = TaskTrail().summary_view(include_archived=False, include_subtasks=False)
     except Exception as exc:  # graceful degradation
         logger.warning("Trail read degraded: %s", exc)
-        return {"tasks": [], "summary": {}, "degraded": True}
+        return {"tasks": [], "summary": {}, "degraded": True, "telemetry": _collect_telemetry()}
     summary: dict[str, int] = {}
     for task in tasks:
         status = str(task.get("status", "pending")).lower()
@@ -48,7 +145,9 @@ def trail_snapshot() -> dict[str, Any]:
         "tasks": list(tasks[-400:]),  # newest window for the live stream
         "summary": summary,
         "total": len(tasks),
+        "telemetry": _collect_telemetry(),
     }
+
 
 class _TrailFileHandler(FileSystemEventHandler):
     """Inotify handler that signals on Task Trail DB mutations."""

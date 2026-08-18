@@ -1,3 +1,12 @@
+# Universal Rules — data_rein
+
+## PLAN-1: Strict Planning & Grilling Phase Separation
+
+**MANDATORY**: When `/plan`, `/grill-me`, `/grilling`, `request-refactor-plan`, or any planning/interview skill or prompt is invoked:
+1. **Phase 1 (Research & Plan Only)**: Explore codebase with read-only tools and create/update the implementation plan artifact (or ask interview questions). **NEVER edit code files (`replace_file_content`), NEVER create non-artifact files (`write_to_file`), and NEVER execute mutating/build/run commands.**
+2. **Mandatory Halt**: Immediately after creating the plan artifact or asking the questions, **HALT tool calls** and wait for user review/approval.
+3. **Phase 2 (Execution)**: Modifying files or executing changes is strictly prohibited until the user explicitly approves ("Proceed", "approved", "execute").
+
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
 

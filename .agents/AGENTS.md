@@ -26,4 +26,5 @@ Then synchronize with shared state via the harness CLI:
 - **Any model:** route by category through `reins.harness.models.ModelRouter`
   (`config/model_router.json`); provider auto-selected; local-first with failover.
 - **PON:** zero polling, event-driven, amdy=exec / tell=state, FBE, degrade-not-crash.
+- **PLAN-1:** Hard phase separation. Planning/grilling is read-only research + artifact creation. Never edit code or mutate state before explicit user approval. Halt tool use upon plan creation.
 - **Aesthetic:** obey `knowledge_base/AESTHETIC_DIRECTIVE.md` for all output.

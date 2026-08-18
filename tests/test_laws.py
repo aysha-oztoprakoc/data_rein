@@ -296,3 +296,46 @@ def test_law_tdd_test_files_reference_each_core_module():
     )
     missing = [m for m in _harness_core_modules() if m.rsplit(".", 1)[-1] not in test_text]
     assert not missing, f"harness modules with no test reference (TDD law): {missing}"
+
+
+# ---------------------------------------------------------------------------
+# LAW 4 — PLAN-1: Strict Planning & Grilling Phase Separation.
+# Verifies that every harness environment entrypoint and planning skill declares
+# the hard boundary between planning (read-only/artifacts) and execution.
+# ---------------------------------------------------------------------------
+
+
+def test_law_plan1_strict_planning_separation():
+    repo_root = SRC_ROOT.parents[1]
+    
+    # 1. Ten Laws definition
+    ten_laws = (repo_root / "knowledge_base" / "TEN_LAWS.md").read_text(encoding="utf-8")
+    assert "## PLAN-1: Hard Phase Separation (Planning vs Execution)" in ten_laws
+    assert "| Strict planning phase separation | PLAN-1 |" in ten_laws
+
+    # 2. Master Prime Directive
+    prime_directive = (repo_root / "knowledge_base" / "PRIME_DIRECTIVE.md").read_text(encoding="utf-8")
+    assert "PLAN-1" in prime_directive
+    assert "STRICT TWO-PHASE PLANNING & INTERVIEW PROTOCOL" in prime_directive
+
+    # 3. Environment contract entrypoints
+    for contract_path in [
+        repo_root / "AGENTS.md",
+        repo_root / "CLAUDE.md",
+        repo_root / "GEMINI.md",
+        repo_root / ".agents" / "AGENTS.md",
+        repo_root / "skills" / "core" / "data_rein" / "SKILL.md",
+    ]:
+        content = contract_path.read_text(encoding="utf-8")
+        assert "PLAN-1" in content, f"Missing PLAN-1 in {contract_path.name}"
+
+    # 4. Planning skills declare non-modifying boundaries
+    grill_me = (repo_root / "skills" / "core" / "grill-me" / "SKILL.md").read_text(encoding="utf-8")
+    assert "read-only" in grill_me.lower() or "not modify" in grill_me.lower()
+
+    grilling = (repo_root / "skills" / "extended" / "grilling" / "SKILL.md").read_text(encoding="utf-8")
+    assert "PLAN-1" in grilling
+
+    refactor = (repo_root / "skills" / "core" / "request-refactor-plan" / "SKILL.md").read_text(encoding="utf-8")
+    assert "PLAN-1" in refactor
+

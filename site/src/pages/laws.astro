@@ -1,0 +1,25 @@
+---
+import DetailLayout from '../layouts/DetailLayout.astro';
+---
+
+<DetailLayout 
+  title="Laws" 
+  heading="The 10 Laws (TEN_LAWS)"
+  description="The executable engineering laws defining the data_rein harness."
+>
+  <h2>Notification-Oriented Paradigm (PON)</h2>
+  <p>All code written under this harness obeys the Notification-Oriented Paradigm. Zero polling is permitted. Execution nodes wait via blocking I/O, reactive pipes, or MQTT subscription, ensuring idle CPU cost remains near zero.</p>
+  <ul>
+    <li><strong>PON-1:</strong> No active status polling (`while True`, `time.sleep()`).</li>
+    <li><strong>PON-2:</strong> Strict role separation between `amdy` (Methods) and `tell` (State).</li>
+    <li><strong>PON-3:</strong> FBE abstraction. Entities do not chain-call; they change Attributes which fire notifications.</li>
+  </ul>
+
+  <h2>Graceful Degradation</h2>
+  <p>The system must degrade under failure, never crash entirely. Circuit breakers and failover routes are strictly enforced.</p>
+  <ul>
+    <li><strong>GD-1:</strong> All execution frames are wrapped in immortal circuit breakers.</li>
+    <li><strong>GD-2:</strong> Fallback to a lesser model or node automatically on timeout.</li>
+    <li><strong>GD-3:</strong> Log all failures to the Universal Task Trail for visibility.</li>
+  </ul>
+</DetailLayout>

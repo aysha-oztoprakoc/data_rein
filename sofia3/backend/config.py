@@ -39,7 +39,14 @@ PORT = 8088
 # -----------------------------------------------------------------------------
 MQTT_HOST = "localhost"
 MQTT_PORT = 1883
-TRAIL_TOPICS = ("data_rein/trail/updated", "data_rein/trail/success", "data_rein/trail/failed")
+TRAIL_TOPICS = (
+    "data_rein/trail/#",
+    "data_rein/getinfo/#",
+    "data_rein/coord/#",
+    "data_rein/models/#",
+    "data_rein/tokens/#",
+    "data_rein/pon/#",
+)
 
 # WebSocket origin guard: only the served origin may connect (semantica pattern).
 ALLOWED_ORIGINS = (f"http://{HOST}:{PORT}", f"http://localhost:{PORT}")

@@ -87,6 +87,17 @@ between manifests and lockfiles fails a test.
 Verification: frozen `uv` synchronization, lockfile consistency tests, and `nix flake
 check` when Nix is available.
 
+## PLAN-1: Hard Phase Separation (Planning vs Execution)
+
+Planning and execution are strictly disjoint phases. When planning, grilling, or
+specifying tasks (`/plan`, `/grill-me`, `/grilling`, `request-refactor-plan`), agents
+operate in read-only research and artifact-generation mode. Modifying workspace files,
+creating non-artifact files, or executing state-mutating commands prior to explicit
+user approval ("Proceed", "approved", "execute") is an architectural violation. Upon
+producing the plan artifact or interview round, the agent halts tool invocation immediately.
+
+Verification: contract inspection, skill definition verification, and phase boundary tests.
+
 ## Mapping from the Prime Directive
 
 | Prime requirement | Operative laws |
@@ -95,4 +106,6 @@ check` when Nix is available.
 | Graceful degradation | GD-1, GD-2, GD-3 |
 | Test-driven implementation | TDD-1, TDD-2, TDD-3 |
 | Reproducible clients and nodes | NIX-1 |
+| Strict planning phase separation | PLAN-1 |
+
 

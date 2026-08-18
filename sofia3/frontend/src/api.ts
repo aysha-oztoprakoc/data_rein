@@ -3,13 +3,87 @@
 export interface TaskRecord {
   task_id: string;
   status: string;
-  target_node: string;
-  timestamp: number;
+  title?: string;
+  target_node?: string;
+  timestamp?: number;
   task_type?: string;
   prompt?: string;
   attempts?: number | string;
   breaker_state?: string;
+  parent_task_id?: string | null;
+  is_archived?: boolean;
   [key: string]: unknown;
+}
+
+export interface HardwareNode {
+  gpu?: string;
+  vram_gb?: number;
+  ram_gb?: number;
+  cpu?: string;
+  cores?: number;
+  [key: string]: unknown;
+}
+
+export interface ClusterProfile {
+  nodes?: Record<string, HardwareNode>;
+  summary?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface ComboItem {
+  id: string;
+  provider: string;
+  model: string;
+  tier: string;
+  node: string;
+}
+
+export interface ModelCategoryItem {
+  description?: string;
+  amdy: string[];
+  tell: string[];
+  cloud: string[];
+}
+
+export interface TokenWindowUsage {
+  used_tokens?: number;
+  budget_tokens?: number;
+  percent?: number;
+  call_count?: number;
+}
+
+export interface TokenBudgetReport {
+  windows?: Record<string, TokenWindowUsage>;
+  providers?: Record<string, Record<string, number>>;
+  total_calls?: number;
+  [key: string]: unknown;
+}
+
+export interface CoordinatorStatus {
+  active_model?: string | null;
+  busy?: boolean;
+  vram_allocated_mb?: number;
+  loaded_models?: string[];
+  [key: string]: unknown;
+}
+
+export interface PonHealth {
+  zero_polling: boolean;
+  inotify_active: boolean;
+  mqtt_active: boolean;
+  timestamp: number;
+}
+
+export interface TelemetrySnapshot {
+  hardware?: ClusterProfile;
+  hardware_gaps?: Record<string, unknown>;
+  combos?: ComboItem[];
+  categories?: Record<string, ModelCategoryItem>;
+  tokens?: TokenBudgetReport;
+  coord?: CoordinatorStatus;
+  agent_budgets?: Record<string, unknown>;
+  training?: Record<string, unknown>;
+  pon?: PonHealth;
 }
 
 export interface TrailSnapshot {
@@ -17,6 +91,7 @@ export interface TrailSnapshot {
   tasks?: TaskRecord[];
   summary?: Record<string, number>;
   total?: number;
+  telemetry?: TelemetrySnapshot;
 }
 
 export interface Health {
@@ -25,6 +100,7 @@ export interface Health {
   version: string;
   degraded: boolean;
 }
+
 
 /* ------------------------------------------------------------------ graph */
 export interface GraphNode {

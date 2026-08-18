@@ -1,21 +1,25 @@
 ---
+const base = import.meta.env.BASE_URL.endsWith('/') 
+  ? import.meta.env.BASE_URL 
+  : `${import.meta.env.BASE_URL}/`;
 ---
 
 <nav class="navbar" id="main-nav">
   <div class="container nav-content">
-    <div class="brand">
+    <a href={`${base}`} class="brand" style="text-decoration: none;">
       <div class="brand-glyph"></div>
       <span>DATA_REIN</span>
       <span class="chip chip-cyan" style="font-size: 0.65rem; padding: 0.1rem 0.4rem;">HARNESS v0.2.0</span>
-    </div>
+    </a>
 
     <div class="nav-controls">
       <ul class="nav-links">
-        <li><a href="#laws">Laws</a></li>
-        <li><a href="#hardware">Hardware</a></li>
-        <li><a href="#router">Router</a></li>
-        <li><a href="#qc-pipeline">QC Gate</a></li>
-        <li><a href="#console">Console</a></li>
+        <li><a href={`${base}`}>Home</a></li>
+        <li><a href={`${base}sofia/`}>Sofia³</a></li>
+        <li><a href={`${base}laws/`}>Laws</a></li>
+        <li><a href={`${base}hardware/`}>Hardware</a></li>
+        <li><a href={`${base}qc/`}>QC Gate</a></li>
+        <li><a href={`${base}#console`}>Console</a></li>
       </ul>
 
       <a href="https://github.com/aysha-oztoprakoc/data_rein" class="btn btn-outline" style="padding: 0.35rem 0.85rem; font-size: 0.75rem;" target="_blank" rel="noopener">
@@ -51,6 +55,7 @@
     font-size: 1.1rem;
     letter-spacing: 0.08em;
     color: #ffffff;
+    cursor: pointer;
   }
 
   .brand-glyph {
@@ -79,6 +84,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    text-decoration: none;
   }
 
   .nav-links a:hover {
