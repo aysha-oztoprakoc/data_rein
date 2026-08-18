@@ -206,6 +206,22 @@ def agent_budgets() -> Path:
     return config_dir() / "agent_budgets.json"
 
 
+def kuzu_db_dir() -> Path:
+    """Path to the embedded Kùzu graph database directory."""
+    override = os.environ.get("DATA_REIN_KUZU_DIR")
+    if override:
+        return Path(override).expanduser().resolve()
+    return state_dir() / "kuzu_db"
+
+
+def chroma_db_dir() -> Path:
+    """Path to the embedded ChromaDB vector directory."""
+    override = os.environ.get("DATA_REIN_CHROMA_DIR")
+    if override:
+        return Path(override).expanduser().resolve()
+    return state_dir() / "chroma_db"
+
+
 def ensure_state_dir() -> Path:
     d = state_dir()
     d.mkdir(parents=True, exist_ok=True)
@@ -223,6 +239,8 @@ def summary() -> dict[str, str]:
         "shared_context": str(shared_context()),
         "hardware_manifest": str(hardware_manifest()),
         "wiki_db": str(wiki_db()),
+        "kuzu_db_dir": str(kuzu_db_dir()),
+        "chroma_db_dir": str(chroma_db_dir()),
         "config_dir": str(config_dir()),
         "model_router": str(model_router()),
         "omnirouter_config": str(omnirouter_config()),

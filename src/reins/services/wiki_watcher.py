@@ -51,11 +51,16 @@ class WikiChangeHandler(FileSystemEventHandler):
         logger.info("Wiki change detected in %s -> running consolidation", triggered_path)
         script = paths.home() / "scripts" / "consolidate_wiki.py"
         try:
-            res = external_io.run([sys.executable, str(script)], check=False)
+            res = external_io.run(
+                [sys.executable, str(script)],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
             if res.returncode == 0:
                 logger.info("Wiki consolidation completed automatically.")
             else:
-                logger.warning("Wiki auto-consolidation returned warning: %s", res.stderr.strip())
+                logger.warning("Wiki auto-consolidation returned warning: %s", (res.stderr or "").strip())
         except Exception as e:
             logger.error("Failed to run wiki auto-consolidation: %s", e)
 

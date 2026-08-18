@@ -60,9 +60,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SOFIA³ // KERNEL DASHBOARD", version="3.0.0", lifespan=lifespan)
 
+dev_origin = os.getenv("DEV_ORIGIN", "http://localhost:5173")
+_allowed_origins = set(config.ALLOWED_ORIGINS)
+if dev_origin:
+    _allowed_origins.add(dev_origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=list(config.ALLOWED_ORIGINS),
+    allow_origins=list(_allowed_origins),
     allow_credentials=True,
     allow_methods=["GET"],
     allow_headers=["*"],
@@ -89,7 +94,12 @@ def health() -> dict[str, Any]:
 def _origin_allowed(origin: str | None) -> bool:
     if not origin:
         return False
-    return origin in config.ALLOWED_ORIGINS or origin.startswith("http://127.0.0.1:")
+    dev_origin = os.getenv("DEV_ORIGIN", "http://localhost:5173")
+    return (
+        origin in config.ALLOWED_ORIGINS
+        or origin == dev_origin
+        or origin.startswith("http://127.0.0.1:")
+    )
 
 
 @app.websocket("/ws")

@@ -27,6 +27,8 @@ def register(
     wsub.add_parser("stats", help="Show page/memory counts and categories")
     wsub.add_parser("consolidate", help="Rebuild the wiki from all sources (idempotent)")
     wsub.add_parser("watch", help="Start reactive inotify file watcher for auto-consolidation")
+    wsub.add_parser("graph-sync", help="Run semantic chunking, vector deduplication, and graph sync")
+    wsub.add_parser("graph-stats", help="Show graph nodes, edges, and vector counts")
 
     p = wsub.add_parser("search", help="Full-text search pages + memories")
     p.add_argument("query")
@@ -741,11 +743,33 @@ def _handle_wiki(args: argparse.Namespace) -> bool:
             else:
                 print(f"# {row['title']}  [{row['category']}]  ({row['source_path']})\n")
                 print(row["content"])
+        elif sub == "graph-sync":
+            from reins.services.wiki_graph_pipeline import WikiGraphPipeline
+            pipeline = WikiGraphPipeline(wiki_db=db)
+            gstats = pipeline.sync_pending()
+            print(f"// graph sync complete:")
+            print(f"   pages processed     : {gstats.pages_processed}")
+            print(f"   memories processed  : {gstats.memories_processed}")
+            print(f"   chunks created      : {gstats.chunks_created}")
+            print(f"   chunks deduplicated : {gstats.chunks_deduplicated}")
+            print(f"   graph nodes added   : {gstats.graph_nodes_added}")
+            print(f"   graph edges added   : {gstats.graph_edges_added}")
+        elif sub == "graph-stats":
+            from reins.services.wiki_graph_pipeline import WikiGraphPipeline
+            pipeline = WikiGraphPipeline(wiki_db=db)
+            gst = pipeline.graph_stats()
+            print(f"// graph & vector stats")
+            print(f"   Kùzu available      : {gst['kuzu_available']}")
+            print(f"   Chroma available    : {gst['chroma_available']}")
+            print(f"   Document nodes      : {gst['document_nodes']}")
+            print(f"   Memory nodes        : {gst['memory_nodes']}")
+            print(f"   Chunk nodes         : {gst['chunk_nodes']}")
+            print(f"   Total vector chunks : {gst['total_vectors']}")
         elif sub == "add-memory":
             uid = db.add_memory(args.text, category=args.category, source=args.source)
             print(f"// stored memory {uid[:12]}")
         else:
-            print("usage: reins wiki {stats|search|get|add-memory|consolidate}")
+            print("usage: reins wiki {stats|search|get|add-memory|consolidate|watch|graph-sync|graph-stats}")
     finally:
         db.close()
     return True

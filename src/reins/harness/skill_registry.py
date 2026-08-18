@@ -30,70 +30,106 @@ def _default_skills_root() -> Path:
     return Path(__file__).resolve().parents[3] / "skills"
 
 
-def _manifest_names(skills_root: Path) -> tuple[str, ...]:
+def _manifest_names(skills_root: Path) -> tuple[list[str], list[str]]:
     manifest = skills_root / "MANIFEST.md"
     lines = manifest.read_text(encoding="utf-8").splitlines()
-    registered = False
-    names: list[str] = []
+    core_names: list[str] = []
+    extended_names: list[str] = []
+    
+    has_subsections = any(line.startswith("## Core Skills") or line.startswith("## Extended Skills") for line in lines)
+    current_section = None
     for line in lines:
-        if line == "## Registered skills":
-            registered = True
+        if line.startswith("## Core Skills"):
+            current_section = "core"
             continue
-        if registered and line.startswith("## "):
-            break
-        match = _MANIFEST_ROW.match(line) if registered else None
-        if match is not None:
-            names.append(match.group("name"))
-    if not names:
-        raise SkillRegistryError(message=f"no registered skills in {manifest}")
-    if len(names) != len(set(names)):
-        raise SkillRegistryError(message=f"duplicate registered skill in {manifest}")
-    return tuple(sorted(names))
+        elif line.startswith("## Extended Skills"):
+            current_section = "extended"
+            continue
+        elif line.startswith("## Registered skills") or (not has_subsections and line.startswith("## ")):
+            current_section = "core"
+            continue
+        elif line.startswith("## "):
+            current_section = None
+            continue
+            
+        if current_section:
+            match = _MANIFEST_ROW.match(line)
+            if match:
+                if current_section == "core":
+                    core_names.append(match.group("name"))
+                elif current_section == "extended":
+                    extended_names.append(match.group("name"))
+                    
+    # 'extended-skills-index' is not in manifest explicitly as it's an auto index, 
+    # but we must account for it if it exists.
+    if (skills_root / "core" / "extended-skills-index").is_dir() and "extended-skills-index" not in core_names:
+        core_names.append("extended-skills-index")
+
+    return sorted(core_names), sorted(extended_names)
 
 
-def canonical_skill_names(skills_root: Path | None = None) -> tuple[str, ...]:
+def canonical_skill_names(skills_root: Path | None = None, include_extended: bool = True) -> tuple[str, ...]:
     root = (skills_root or _default_skills_root()).absolute()
     if root.is_symlink() or not root.is_dir():
         raise SkillRegistryError(message=f"canonical skills root must be a real directory: {root}")
-    names = _manifest_names(root)
-    for name in names:
-        skill = root / name
-        if skill.is_symlink() or not skill.is_dir():
-            raise SkillRegistryError(message=f"canonical skill must be a real directory: {skill}")
-        if not (skill / "SKILL.md").is_file():
-            raise SkillRegistryError(message=f"canonical skill is missing SKILL.md: {skill}")
-    real_directories = tuple(
-        sorted(entry.name for entry in root.iterdir() if entry.is_dir() and not entry.is_symlink())
-    )
-    if real_directories != names:
-        raise SkillRegistryError(
-            message=(
-                "manifest entries do not match canonical real directories: "
-                f"{real_directories!r} != {names!r}"
-            )
-        )
-    return names
+        
+    core_names, ext_names = _manifest_names(root)
+    
+    def verify_skills(names: list[str], subdir: str):
+        for name in names:
+            if (root / subdir).is_dir():
+                skill = root / subdir / name
+            else:
+                skill = root / name
+            if skill.is_symlink() or not skill.is_dir():
+                raise SkillRegistryError(message=f"canonical skill must be a real directory: {skill}")
+            if not (skill / "SKILL.md").is_file():
+                raise SkillRegistryError(message=f"canonical skill is missing SKILL.md: {skill}")
+
+    verify_skills(core_names, "core")
+    verify_skills(ext_names, "extended")
+
+    if include_extended:
+        return tuple(sorted(core_names + ext_names))
+    return tuple(sorted(core_names))
 
 
-def canonical_skills(skills_root: Path | None = None) -> tuple[CanonicalSkill, ...]:
+def canonical_skills(skills_root: Path | None = None, include_extended: bool = True) -> tuple[CanonicalSkill, ...]:
     root = (skills_root or _default_skills_root()).absolute()
+    core_names, ext_names = _manifest_names(root)
+    
     skills: list[CanonicalSkill] = []
-    for name in canonical_skill_names(root):
-        path = root / name
-        description = ""
-        for line in (path / "SKILL.md").read_text(encoding="utf-8").splitlines():
-            if line.strip().startswith("description:"):
-                description = line.split(":", 1)[1].strip().strip("'\"")
-                break
-        skills.append(CanonicalSkill(name=name, path=path, description=description))
-    return tuple(skills)
+    
+    def load_skills(names: list[str], subdir: str):
+        for name in names:
+            if (root / subdir).is_dir():
+                path = root / subdir / name
+            else:
+                path = root / name
+            description = ""
+            for line in (path / "SKILL.md").read_text(encoding="utf-8").splitlines():
+                if line.startswith("description:"):
+                    description = line.split(":", 1)[1].strip().strip('"').strip("'")
+                    break
+            skills.append(CanonicalSkill(name=name, path=path, description=description))
+            
+    load_skills(core_names, "core")
+    if include_extended:
+        load_skills(ext_names, "extended")
+        
+    return tuple(sorted(skills, key=lambda s: s.name))
 
 
 def main(argv: list[str] | None = None) -> int:
     arguments = sys.argv[1:] if argv is None else argv
     root = Path(arguments[0]) if arguments else _default_skills_root()
+    # If the first arg after root is --core-only, we only return core
+    include_extended = True
+    if len(arguments) > 1 and arguments[1] == "--core-only":
+        include_extended = False
+
     try:
-        names = canonical_skill_names(root)
+        names = canonical_skill_names(root, include_extended=include_extended)
     except (OSError, SkillRegistryError) as error:
         print(f"skill registry error: {error}", file=sys.stderr)
         return 2

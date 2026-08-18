@@ -83,11 +83,13 @@ class LiveBridge:
         self._consumers: set[asyncio.Queue[dict[str, Any]]] = set()
         self._producer: Optional[asyncio.Task[Any]] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._is_alive: bool = True
 
     # -- lifecycle -----------------------------------------------------------
     def start(self) -> None:
         """Start the inotify observer, MQTT subscription, and producer task."""
         self._loop = asyncio.get_running_loop()
+        self._is_alive = True
         self._producer = self._loop.create_task(self._drain())
         trail_path = Path(paths.task_trail()).parent
         if trail_path.exists():
@@ -141,6 +143,9 @@ class LiveBridge:
     def _enqueue_snapshot(self) -> None:
         # Any trail mutation invalidates the graph cache (reactive freshness).
         graph_bridge.invalidate()
+        from sofia3.backend import training_pipeline
+        training_pipeline.trigger_export()
+        
         if self._queue.full():
             # Drop-lear-oldest to avoid stalling producers on a stalled consumer.
             try:
@@ -151,7 +156,7 @@ class LiveBridge:
 
     # -- consumer plumbing ---------------------------------------------------
     async def _drain(self) -> None:
-        while True:
+        while self._is_alive:
             try:
                 await self._queue.get()
                 payload = trail_snapshot()
@@ -174,7 +179,7 @@ class LiveBridge:
         try:
             # Initial snapshot on subscribe (catch-up).
             yield trail_snapshot()
-            while True:
+            while self._is_alive:
                 try:
                     item = await asyncio.wait_for(q.get(), timeout=15.0)
                     yield item
@@ -185,6 +190,7 @@ class LiveBridge:
             self._consumers.discard(q)
 
     async def stop(self) -> None:
+        self._is_alive = False
         if self._producer is not None:
             self._producer.cancel()
         if self._mqtt is not None:

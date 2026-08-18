@@ -16,52 +16,52 @@
     "plan": {
       "name": "Planner",
       "description": "High-level architecture, plan formulation, and task decomposition",
-      "model": "ollama/llama3.1:8b"
+      "model": "google/gemini-3.7-flash"
     },
     "build": {
       "name": "Builder",
       "description": "Deep code generation, heavy refactoring, and implementation",
-      "model": "ollama/llama3.1:8b"
+      "model": "google/gemini-3.7-flash"
     },
     "deepsearch": {
       "name": "DeepSearch",
       "description": "Fast exploration, RAG, search, file reading, background extraction",
-      "model": "ollama/llama3.1:8b"
+      "model": "google/gemini-3.6-flash"
     },
     "explore": {
       "name": "Explorer",
       "description": "Repository exploration and codebase discovery",
-      "model": "ollama/llama3.1:8b"
+      "model": "google/gemini-3.6-flash"
     },
     "refactor": {
       "name": "Refactorer",
       "description": "Surgical code edits and structural refactoring",
-      "model": "ollama/llama3.1:8b"
+      "model": "google/gemini-3.7-flash"
     },
     "triage": {
       "name": "Triager",
       "description": "Code review, bug diagnosis, static analysis verification",
-      "model": "ollama/llama3.1:8b"
+      "model": "google/gemini-3.7-flash"
     },
     "writer": {
       "name": "Writer",
       "description": "Technical documentation, academic papers, release notes",
-      "model": "ollama/llama3.1:8b"
+      "model": "google/gemini-3.7-flash"
     },
     "qa": {
       "name": "QA Tester",
       "description": "Quality assurance, test execution review, edge case validation",
-      "model": "ollama/llama3.1:8b"
+      "model": "google/gemini-3.7-flash"
     },
     "momus": {
       "name": "Momus Enforcer",
       "description": "Strict adversarial review and law compliance check",
-      "model": "ollama/llama3.1:8b"
+      "model": "google/gemini-3.7-flash"
     },
     "vision": {
       "name": "Vision Inspector",
       "description": "Multimodal visual reasoning, UI mockup inspection, OCR",
-      "model": "ollama/bakllava:latest"
+      "model": "google/gemini-3.7-flash"
     }
   },
   "lsp": {

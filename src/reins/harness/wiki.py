@@ -36,7 +36,7 @@ from typing import Iterator, Optional
 
 from reins.harness import paths
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -55,9 +55,9 @@ CREATE TABLE IF NOT EXISTS pages (
     metadata_json TEXT NOT NULL DEFAULT '{}',
     owner       TEXT DEFAULT 'harness',
     trust_score REAL DEFAULT 1.0,
+    is_chunked  INTEGER DEFAULT 0,
     updated_at  REAL NOT NULL
 );
-CREATE INDEX IF NOT EXISTS ix_pages_category ON pages(category);
 
 CREATE TABLE IF NOT EXISTS memories (
     id         INTEGER PRIMARY KEY,
@@ -68,9 +68,9 @@ CREATE TABLE IF NOT EXISTS memories (
     owner      TEXT DEFAULT 'harness',
     session_id TEXT,
     trust_score REAL DEFAULT 1.0,
+    is_chunked INTEGER DEFAULT 0,
     timestamp  REAL NOT NULL
 );
-CREATE INDEX IF NOT EXISTS ix_memories_category ON memories(category);
 
 CREATE TABLE IF NOT EXISTS audit_log (
     id          INTEGER PRIMARY KEY,
@@ -155,6 +155,8 @@ class Page:
     category: str = "general"
     fmt: str = "md"
     owner: str = "harness"
+    trust_score: float = 1.0
+    is_chunked: bool = False
     updated_at: float = 0.0
 
 
@@ -166,6 +168,8 @@ class Memory:
     source: Optional[str] = None
     owner: str = "harness"
     session_id: Optional[str] = None
+    trust_score: float = 1.0
+    is_chunked: bool = False
     timestamp: float = 0.0
 
 
@@ -190,11 +194,26 @@ class WikiDB:
             )
         if "trust_score" not in columns:
             self.conn.execute("ALTER TABLE pages ADD COLUMN trust_score REAL DEFAULT 1.0")
+        if "is_chunked" not in columns:
+            self.conn.execute("ALTER TABLE pages ADD COLUMN is_chunked INTEGER DEFAULT 0")
             
         mem_columns = {row[1] for row in self.conn.execute("PRAGMA table_info(memories)")}
         if "trust_score" not in mem_columns:
             self.conn.execute("ALTER TABLE memories ADD COLUMN trust_score REAL DEFAULT 1.0")
+        if "is_chunked" not in mem_columns:
+            self.conn.execute("ALTER TABLE memories ADD COLUMN is_chunked INTEGER DEFAULT 0")
+        if "is_deleted" not in columns:
+            self.conn.execute("ALTER TABLE pages ADD COLUMN is_deleted INTEGER DEFAULT 0")
+        if "is_deleted" not in mem_columns:
+            self.conn.execute("ALTER TABLE memories ADD COLUMN is_deleted INTEGER DEFAULT 0")
             
+        self.conn.execute("CREATE INDEX IF NOT EXISTS ix_pages_category ON pages(category);")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS ix_pages_is_chunked ON pages(is_chunked);")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS ix_pages_is_deleted ON pages(is_deleted);")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS ix_memories_category ON memories(category);")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS ix_memories_is_chunked ON memories(is_chunked);")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS ix_memories_is_deleted ON memories(is_deleted);")
+
         self.conn.execute(
             "INSERT INTO meta(key, value) VALUES('schema_version', ?) "
             "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -237,6 +256,7 @@ class WikiDB:
         metadata_json: str = "{}",
         owner: str = "harness",
         trust_score: float = 1.0,
+        is_chunked: bool = False,
     ) -> str:
         """Insert or update a page keyed by slug. Returns the slug used."""
         slug = slug or slugify(source_path or title)
@@ -251,9 +271,9 @@ class WikiDB:
                 """
                 INSERT INTO pages(
                     slug, title, source_path, category, fmt, content,
-                    metadata_json, owner, trust_score, updated_at
+                    metadata_json, owner, trust_score, is_chunked, updated_at
                 )
-                VALUES(?,?,?,?,?,?,?,?,?,?)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(slug) DO UPDATE SET
                     title=excluded.title,
                     source_path=excluded.source_path,
@@ -263,6 +283,7 @@ class WikiDB:
                     metadata_json=excluded.metadata_json,
                     owner=excluded.owner,
                     trust_score=excluded.trust_score,
+                    is_chunked=excluded.is_chunked,
                     updated_at=excluded.updated_at
                 """,
                 (
@@ -275,6 +296,7 @@ class WikiDB:
                     metadata_json,
                     owner,
                     trust_score,
+                    1 if is_chunked else 0,
                     time.time(),
                 ),
             )
@@ -320,6 +342,46 @@ class WikiDB:
         )
         return cur.fetchall()
 
+    def get_unchunked_pages(self, limit: int = 100) -> list[sqlite3.Row]:
+        """Return pages where is_chunked = 0."""
+        cur = self.conn.execute(
+            "SELECT * FROM pages WHERE is_chunked = 0 AND is_deleted = 0 ORDER BY updated_at ASC LIMIT ?",
+            (limit,),
+        )
+        return cur.fetchall()
+
+    def soft_delete_page(self, slug: str, owner: str = "harness") -> bool:
+        """Soft delete a page by setting is_deleted=1."""
+        with self._tx() as conn:
+            row = conn.execute("SELECT * FROM pages WHERE slug = ?", (slug,)).fetchone()
+            if not row or row["is_deleted"] == 1:
+                return False
+                
+            previous_hash = _hash(row["content"])
+            cur = conn.execute("UPDATE pages SET is_deleted = 1, updated_at = ? WHERE slug = ?", (time.time(), slug,))
+            if cur.rowcount > 0:
+                conn.execute(
+                    """
+                    INSERT INTO audit_log(entity_type, entity_id, action, previous_hash, new_hash, owner, timestamp)
+                    VALUES(?,?,?,?,?,?,?)
+                    """,
+                    ("page", slug, "soft_delete", previous_hash, None, owner, time.time())
+                )
+                return True
+            return False
+
+    def mark_pages_chunked(self, slugs: list[str]) -> int:
+        """Mark a list of pages as chunked."""
+        if not slugs:
+            return 0
+        with self._tx() as conn:
+            placeholders = ",".join("?" for _ in slugs)
+            cur = conn.execute(
+                f"UPDATE pages SET is_chunked = 1 WHERE slug IN ({placeholders})",  # nosec B608
+                slugs,
+            )
+            return cur.rowcount
+
     def count_pages(self, *, category: Optional[str] = None, owner: Optional[str] = None) -> int:
         where, params = [], []
         if category:
@@ -362,6 +424,7 @@ class WikiDB:
         session_id: Optional[str] = None,
         uid: Optional[str] = None,
         trust_score: float = 1.0,
+        is_chunked: bool = False,
     ) -> str:
         """Insert a memory (deduped by content hash). Returns the uid used."""
         uid = uid or _hash(text, category, source or "")
@@ -374,15 +437,16 @@ class WikiDB:
 
             conn.execute(
                 """
-                INSERT INTO memories(uid, text, category, source, owner, session_id, trust_score, timestamp)
-                VALUES(?,?,?,?,?,?,?,?)
+                INSERT INTO memories(uid, text, category, source, owner, session_id, trust_score, is_chunked, timestamp)
+                VALUES(?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(uid) DO UPDATE SET
                     text=excluded.text,
                     category=excluded.category,
                     source=excluded.source,
-                    trust_score=excluded.trust_score
+                    trust_score=excluded.trust_score,
+                    is_chunked=excluded.is_chunked
                 """,
-                (uid, text, category, source, owner, session_id, trust_score, time.time()),
+                (uid, text, category, source, owner, session_id, trust_score, 1 if is_chunked else 0, time.time()),
             )
             
             conn.execute(
@@ -393,6 +457,46 @@ class WikiDB:
                 ("memory", uid, action, previous_hash, new_hash, owner, time.time())
             )
         return uid
+
+    def get_unchunked_memories(self, limit: int = 100) -> list[sqlite3.Row]:
+        """Return memories where is_chunked = 0."""
+        cur = self.conn.execute(
+            "SELECT * FROM memories WHERE is_chunked = 0 AND is_deleted = 0 ORDER BY timestamp ASC LIMIT ?",
+            (limit,),
+        )
+        return cur.fetchall()
+
+    def soft_delete_memory(self, uid: str, owner: str = "harness") -> bool:
+        """Soft delete a memory by setting is_deleted=1."""
+        with self._tx() as conn:
+            row = conn.execute("SELECT * FROM memories WHERE uid = ?", (uid,)).fetchone()
+            if not row or row["is_deleted"] == 1:
+                return False
+                
+            previous_hash = _hash(row["text"])
+            cur = conn.execute("UPDATE memories SET is_deleted = 1, timestamp = ? WHERE uid = ?", (time.time(), uid,))
+            if cur.rowcount > 0:
+                conn.execute(
+                    """
+                    INSERT INTO audit_log(entity_type, entity_id, action, previous_hash, new_hash, owner, timestamp)
+                    VALUES(?,?,?,?,?,?,?)
+                    """,
+                    ("memory", uid, "soft_delete", previous_hash, None, owner, time.time())
+                )
+                return True
+            return False
+
+    def mark_memories_chunked(self, uids: list[str]) -> int:
+        """Mark a list of memories as chunked."""
+        if not uids:
+            return 0
+        with self._tx() as conn:
+            placeholders = ",".join("?" for _ in uids)
+            cur = conn.execute(
+                f"UPDATE memories SET is_chunked = 1 WHERE uid IN ({placeholders})",  # nosec B608
+                uids,
+            )
+            return cur.rowcount
 
     def search_memories(self, query: str, limit: int = 10) -> list[sqlite3.Row]:
         fts_query = _literal_fts_query(query)

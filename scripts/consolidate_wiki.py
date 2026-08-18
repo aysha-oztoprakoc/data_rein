@@ -212,6 +212,12 @@ def main() -> int:
         changelog = ingest_trail(db, dry=args.dry_run)
         log(f"  [pages] task trail changelog : {changelog}")
 
+        if not args.dry_run:
+            from reins.services.wiki_graph_pipeline import WikiGraphPipeline
+            pipeline = WikiGraphPipeline(wiki_db=db)
+            gstats = pipeline.sync_pending()
+            log(f"  [graph] semantic chunks   : {gstats.chunks_created} (deduped: {gstats.chunks_deduplicated})")
+
         stats = db.stats()
         log("// ------------------------------------------------------------")
         log(f"// ingested this run: pages(kb+oby)={kb + oby}  memories={mem_total}")

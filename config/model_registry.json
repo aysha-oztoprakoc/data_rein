@@ -1,5 +1,5 @@
 {
-  "scanned_at": "2026-08-14T21:22:45.862756+00:00",
+  "scanned_at": "2026-08-18T13:56:05.937932+00:00",
   "amdy": {
     "reachable": true,
     "hardware": {
@@ -97,17 +97,19 @@
     ]
   },
   "tell": {
-    "reachable": false,
+    "reachable": true,
     "hardware": {
       "vram_gb": 6.0,
-      "ram_gb": 16.0,
+      "ram_gb": 15.6,
       "cpu": {
-        "model": "Intel Core i5 (7th gen)",
-        "cores_per_socket": "4",
-        "threads": "4"
+        "threads": "4",
+        "model": "Intel(R) Core(TM) i5-7400 CPU @ 3.00GHz",
+        "cores_per_socket": "4"
       }
     },
-    "models_installed": [],
+    "models_installed": [
+      "qwen2.5-coder:1.5b"
+    ],
     "models_fit": []
   }
 }

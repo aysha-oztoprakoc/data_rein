@@ -65,9 +65,10 @@
     }
   },
   "remote_fallback": [
-    {"model": "deepseek-v4-pro", "score": 100.0, "power": "extreme", "provider": "deepseek"},
+    {"model": "gemini-3.7-flash", "score": 100.0, "power": "extreme", "provider": "gemini"},
+    {"model": "gemini-3.6-flash", "score": 99.5, "power": "extreme", "provider": "gemini"},
+    {"model": "deepseek-v4-pro", "score": 99.0, "power": "extreme", "provider": "deepseek"},
     {"model": "gpt-4o", "score": 99.0, "power": "extreme", "provider": "openai"},
-    {"model": "gemini-1.5-pro", "score": 99.0, "power": "extreme", "provider": "gemini"},
     {"model": "gpt-4o-mini", "score": 98.5, "power": "extreme", "provider": "openai"},
     {"model": "claude-3-7-sonnet-20250219", "score": 97.0, "power": "extreme", "provider": "claude"}
   ]

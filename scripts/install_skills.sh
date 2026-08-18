@@ -13,7 +13,7 @@ PYTHON=python3
 if [ -x "$HOME_DIR/.venv/bin/python" ]; then
   PYTHON="$HOME_DIR/.venv/bin/python"
 fi
-SKILL_OUTPUT="$($PYTHON "$REGISTRY" "$CANON")"
+SKILL_OUTPUT="$($PYTHON "$REGISTRY" "$CANON" --core-only)"
 mapfile -t SKILLS <<< "$SKILL_OUTPUT"
 
 # Target skill roots per environment. Missing parents are created; environments
@@ -85,9 +85,20 @@ link_into() {
   fi
   mkdir -p "$root"
   root_is_available "$root"
+  for existing in "$root"/*; do
+    if [ -L "$existing" ]; then
+      local target; target="$(readlink -f "$existing" || true)"
+      if [[ "$target" == "$CANON"/* ]] && [ ! -d "$target" ]; then
+        rm -f "$existing"
+      fi
+    fi
+  done
   for s in "${SKILLS[@]}"; do
     local destination="$root/$s"
-    local source="$CANON/$s"
+    local source="$CANON/core/$s"
+    if [ ! -d "$source" ] && [ -d "$CANON/$s" ]; then
+      source="$CANON/$s"
+    fi
     if [ -L "$destination" ] && [ "$(readlink -f "$destination")" = "$source" ]; then
       continue
     fi
