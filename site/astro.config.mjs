@@ -4,6 +4,6 @@ export default defineConfig({
   base: '/data_rein/',
   outDir: '../docs',
   build: {
-    format: 'file',
+    format: 'directory',
   },
 });
