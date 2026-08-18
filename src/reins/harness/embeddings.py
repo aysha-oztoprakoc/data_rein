@@ -70,7 +70,7 @@ class EmbeddingClient:
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            with external_io.call("ollama:probe", lambda: urllib.request.urlopen(req, timeout=0.2)) as resp:
+            with external_io.call("ollama:probe", lambda: urllib.request.urlopen(req, timeout=2.0)) as resp:
                 self._available = (resp.status == 200)
         except Exception as exc:
             logger.warning("Embedding probe failed: %s", exc)
@@ -91,7 +91,7 @@ class EmbeddingClient:
                     headers={"Content-Type": "application/json"},
                     method="POST",
                 )
-                with external_io.call("ollama:embed", lambda: urllib.request.urlopen(req, timeout=1.0)) as resp:
+                with external_io.call("ollama:embed", lambda: urllib.request.urlopen(req, timeout=5.0)) as resp:
                     if resp.status == 200:
                         data = json.loads(resp.read().decode("utf-8"))
                         embedding = data.get("embedding")

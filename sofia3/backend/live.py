@@ -42,23 +42,29 @@ def _collect_telemetry() -> dict[str, Any]:
     import time
     telemetry: dict[str, Any] = {}
 
-    # 1. Hardware profile & gaps (cached 30s)
+    # 1. Hardware profile, gaps & training capability (cached 30s)
     now = time.time()
     if _hardware_cache and (now - _hardware_cache_time < 30.0):
         telemetry["hardware"] = _hardware_cache.get("hardware")
         telemetry["hardware_gaps"] = _hardware_cache.get("hardware_gaps")
+        telemetry["training"] = _hardware_cache.get("training")
     else:
         try:
             from reins.services.sys_profiler import SysProfiler
+            from dataclasses import asdict
+            from reins.training import capability
             profiler = SysProfiler()
             hw = profiler.profile_cluster(publish=False)
             gaps = profiler.gap_report()
-            _hardware_cache = {"hardware": hw, "hardware_gaps": gaps}
+            train = asdict(capability.probe())
+            _hardware_cache = {"hardware": hw, "hardware_gaps": gaps, "training": train}
             _hardware_cache_time = now
             telemetry["hardware"] = hw
             telemetry["hardware_gaps"] = gaps
+            telemetry["training"] = train
         except Exception as exc:
             telemetry["hardware"] = {"degraded": True, "error": str(exc)}
+            telemetry["training"] = {"degraded": True, "error": str(exc)}
 
     # 2. Model Combos & Categories
     try:
@@ -110,15 +116,7 @@ def _collect_telemetry() -> dict[str, Any]:
     except Exception as exc:
         telemetry["agent_budgets"] = {}
 
-    # 6. Training capability
-    try:
-        from dataclasses import asdict
-        from reins.training import capability
-        telemetry["training"] = asdict(capability.probe())
-    except Exception as exc:
-        telemetry["training"] = {"degraded": True, "error": str(exc)}
-
-    # 7. PON live health
+    # 6. PON live health
     telemetry["pon"] = {
         "zero_polling": True,
         "inotify_active": True,

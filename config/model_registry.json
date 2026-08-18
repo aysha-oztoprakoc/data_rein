@@ -1,5 +1,5 @@
 {
-  "scanned_at": "2026-08-18T20:59:05.402489+00:00",
+  "scanned_at": "2026-08-18T21:15:41.225061+00:00",
   "amdy": {
     "reachable": true,
     "hardware": {
@@ -20,6 +20,7 @@
       "llama3.2-vision:11b",
       "llama3.2:3b",
       "moondream:1.8b",
+      "nomic-embed-text:latest",
       "phi3.5:3.8b",
       "phi4-mini:latest",
       "qwen2.5-coder:1.5b",
@@ -58,6 +59,11 @@
         "model": "moondream:1.8b",
         "size_gb": 1.7,
         "score": 78.8
+      },
+      {
+        "model": "nomic-embed-text:latest",
+        "size_gb": 0.3,
+        "score": 96.2
       },
       {
         "model": "phi3.5:3.8b",
