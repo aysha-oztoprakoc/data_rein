@@ -1,0 +1,38 @@
+/**
+ * data_rein — Design System Tokens
+ * Source: Adapted from Sofia³ aesthetic (theme.css)
+ */
+
+:root {
+  /* Surface / Background Palette */
+  --color-bg-base: #1A0505;
+  --color-bg-void: #0D0202;
+  --color-bg-panel: rgba(26, 5, 5, 0.75);
+  --color-bg-panel-solid: #120303;
+  --color-bg-panel-elevated: #240808;
+  --color-bg-terminal: #070101;
+
+  /* Accent & Highlight Palette */
+  --color-text-highlight: #00FFFF;
+  --color-text-body: #E0E0E0;
+  --color-text-dim: #8A8A8A;
+  --color-text-muted: #5C5050;
+
+  /* Structural Border Tokens */
+  --color-border-primary: #4A0F0F;
+  --color-border-active: #00FFFF;
+  --color-border-secondary: #005555;
+  --color-border-dim: rgba(255, 64, 64, 0.15);
+
+  /* Status Colors */
+  --color-danger: #FF003C;
+  --color-red-primary: #FF4040;
+  --color-warning: #FFCF3D;
+  --color-success: #00FF66;
+
+  /* Visual Accents & Typography */
+  --glow-highlight: 0 0 12px rgba(0, 255, 255, 0.35);
+  --glow-danger: 0 0 12px rgba(255, 0, 60, 0.35);
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}

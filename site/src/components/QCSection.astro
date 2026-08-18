@@ -1,0 +1,46 @@
+---
+import QCFlowDiagram from './QCFlowDiagram.astro';
+---
+
+<section class="section" id="qc-pipeline">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-tag">Deterministic Code Guard</div>
+      <h2>Quality Control Meta-Harness & Ratchet</h2>
+      <p>
+        Autonomous coding agents produce rapid changes that can degrade architectural integrity. Our QC pipeline imposes mathematical limits on cyclomatic complexity and differential coverage, ensuring the codebase stays clean and stable.
+      </p>
+    </div>
+
+    <!-- QC Pipeline Flow SVG -->
+    <QCFlowDiagram />
+
+    <div class="grid-3">
+      <div class="panel">
+        <div class="chip chip-cyan" style="margin-bottom: 0.75rem;">// GATE RULE 01</div>
+        <h3 style="font-size: 1.05rem; margin-bottom: 0.5rem; color: #fff;">Radon Cyclomatic Ceiling</h3>
+        <p style="font-size: 0.85rem; line-height: 1.6;">
+          Functions with cyclomatic complexity exceeding <strong style="color: var(--color-text-highlight);">20</strong> are flagged as unmaintainable hotspots and rejected automatically. Code must be refactored into smaller, testable units.
+        </p>
+      </div>
+
+      <div class="panel">
+        <div class="chip chip-danger" style="margin-bottom: 0.75rem;">// GATE RULE 02</div>
+        <h3 style="font-size: 1.05rem; margin-bottom: 0.5rem; color: #fff;">Zero Coverage Regression</h3>
+        <p style="font-size: 0.85rem; line-height: 1.6;">
+          Differential coverage delta must be <strong style="color: var(--color-success);">&gt;= 0.0%</strong>. Any agent patch that deletes or bypasses tests without providing equivalent assertions is blocked instantly at the gate.
+        </p>
+      </div>
+
+      <div class="panel">
+        <div class="chip chip-warning" style="margin-bottom: 0.75rem;">// GATE RULE 03</div>
+        <h3 style="font-size: 1.05rem; margin-bottom: 0.5rem; color: #fff;">Risk Classification Triage</h3>
+        <p style="font-size: 0.85rem; line-height: 1.6;">
+          <strong>LOW:</strong> Formatting & utility changes merge autonomously.<br>
+          <strong>MEDIUM:</strong> Standard features require full test battery pass.<br>
+          <strong>HIGH:</strong> Auth, database migrations, and crypto require operator sign-off.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>

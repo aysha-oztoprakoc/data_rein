@@ -1,0 +1,86 @@
+---
+import TopologyDiagram from './TopologyDiagram.astro';
+---
+
+<section class="section" id="hardware">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-tag">Distributed Physical Mesh</div>
+      <h2>Hardware Topology & Constraint Mitigation</h2>
+      <p>
+        The harness operates across two bare-metal workstations with constrained GPU VRAM budgets (8GB + 6GB). Our decoupled architecture mitigates physical hardware limits through JIT model loading, entropy-driven LRU eviction, and automatic cross-node failover.
+      </p>
+    </div>
+
+    <!-- Cluster SVG Architecture -->
+    <TopologyDiagram />
+
+    <!-- Constraint Mitigation Breakdown Grid -->
+    <div class="grid-2" style="margin-top: 2rem;">
+      <div class="panel">
+        <div class="chip chip-cyan" style="margin-bottom: 0.75rem;">// VRAM MITIGATION 01</div>
+        <h3 style="margin-bottom: 0.5rem; color: #fff;">JIT Weight Loading & Entropy LRU Eviction</h3>
+        <p style="font-size: 0.88rem; line-height: 1.6;">
+          Local LLMs (e.g. Qwen2.5-Coder 7B, Llama 3.1 8B) are JIT-loaded into GPU memory only during task execution. When memory pressure exceeds 85%, the Model Coordinator executes entropy-ranked LRU eviction to clear inactive weights without dropping agent state.
+        </p>
+        <div class="stat-row">
+          <div><span class="stat-label">amdy VRAM Ceiling:</span> <strong style="color: var(--color-text-highlight);">8.0 GB</strong></div>
+          <div><span class="stat-label">tell VRAM Ceiling:</span> <strong style="color: var(--color-danger);">6.0 GB</strong></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="chip chip-success" style="margin-bottom: 0.75rem;">// RESILIENCE MITIGATION 02</div>
+        <h3 style="margin-bottom: 0.5rem; color: #fff;">Cross-Node Model Failover & Mesh Balance</h3>
+        <p style="font-size: 0.88rem; line-height: 1.6;">
+          If amdy's local GPU plane is fully saturated or occupied by an intensive compile routine, the ModelRouter seamlessly fails over execution to tell's CUDA plane over the local sub-millisecond network bus before ever considering cloud escalation.
+        </p>
+        <div class="stat-row">
+          <div><span class="stat-label">Network Latency:</span> <strong style="color: var(--color-success);">&lt; 0.8ms (LAN)</strong></div>
+          <div><span class="stat-label">Autonomous Cloud Cost:</span> <strong style="color: var(--color-success);">$0.00 / mo</strong></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="chip chip-warning" style="margin-bottom: 0.75rem;">// FACT BASE MITIGATION 03</div>
+        <h3 style="margin-bottom: 0.5rem; color: #fff;">Stateless amdy ↔ Immutable NixOS tell</h3>
+        <p style="font-size: 0.88rem; line-height: 1.6;">
+          amdy maintains zero local state variables. All knowledge graphs, embeddings, Task Trail journals, and Wiki memories reside exclusively in the NixOS host on tell. If amdy crashes or reboots, execution picks up instantly without state corruption.
+        </p>
+        <div class="stat-row">
+          <div><span class="stat-label">WikiDB Storage:</span> <strong style="color: #fff;">SQLite FTS5 + Kùzu Graph</strong></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="chip chip-cyan" style="margin-bottom: 0.75rem;">// PROTOCOL MITIGATION 04</div>
+        <h3 style="margin-bottom: 0.5rem; color: #fff;">Remote-to-Local Two-Phase Inference</h3>
+        <p style="font-size: 0.88rem; line-height: 1.6;">
+          When heavy reasoning is authorized by the operator, <code style="color: var(--color-text-highlight);">compile_prompt_remote</code> compresses context into a strict 16k token package. <code style="color: var(--color-text-highlight);">run_prompt_local</code> then executes that package entirely on local hardware.
+        </p>
+        <div class="stat-row">
+          <div><span class="stat-label">Token Ceiling:</span> <strong style="color: var(--color-text-highlight);">16,384 tokens</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .stat-row {
+    margin-top: 1.25rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border-primary);
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    color: var(--color-text-dim);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .stat-label {
+    color: var(--color-text-dim);
+  }
+</style>

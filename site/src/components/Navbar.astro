@@ -1,0 +1,93 @@
+---
+---
+
+<nav class="navbar" id="main-nav">
+  <div class="container nav-content">
+    <div class="brand">
+      <div class="brand-glyph"></div>
+      <span>DATA_REIN</span>
+      <span class="chip chip-cyan" style="font-size: 0.65rem; padding: 0.1rem 0.4rem;">HARNESS v0.2.0</span>
+    </div>
+
+    <div class="nav-controls">
+      <ul class="nav-links">
+        <li><a href="#laws">Laws</a></li>
+        <li><a href="#hardware">Hardware</a></li>
+        <li><a href="#router">Router</a></li>
+        <li><a href="#qc-pipeline">QC Gate</a></li>
+        <li><a href="#console">Console</a></li>
+      </ul>
+
+      <a href="https://github.com/aysha-oztoprakoc/data_rein" class="btn btn-outline" style="padding: 0.35rem 0.85rem; font-size: 0.75rem;" target="_blank" rel="noopener">
+        GITHUB
+      </a>
+    </div>
+  </div>
+</nav>
+
+<style>
+  .navbar {
+    background: rgba(13, 2, 2, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--color-border-primary);
+    padding: 0.85rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+
+  .nav-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    color: #ffffff;
+  }
+
+  .brand-glyph {
+    width: 10px;
+    height: 10px;
+    background: var(--color-text-highlight);
+    box-shadow: var(--glow-highlight);
+  }
+
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--color-text-dim);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .nav-links a:hover {
+    color: var(--color-text-highlight);
+  }
+
+  @media (max-width: 768px) {
+    .nav-links {
+      display: none;
+    }
+  }
+</style>

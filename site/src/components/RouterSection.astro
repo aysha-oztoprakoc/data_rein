@@ -1,0 +1,200 @@
+---
+---
+
+<section class="section" id="router">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-tag">Model-Agnostic Intelligence</div>
+      <h2>Dynamic Category-Based Model Router</h2>
+      <p>
+        The harness is never hardcoded to any single LLM vendor. Agents route work by <strong style="color: #fff;">task category</strong> rather than model name, dynamically ranking candidates across both local hardware nodes and cloud providers.
+      </p>
+    </div>
+
+    <div class="grid-2">
+      <!-- Category Breakdown -->
+      <div class="panel">
+        <div class="chip chip-cyan" style="margin-bottom: 1rem;">// WORKLOAD CATEGORIES</div>
+        
+        <div class="category-item">
+          <div class="cat-head">
+            <span class="cat-name">rlm-primary</span>
+            <span class="cat-tier">CONTROLLER & REASONING</span>
+          </div>
+          <p class="cat-desc">Primary REPL loop, deep architecture reasoning, and complex task orchestration.</p>
+          <div class="cat-models">
+            <span>tell: qwen3.5:9b (score: 96.5)</span>
+            <span>amdy: deepseek-v4-pro / gpt-4o (remote fallback)</span>
+          </div>
+        </div>
+
+        <div class="category-item">
+          <div class="cat-head">
+            <span class="cat-name">rlm-worker-fast</span>
+            <span class="cat-tier">HIGH-VOLUME EXTRACTION</span>
+          </div>
+          <p class="cat-desc">Parallel sub-tasks: web search aggregation, BM25 filtering, text formatting, and RAG chunking.</p>
+          <div class="cat-models">
+            <span>amdy: qwen2.5-coder:1.5b (score: 98.0)</span>
+            <span>tell: glm-4-flash / qwen2.5:3b</span>
+          </div>
+        </div>
+
+        <div class="category-item">
+          <div class="cat-head">
+            <span class="cat-name">rlm-worker-heavy</span>
+            <span class="cat-tier">DEEP IMPLEMENTATION</span>
+          </div>
+          <p class="cat-desc">Recursive code generation, AST refactoring passes, and unit test battery creation.</p>
+          <div class="cat-models">
+            <span>amdy: qwen2.5-coder:7b (score: 95.0)</span>
+            <span>tell: deepseek-r1:8b (score: 89.5)</span>
+          </div>
+        </div>
+
+        <div class="category-item" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+          <div class="cat-head">
+            <span class="cat-name">rlm-vision</span>
+            <span class="cat-tier">MULTIMODAL PERCEPTION</span>
+          </div>
+          <p class="cat-desc">UI artifact analysis, architecture diagrams, and screenshot inspection.</p>
+          <div class="cat-models">
+            <span>amdy: bakllava:latest (score: 92.5)</span>
+            <span>tell: minicpm-v:8b / moondream:1.8b</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Routing Principles & Flow -->
+      <div class="panel panel-solid">
+        <div class="chip chip-danger" style="margin-bottom: 1rem;">// LOCAL-FIRST POLICY</div>
+        <h3 style="margin-bottom: 0.75rem; color: #fff;">Zero Cloud Substitution Law</h3>
+        <p style="font-size: 0.88rem; line-height: 1.6; margin-bottom: 1.25rem;">
+          Autonomous agent routines are strictly confined to local GPU models. Cloud models (Claude Sonnet 3.7, Gemini 2.5 Pro, OpenAI) require explicit operator authorization via <code style="color: var(--color-text-highlight);">escalate_cloud</code>.
+        </p>
+
+        <div class="routing-flow-box">
+          <div class="flow-step">
+            <div class="step-num">01</div>
+            <div>
+              <div class="step-title">Category Classification</div>
+              <div class="step-sub">Task classified into router category (Fast, Heavy, Primary, Vision)</div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="step-num">02</div>
+            <div>
+              <div class="step-title">Hardware Fit Verification</div>
+              <div class="step-sub">Checks VRAM capacity on amdy (8GB) and tell (6GB)</div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="step-num">03</div>
+            <div>
+              <div class="step-title">Local Execution & Failover</div>
+              <div class="step-sub">Dispatches to top-ranked local model; auto-fails to peer node if busy</div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="step-num">04</div>
+            <div>
+              <div class="step-title">Task Trail Journaling</div>
+              <div class="step-sub">Execution duration, token consumption, and score logged to SQLite</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .category-item {
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border-primary);
+  }
+
+  .cat-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+  }
+
+  .cat-name {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text-highlight);
+  }
+
+  .cat-tier {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--color-text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  .cat-desc {
+    font-size: 0.82rem;
+    color: var(--color-text-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  .cat-models {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .cat-models span {
+    color: #cbd5e1;
+  }
+
+  .routing-flow-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .flow-step {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 0.75rem;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border-primary);
+    clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  }
+
+  .step-num {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--color-text-highlight);
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid var(--color-border-active);
+    padding: 0.2rem 0.45rem;
+  }
+
+  .step-title {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0.15rem;
+  }
+
+  .step-sub {
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+  }
+</style>

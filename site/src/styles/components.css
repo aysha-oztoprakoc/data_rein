@@ -1,0 +1,129 @@
+/**
+ * Reusable Brutalist Component Styles & Clip-Paths
+ */
+
+/* Panels with Precision Angled Cuts */
+.panel {
+  background: var(--color-bg-panel);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border-primary);
+  padding: 1.5rem;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+  position: relative;
+}
+
+.panel:hover {
+  border-color: var(--color-border-active);
+  box-shadow: 0 0 16px rgba(0, 255, 255, 0.1);
+}
+
+.panel-solid {
+  background: var(--color-bg-panel-solid);
+}
+
+/* Badges / Chips */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border-primary);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+.chip-cyan {
+  border-color: var(--color-text-highlight);
+  color: var(--color-text-highlight);
+  background: rgba(0, 255, 255, 0.08);
+}
+
+.chip-danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: rgba(255, 0, 60, 0.08);
+}
+
+.chip-success {
+  border-color: var(--color-success);
+  color: var(--color-success);
+  background: rgba(0, 255, 102, 0.08);
+}
+
+.chip-warning {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+  background: rgba(255, 207, 61, 0.08);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.65rem 1.25rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 180ms ease;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+
+.btn-cyan {
+  background: var(--color-text-highlight);
+  color: #000000;
+}
+
+.btn-cyan:hover {
+  background: #ffffff;
+  box-shadow: var(--glow-highlight);
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--color-text-highlight);
+  color: var(--color-text-highlight);
+}
+
+.btn-outline:hover {
+  background: rgba(0, 255, 255, 0.12);
+  box-shadow: var(--glow-highlight);
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: #ffffff;
+}
+
+.btn-danger:hover {
+  box-shadow: var(--glow-danger);
+  transform: translateY(-1px);
+}
+
+/* Section Header Tags */
+.section-tag {
+  color: var(--color-text-highlight);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-mono);
+}
+
+.section-tag::before {
+  content: "▸ ";
+  color: var(--color-text-dim);
+}

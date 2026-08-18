@@ -1,0 +1,135 @@
+---
+---
+
+<div class="topology-svg-wrap">
+  <svg viewBox="0 0 960 380" fill="none" xmlns="http://www.w3.org/2000/svg" class="topology-svg">
+    <!-- Background Grid Effect -->
+    <defs>
+      <pattern id="grid-pattern" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#4A0F0F" stroke-width="0.5" stroke-opacity="0.3"/>
+      </pattern>
+      <linearGradient id="bus-glow" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#00FFFF" stop-opacity="0.8"/>
+        <stop offset="50%" stop-color="#00FF66" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#00FFFF" stop-opacity="0.8"/>
+      </linearGradient>
+    </defs>
+
+    <rect width="960" height="380" fill="url(#grid-pattern)" rx="0" />
+
+    <!-- Node 1: amdy (Execution Engine) -->
+    <g transform="translate(40, 40)">
+      <!-- Outer Card -->
+      <polygon points="12,0 380,0 380,268 368,280 0,280 0,12" fill="#120303" stroke="#4A0F0F" stroke-width="1.5" />
+      <polygon points="12,0 380,0 380,268 368,280 0,280 0,12" fill="none" stroke="#00FFFF" stroke-width="1" stroke-opacity="0.4" />
+      
+      <!-- Header -->
+      <rect x="0" y="0" width="380" height="36" fill="#1A0505" />
+      <circle cx="18" cy="18" r="4" fill="#00FF66" />
+      <text x="32" y="22" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700">NODE: amdy // 192.168.0.3</text>
+      <rect x="295" y="8" width="75" height="20" fill="#00FFFF" fill-opacity="0.1" stroke="#00FFFF" stroke-width="0.8" />
+      <text x="303" y="22" fill="#00FFFF" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700">EXECUTION</text>
+
+      <!-- Hardware Specs -->
+      <text x="20" y="65" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="10">CPU: <tspan fill="#E0E0E0" font-weight="600">AMD Ryzen 7 7700 (8c/16t, 32GB RAM)</tspan></text>
+      <text x="20" y="85" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="10">GPU: <tspan fill="#00FFFF" font-weight="600">AMD Radeon RX 9060 XT (8GB VRAM)</tspan></text>
+      <text x="20" y="105" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="10">ROLE: <tspan fill="#E0E0E0">Stateless Method Workers & Local Inference</tspan></text>
+
+      <line x1="20" y1="120" x2="360" y2="120" stroke="#4A0F0F" stroke-width="1" />
+
+      <!-- Active Services List -->
+      <text x="20" y="142" fill="#00FFFF" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">// HOSTED EXECUTION MODULES</text>
+      <rect x="20" y="152" width="160" height="26" fill="#1A0505" stroke="#4A0F0F" stroke-width="1" />
+      <text x="28" y="169" fill="#E0E0E0" font-family="JetBrains Mono, monospace" font-size="10">Antigravity CLI / Harness</text>
+
+      <rect x="190" y="152" width="170" height="26" fill="#1A0505" stroke="#4A0F0F" stroke-width="1" />
+      <text x="198" y="169" fill="#E0E0E0" font-family="JetBrains Mono, monospace" font-size="10">Sofia³ Dashboard Server</text>
+
+      <rect x="20" y="186" width="160" height="26" fill="#1A0505" stroke="#4A0F0F" stroke-width="1" />
+      <text x="28" y="203" fill="#E0E0E0" font-family="JetBrains Mono, monospace" font-size="10">JIT Local Model Engine</text>
+
+      <rect x="190" y="186" width="170" height="26" fill="#1A0505" stroke="#4A0F0F" stroke-width="1" />
+      <text x="198" y="203" fill="#E0E0E0" font-family="JetBrains Mono, monospace" font-size="10">Hermes / Odysseus Agents</text>
+
+      <!-- VRAM Budget Bar -->
+      <rect x="20" y="228" width="340" height="14" fill="#0D0202" stroke="#4A0F0F" stroke-width="1" />
+      <rect x="22" y="230" width="220" height="10" fill="#00FFFF" fill-opacity="0.8" />
+      <text x="20" y="258" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="9">VRAM ALLOCATION: <tspan fill="#00FFFF">5.2GB / 8.0GB ALLOCATED (JIT LRU ACTIVE)</tspan></text>
+    </g>
+
+    <!-- Reactive Bus Connector -->
+    <g transform="translate(420, 140)">
+      <!-- Pulsing Connection Line -->
+      <line x1="0" y1="40" x2="120" y2="40" stroke="url(#bus-glow)" stroke-width="3" stroke-dasharray="6,4" />
+      <rect x="20" y="15" width="80" height="50" fill="#120303" stroke="#00FFFF" stroke-width="1" />
+      <text x="32" y="34" fill="#00FFFF" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">MQTT v2</text>
+      <text x="30" y="52" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="9">:1883 BUS</text>
+      <circle cx="60" cy="8" r="3" fill="#00FF66" />
+      <text x="18" y="85" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="8">ZERO POLLING</text>
+    </g>
+
+    <!-- Node 2: tell (Fact Base Server) -->
+    <g transform="translate(540, 40)">
+      <!-- Outer Card -->
+      <polygon points="12,0 380,0 380,268 368,280 0,280 0,12" fill="#120303" stroke="#4A0F0F" stroke-width="1.5" />
+      <polygon points="12,0 380,0 380,268 368,280 0,280 0,12" fill="none" stroke="#FF4040" stroke-width="1" stroke-opacity="0.4" />
+      
+      <!-- Header -->
+      <rect x="0" y="0" width="380" height="36" fill="#1A0505" />
+      <circle cx="18" cy="18" r="4" fill="#00FF66" />
+      <text x="32" y="22" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700">NODE: tell // 192.168.0.4</text>
+      <rect x="285" y="8" width="85" height="20" fill="#FF4040" fill-opacity="0.1" stroke="#FF4040" stroke-width="0.8" />
+      <text x="293" y="22" fill="#FF4040" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700">FACT STORE</text>
+
+      <!-- Hardware Specs -->
+      <text x="20" y="65" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="10">CPU: <tspan fill="#E0E0E0" font-weight="600">Intel Core i5-7400 (4c/4t, 16GB RAM)</tspan></text>
+      <text x="20" y="85" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="10">GPU: <tspan fill="#FF4040" font-weight="600">NVIDIA GeForce GTX 1060 (6GB VRAM)</tspan></text>
+      <text x="20" y="105" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="10">OS: <tspan fill="#E0E0E0">NixOS Sovereign Immutable Host</tspan></text>
+
+      <line x1="20" y1="120" x2="360" y2="120" stroke="#4A0F0F" stroke-width="1" />
+
+      <!-- Active Services List -->
+      <text x="20" y="142" fill="#FF4040" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">// CENTRAL STATE STORES</text>
+      <rect x="20" y="152" width="160" height="26" fill="#1A0505" stroke="#4A0F0F" stroke-width="1" />
+      <text x="28" y="169" fill="#E0E0E0" font-family="JetBrains Mono, monospace" font-size="10">Mosquitto MQTT Broker</text>
+
+      <rect x="190" y="152" width="170" height="26" fill="#1A0505" stroke="#4A0F0F" stroke-width="1" />
+      <text x="198" y="169" fill="#E0E0E0" font-family="JetBrains Mono, monospace" font-size="10">Monolith WikiDB / FTS5</text>
+
+      <rect x="20" y="186" width="160" height="26" fill="#1A0505" stroke="#4A0F0F" stroke-width="1" />
+      <text x="28" y="203" fill="#E0E0E0" font-family="JetBrains Mono, monospace" font-size="10">Kùzu Graph Engine</text>
+
+      <rect x="190" y="186" width="170" height="26" fill="#1A0505" stroke="#4A0F0F" stroke-width="1" />
+      <text x="198" y="203" fill="#E0E0E0" font-family="JetBrains Mono, monospace" font-size="10">Ollama CUDA Server :11434</text>
+
+      <!-- VRAM Budget Bar -->
+      <rect x="20" y="228" width="340" height="14" fill="#0D0202" stroke="#4A0F0F" stroke-width="1" />
+      <rect x="22" y="230" width="180" height="10" fill="#FF4040" fill-opacity="0.8" />
+      <text x="20" y="258" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="9">VRAM ALLOCATION: <tspan fill="#FF4040">4.1GB / 6.0GB ALLOCATED (OLLAMA CUDA)</tspan></text>
+    </g>
+
+    <!-- Bottom Legend -->
+    <text x="50" y="355" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="11">
+      TOPOLOGY INVARIANT: <tspan fill="#00FFFF">Decoupled Methods (amdy) ↔ Authoritative Fact Base (tell) via Reactive Event Stream</tspan>
+    </text>
+  </svg>
+</div>
+
+<style>
+  .topology-svg-wrap {
+    width: 100%;
+    overflow-x: auto;
+    background: var(--color-bg-panel-solid);
+    border: 1px solid var(--color-border-primary);
+    padding: 1rem;
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    margin-bottom: 2rem;
+  }
+
+  .topology-svg {
+    width: 100%;
+    min-width: 680px;
+    height: auto;
+    display: block;
+  }
+</style>

@@ -1,0 +1,89 @@
+---
+---
+
+<div class="qc-svg-wrap">
+  <svg viewBox="0 0 960 260" fill="none" xmlns="http://www.w3.org/2000/svg" class="qc-svg">
+    <!-- Pipeline Line -->
+    <line x1="60" y1="90" x2="880" y2="90" stroke="#4A0F0F" stroke-width="2" />
+    <line x1="60" y1="90" x2="720" y2="90" stroke="#00FFFF" stroke-width="2" stroke-dasharray="4,4" />
+
+    <!-- Stage 1: Code Generation -->
+    <g transform="translate(40, 40)">
+      <polygon points="8,0 150,0 150,92 142,100 0,100 0,8" fill="#120303" stroke="#4A0F0F" stroke-width="1.5" />
+      <rect x="0" y="0" width="150" height="24" fill="#1A0505" />
+      <text x="10" y="16" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700">STAGE 01</text>
+      <text x="10" y="44" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700">Agent Code Gen</text>
+      <text x="10" y="62" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="9">Autonomous patch</text>
+      <text x="10" y="76" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="9">created by LLM</text>
+      <circle cx="75" cy="50" r="2" fill="#00FFFF" />
+    </g>
+
+    <!-- Stage 2: AST Zero-Polling Scan -->
+    <g transform="translate(220, 40)">
+      <polygon points="8,0 150,0 150,92 142,100 0,100 0,8" fill="#120303" stroke="#00FFFF" stroke-width="1.5" />
+      <rect x="0" y="0" width="150" height="24" fill="#1A0505" />
+      <text x="10" y="16" fill="#00FFFF" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700">STAGE 02: AST</text>
+      <text x="10" y="44" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700">PON Compliance</text>
+      <text x="10" y="62" fill="#00FF66" font-family="JetBrains Mono, monospace" font-size="9">✓ Zero while loops</text>
+      <text x="10" y="76" fill="#00FF66" font-family="JetBrains Mono, monospace" font-size="9">✓ Zero active poll</text>
+    </g>
+
+    <!-- Stage 3: Radon Complexity Limit -->
+    <g transform="translate(400, 40)">
+      <polygon points="8,0 150,0 150,92 142,100 0,100 0,8" fill="#120303" stroke="#00FFFF" stroke-width="1.5" />
+      <rect x="0" y="0" width="150" height="24" fill="#1A0505" />
+      <text x="10" y="16" fill="#00FFFF" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700">STAGE 03: RADON</text>
+      <text x="10" y="44" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700">Complexity Gate</text>
+      <text x="10" y="62" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="9">Cyclomatic max: 20</text>
+      <text x="10" y="76" fill="#00FF66" font-family="JetBrains Mono, monospace" font-size="9">Hotspots Blocked</text>
+    </g>
+
+    <!-- Stage 4: Differential Coverage -->
+    <g transform="translate(580, 40)">
+      <polygon points="8,0 150,0 150,92 142,100 0,100 0,8" fill="#120303" stroke="#00FFFF" stroke-width="1.5" />
+      <rect x="0" y="0" width="150" height="24" fill="#1A0505" />
+      <text x="10" y="16" fill="#00FFFF" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700">STAGE 04: COVERAGE</text>
+      <text x="10" y="44" fill="#FFFFFF" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700">Pytest Ratchet</text>
+      <text x="10" y="62" fill="#8A8A8A" font-family="JetBrains Mono, monospace" font-size="9">Δ Cov &gt;= 0.0%</text>
+      <text x="10" y="76" fill="#FF003C" font-family="JetBrains Mono, monospace" font-size="9">Regression = BLOCK</text>
+    </g>
+
+    <!-- Stage 5: Gate Disposition -->
+    <g transform="translate(760, 40)">
+      <polygon points="8,0 160,0 160,92 152,100 0,100 0,8" fill="#120303" stroke="#00FF66" stroke-width="1.5" />
+      <rect x="0" y="0" width="160" height="24" fill="#1A0505" />
+      <text x="10" y="16" fill="#00FF66" font-family="JetBrains Mono, monospace" font-size="9" font-weight="700">STAGE 05: DISPATCH</text>
+      <text x="10" y="44" fill="#00FF66" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">LOW -&gt; AUTO_MERGE</text>
+      <text x="10" y="62" fill="#FFCF3D" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">HIGH -&gt; HUMAN SIGN</text>
+      <text x="10" y="80" fill="#FF003C" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">FAIL -&gt; BLOCK COMMIT</text>
+    </g>
+
+    <!-- Bottom Hook Explanation -->
+    <g transform="translate(40, 175)">
+      <rect x="0" y="0" width="880" height="60" fill="#1A0505" stroke="#4A0F0F" stroke-width="1" />
+      <text x="18" y="24" fill="#FF4040" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700">PRE-PUSH HOOK ENFORCEMENT (~/.git-templates):</text>
+      <text x="18" y="44" fill="#CBD5E1" font-family="JetBrains Mono, monospace" font-size="10">
+        Every git push triggers the 391-test pon_testing_suite locally. Submissions that fail AST verification or break existing test assertions are halted before leaving the workstation.
+      </text>
+    </g>
+  </svg>
+</div>
+
+<style>
+  .qc-svg-wrap {
+    width: 100%;
+    overflow-x: auto;
+    background: var(--color-bg-panel-solid);
+    border: 1px solid var(--color-border-primary);
+    padding: 1rem;
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    margin-bottom: 2rem;
+  }
+
+  .qc-svg {
+    width: 100%;
+    min-width: 760px;
+    height: auto;
+    display: block;
+  }
+</style>

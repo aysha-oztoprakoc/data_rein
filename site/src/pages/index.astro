@@ -1,0 +1,219 @@
+---
+import Base from '../layouts/Base.astro';
+import Navbar from '../components/Navbar.astro';
+import LawsSection from '../components/LawsSection.astro';
+import HardwareSection from '../components/HardwareSection.astro';
+import RouterSection from '../components/RouterSection.astro';
+import QCSection from '../components/QCSection.astro';
+import TerminalConsole from '../components/TerminalConsole.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Base 
+  title="data_rein — Universal Agent Harness"
+  description="Model-agnostic zero-polling autonomous agent harness with PON graph engineering, deterministic QC gates, and two-node physical cluster topology."
+>
+  <!-- Top Telemetry Header -->
+  <div class="top-telemetry-bar">
+    <div class="container telemetry-flex">
+      <div class="telemetry-item">
+        <span class="dot-status"></span>
+        <span>HARNESS MESH: LINKED</span>
+      </div>
+      <div class="telemetry-item">
+        <span>ENGINE: <strong style="color: var(--color-text-highlight);">PON KAD 1.1</strong></span>
+      </div>
+      <div class="telemetry-item">
+        <span>CPU IDLE: <strong style="color: var(--color-success);">0.0% (BLOCKING I/O)</strong></span>
+      </div>
+      <div class="telemetry-item">
+        <span>STABILITY: <strong style="color: var(--color-text-highlight);">391/391 (100%)</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <Navbar />
+
+  <!-- Hero Section -->
+  <header class="hero-section">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <div class="hero-tag">Sovereign Multi-Node Agent Infrastructure</div>
+        <h1>Model-Agnostic Zero-Polling Agent Harness</h1>
+        <p class="hero-lead">
+          High-performance execution environment engineered under the <strong>Notification-Oriented Paradigm (PON)</strong>. Decouples stateless worker methods on local workstations from centralized NixOS fact stores with sub-millisecond reactive dispatch.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#laws" class="btn btn-cyan">Explore Architecture</a>
+          <a href="#console" class="btn btn-outline">Engage Console</a>
+          <a href="https://github.com/aysha-oztoprakoc/data_rein" class="btn btn-outline" target="_blank" rel="noopener">GitHub</a>
+        </div>
+
+        <!-- 3-Law Motor Tripod Summary -->
+        <div class="panel hero-tripod">
+          <div class="tripod-title">// CONSTITUTIONAL MOTOR TRIPOD (PROJECT SOFIA)</div>
+          <div class="tripod-grid">
+            <div class="tripod-col">
+              <div class="tripod-num">01</div>
+              <div>
+                <strong>PON Engine</strong>
+                <p>Zero-polling blocking I/O</p>
+              </div>
+            </div>
+            <div class="tripod-col">
+              <div class="tripod-num">02</div>
+              <div>
+                <strong>Graceful Degradation</strong>
+                <p>Immortal circuit breakers</p>
+              </div>
+            </div>
+            <div class="tripod-col">
+              <div class="tripod-num">03</div>
+              <div>
+                <strong>Test-Driven (TDD)</strong>
+                <p>391/391 tests AST verified</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content Sections -->
+  <LawsSection />
+  <HardwareSection />
+  <RouterSection />
+  <QCSection />
+  <TerminalConsole />
+  <Footer />
+</Base>
+
+<style>
+  .top-telemetry-bar {
+    background: #090202;
+    border-bottom: 1px solid var(--color-border-primary);
+    padding: 0.4rem 0;
+    font-size: 0.72rem;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+  }
+
+  .telemetry-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .telemetry-item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .dot-status {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-success);
+    box-shadow: 0 0 6px var(--color-success);
+  }
+
+  .hero-section {
+    padding: 4.5rem 0 3.5rem;
+  }
+
+  .hero-content {
+    max-width: 860px;
+  }
+
+  .hero-tag {
+    color: var(--color-text-highlight);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.85rem;
+    font-family: var(--font-mono);
+  }
+
+  .hero-tag::before {
+    content: "▸ ";
+    color: var(--color-danger);
+  }
+
+  .hero-lead {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    margin: 1.25rem 0 2rem;
+    color: #cbd5e1;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 2.5rem;
+  }
+
+  .hero-tripod {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .tripod-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-text-highlight);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.85rem;
+    font-family: var(--font-mono);
+  }
+
+  .tripod-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+
+  .tripod-col {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .tripod-num {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--color-danger);
+    background: rgba(255, 0, 60, 0.1);
+    border: 1px solid var(--color-border-primary);
+    padding: 0.15rem 0.4rem;
+  }
+
+  .tripod-col strong {
+    font-size: 0.85rem;
+    color: #ffffff;
+    display: block;
+    margin-bottom: 0.2rem;
+    font-family: var(--font-mono);
+  }
+
+  .tripod-col p {
+    font-size: 0.76rem;
+    color: var(--color-text-dim);
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .tripod-grid {
+      grid-template-columns: 1fr;
+      gap: 0.85rem;
+    }
+  }
+</style>

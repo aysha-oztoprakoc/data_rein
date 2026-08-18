@@ -1,0 +1,284 @@
+---
+---
+
+<section class="section" id="console">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-tag">Interactive REPL Simulation</div>
+      <h2>Harness Command Line Interface</h2>
+      <p>
+        Simulate real CLI invocations against the harness router, monolith Wiki database, token tracker, and distributed mesh probe.
+      </p>
+    </div>
+
+    <div class="terminal-program panel">
+      <div class="terminal-header">
+        <div class="terminal-title">
+          <span class="dot-live"></span>
+          <span>HARNESS CONSOLE // data_rein v0.2.0</span>
+        </div>
+        <span class="host-badge">HOST: amdy [192.168.0.3] • ZERO POLLING</span>
+      </div>
+
+      <div class="terminal-quick-bar">
+        <span class="quick-label">EXEC:</span>
+        <button class="quick-cmd-btn" data-cmd="reins run code 'optimize parser' --rag">reins run</button>
+        <button class="quick-cmd-btn" data-cmd="reins wiki search 'PON'">reins wiki</button>
+        <button class="quick-cmd-btn" data-cmd="reins tokens status">reins tokens</button>
+        <button class="quick-cmd-btn" data-cmd="reins qc eval">reins qc</button>
+        <button class="quick-cmd-btn" data-cmd="reins cluster probe">reins cluster</button>
+        <button class="quick-cmd-btn" data-cmd="help">help</button>
+        <button class="quick-cmd-btn" data-cmd="clear">clear</button>
+      </div>
+
+      <div class="terminal-body" id="term-body">
+        <div class="terminal-history" id="term-history"></div>
+        <div class="terminal-prompt-line">
+          <span class="terminal-prompt-prefix">amdy@data_rein:~$</span>
+          <input type="text" class="terminal-input" id="term-input" placeholder="type 'help' or click quick commands above..." autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  class HarnessTerminal {
+    private input: HTMLInputElement | null;
+    private history: HTMLElement | null;
+    private cmdHistory: string[] = [];
+    private historyIndex = -1;
+
+    constructor() {
+      this.input = document.getElementById('term-input') as HTMLInputElement;
+      this.history = document.getElementById('term-history');
+      this.init();
+    }
+
+    private init() {
+      if (!this.input || !this.history) return;
+
+      const quickBtns = document.querySelectorAll('.quick-cmd-btn');
+
+      this.input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const raw = this.input!.value.trim();
+          if (raw) {
+            this.execute(raw);
+            this.cmdHistory.push(raw);
+            this.historyIndex = this.cmdHistory.length;
+            this.input!.value = '';
+          }
+        }
+      });
+
+      quickBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cmd = btn.getAttribute('data-cmd');
+          if (cmd && this.input) {
+            this.input.value = cmd;
+            this.execute(cmd);
+          }
+        });
+      });
+
+      this.print(`// data_rein Universal Agent Harness Console [v0.2.0]
+// PON Protocol Active | Node: amdy (Execution) | tell: linked (Fact Base)
+// Type 'help' or click quick command buttons above to test system routines.\n`);
+    }
+
+    private execute(cmd: string) {
+      this.print(`<span style="color: var(--color-text-highlight); font-weight: 700;">amdy@data_rein:~$</span> ${cmd}`);
+      const clean = cmd.toLowerCase().trim();
+
+      if (clean === 'help') {
+        this.print(`AVAILABLE HARNESS COMMANDS:
+  reins run <cat> <prompt>    - Dispatch prompt to local Ollama / Kùzu RAG
+  reins wiki search <query>   - Full-text BM25 & graph neighborhood search
+  reins tokens status         - Rolling token consumption & budget metrics
+  reins qc eval               - Run Radon cyclomatic complexity & coverage ratchet
+  reins cluster probe         - Handshake ping amdy (192.168.0.3) <-> tell (192.168.0.4)
+  reins paths                 - Print canonical harness system paths
+  clear                       - Clear terminal buffer`);
+      } else if (clean.startsWith('reins run')) {
+        this.print(`[0.01s] [FBE:TASK_CREATED] ModelRouter selected tier: LOCAL (Ollama / Qwen2.5-Coder-7B)
+[0.04s] [ContextBuilder] Kùzu graph query returned 2 related wiki nodes (sim=0.94)
+[0.08s] [amdy:RX 9060 XT] Executing with 8GB VRAM allocation...
+[0.19s] [ValidatorNode] Judge (Archimedes & Sofia) passed with score 0.98.
+<span style="color: #00FF66;">[OK] Execution complete in 210ms. Response grounded in Fact Base.</span>`);
+      } else if (clean.startsWith('reins wiki')) {
+        this.print(`[WikiDB] Querying SQLite FTS5 index & Kùzu ContextGraph...
+  1. [PAGE] PRIME_DIRECTIVE.md (rank: 0.982) - PON architecture & zero polling laws
+  2. [MEMORY] KAD 1.1 Cluster State (rank: 0.941) - amdy (methods) / tell (facts)
+  3. [CHUNK] ModelCoordinator LRU (rank: 0.915) - Entropy eviction heuristics
+<span style="color: #00FFFF;">[3 results found in 4.2ms]</span>`);
+      } else if (clean.startsWith('reins tokens')) {
+        this.print(`[TOKEN USAGE TRACKER] Rolling Window Consumption vs Hard Budgets:
+  5-Hour Window:  [████░░░░░░░░░░░░░░░░]  21.4% (107k / 500k tokens)
+  24-Hour Day:    [████████░░░░░░░░░░░░]  40.2% (804k / 2.0M tokens)
+  30-Day Month:   [███░░░░░░░░░░░░░░░░░]  16.8% (8.4M / 50.0M tokens)
+<span style="color: #00FF66;">[STATUS: GREEN] All operations operating strictly within budget ceilings.</span>`);
+      } else if (clean.startsWith('reins qc')) {
+        this.print(`[QC META-HARNESS] Analyzing recent commit changeset...
+  * Radon Cyclomatic Max: 4 (Hotspot ceiling: 20) -> PASS
+  * Pytest-Cov Differential: +3.2% (Regressions: 0) -> PASS
+  * Risk Score: LOW (Formatting & Utility Layer) -> PASS
+<span style="color: #00FF66;">[RECOMMENDATION: AUTO_MERGE] Autonomous merge authorized.</span>`);
+      } else if (clean.startsWith('reins cluster') || clean.startsWith('reins probe')) {
+        this.print(`[MESH DIAGNOSTIC] Initiating cross-node UDP/MQTT handshake...
+  [NODE: amdy] 192.168.0.3 (Stateless Methods Node) -> 0.0% CPU Idle | ONLINE
+  [NODE: tell] 192.168.0.4 (NixOS Central Fact Base) -> MQTT v2 Port 1883 | ONLINE
+  [CUDA PLANE] NVIDIA GTX 1060 6GB (Ollama JIT) -> Port 11434 | ONLINE
+<span style="color: #00FF66;">[MESH INTEGRITY: 100%] Sub-millisecond reactive bus confirmed.</span>`);
+      } else if (clean.startsWith('reins paths')) {
+        this.print(`[CANONICAL PATHS]
+  HARNESS_ROOT: /home/amdy/data_rein
+  WIKI_DB:      /home/amdy/data_rein/knowledge_base/wiki.db
+  KUZU_GRAPH:   /home/amdy/data_rein/DATA/kuzu_db
+  TASK_TRAIL:   /home/amdy/data_rein/knowledge_base/task_trail.json
+  SKILLS_DIR:   /home/amdy/data_rein/skills`);
+      } else if (clean === 'clear') {
+        if (this.history) this.history.innerHTML = '';
+        return;
+      } else {
+        this.print(`<span style="color: var(--color-danger);">[COMMAND UNRECOGNIZED: '${cmd}'] Type 'help' for command manual.</span>`);
+      }
+
+      if (this.history) {
+        this.history.scrollTop = this.history.scrollHeight;
+      }
+    }
+
+    private print(html: string) {
+      if (this.history) {
+        this.history.innerHTML += `<div style="margin-bottom: 0.4rem;">${html}</div>`;
+        this.history.scrollTop = this.history.scrollHeight;
+      }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    new HarnessTerminal();
+  });
+</script>
+
+<style>
+  .terminal-program {
+    background: var(--color-bg-terminal);
+    border: 1px solid var(--color-border-primary);
+    padding: 0;
+    overflow: hidden;
+    height: 480px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .terminal-header {
+    background: #140303;
+    border-bottom: 1px solid var(--color-border-primary);
+    padding: 0.6rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .terminal-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--color-text-highlight);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+  }
+
+  .dot-live {
+    width: 7px;
+    height: 7px;
+    background: var(--color-success);
+    box-shadow: 0 0 6px var(--color-success);
+  }
+
+  .host-badge {
+    font-size: 0.7rem;
+    color: var(--color-text-dim);
+    font-family: var(--font-mono);
+  }
+
+  .terminal-quick-bar {
+    background: #0D0202;
+    border-bottom: 1px solid var(--color-border-primary);
+    padding: 0.4rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+  }
+
+  .quick-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-text-dim);
+    font-family: var(--font-mono);
+  }
+
+  .quick-cmd-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--color-border-primary);
+    color: var(--color-text-highlight);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.2rem 0.55rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 150ms ease;
+    clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  }
+
+  .quick-cmd-btn:hover {
+    background: rgba(0, 255, 255, 0.15);
+    border-color: var(--color-text-highlight);
+  }
+
+  .terminal-body {
+    flex-grow: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    color: #00ffff;
+    font-size: 0.82rem;
+    font-family: var(--font-mono);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .terminal-history {
+    flex-grow: 1;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--color-text-body);
+  }
+
+  .terminal-prompt-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    border-top: 1px dashed var(--color-border-primary);
+    padding-top: 0.5rem;
+  }
+
+  .terminal-prompt-prefix {
+    color: var(--color-text-highlight);
+    font-weight: 700;
+  }
+
+  .terminal-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ffffff;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    flex-grow: 1;
+  }
+</style>
