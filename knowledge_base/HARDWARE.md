@@ -4,7 +4,7 @@
 > `getinfo` scan (`SysProfiler`). Do not hand-edit — re-run the scan.
 > The Prime Directive points here so hardware changes flow in on the next scan.
 
-**Last scan:** 2026-08-18 21:15 UTC
+**Last scan:** 2026-08-19 02:02 UTC
 
 ## amdy — online
 

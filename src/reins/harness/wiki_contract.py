@@ -22,19 +22,36 @@ class WikiCrud:
 
     def list_pages(self, *, limit: int = 50, offset: int = 0) -> dict[str, Any]:
         limit, offset = self._page(limit, offset)
-        rows = self.db.conn.execute(
-            "SELECT slug,title,category,fmt,owner,updated_at FROM pages "
-            "ORDER BY updated_at DESC LIMIT ? OFFSET ?",
-            (limit, offset),
-        ).fetchall()
-        total = int(self.db.conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0])
-        return {"items": [dict(row) for row in rows], "total": total, "limit": limit, "offset": offset}
+        if hasattr(self.db, "list_pages_summary"):
+            items = self.db.list_pages_summary(limit=limit, offset=offset)
+        elif hasattr(self.db, "conn"):
+            rows = self.db.conn.execute(
+                "SELECT slug,title,category,fmt,owner,updated_at FROM pages "
+                "ORDER BY updated_at DESC LIMIT ? OFFSET ?",
+                (limit, offset),
+            ).fetchall()
+            items = [dict(row) for row in rows]
+        else:
+            pages = self.db.list_pages(limit=limit, offset=offset, order="recent")
+            items = [
+                {
+                    "slug": p.get("slug") if isinstance(p, dict) else p["slug"],
+                    "title": p.get("title") if isinstance(p, dict) else p["title"],
+                    "category": p.get("category", "general") if isinstance(p, dict) else p["category"],
+                    "fmt": p.get("fmt", "md") if isinstance(p, dict) else p["fmt"],
+                    "owner": p.get("owner", "harness") if isinstance(p, dict) else p["owner"],
+                    "updated_at": p.get("updated_at", 0.0) if isinstance(p, dict) else p["updated_at"],
+                }
+                for p in pages
+            ]
+        total = self.db.count_pages() if hasattr(self.db, "count_pages") else int(self.db.conn.execute("SELECT COUNT(*) FROM pages").fetchone()[0])
+        return {"items": items, "total": total, "limit": limit, "offset": offset}
 
     def get_page(self, slug: str) -> dict[str, Any]:
         row = self.db.get_page(self._text(slug, "slug", 200))
         if row is None:
             raise WikiContractError("not_found", "Page not found")
-        return dict(row)
+        return dict(row) if not isinstance(row, dict) else row
 
     def create_page(
         self,
@@ -69,30 +86,53 @@ class WikiCrud:
 
     def delete_page(self, slug: str) -> dict[str, bool]:
         page_slug = self._text(slug, "slug", 200)
-        with self.db._tx() as connection:
-            cursor = connection.execute("DELETE FROM pages WHERE slug = ?", (page_slug,))
-        if cursor.rowcount == 0:
+        if hasattr(self.db, "delete_page"):
+            ok = self.db.delete_page(page_slug)
+        else:
+            with self.db._tx() as connection:
+                cursor = connection.execute("DELETE FROM pages WHERE slug = ?", (page_slug,))
+                ok = cursor.rowcount > 0
+        if not ok:
             raise WikiContractError("not_found", "Page not found")
         return {"ok": True}
 
     def list_memories(self, *, limit: int = 50, offset: int = 0) -> dict[str, Any]:
         limit, offset = self._page(limit, offset)
-        rows = self.db.conn.execute(
-            "SELECT uid,category,source,owner,timestamp,substr(text,1,200) AS preview "
-            "FROM memories ORDER BY timestamp DESC LIMIT ? OFFSET ?",
-            (limit, offset),
-        ).fetchall()
-        total = int(self.db.conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0])
-        return {"items": [dict(row) for row in rows], "total": total, "limit": limit, "offset": offset}
+        if hasattr(self.db, "list_memories"):
+            rows = self.db.list_memories(limit=limit, offset=offset)
+            items = [
+                {
+                    "uid": row["uid"] if isinstance(row, dict) else row[0],
+                    "category": row["category"] if isinstance(row, dict) else row[1],
+                    "source": row["source"] if isinstance(row, dict) else row[2],
+                    "owner": row["owner"] if isinstance(row, dict) else row[3],
+                    "timestamp": row["timestamp"] if isinstance(row, dict) else row[4],
+                    "preview": row.get("preview", (row.get("text") or "")[:200]) if isinstance(row, dict) else (row[5] if len(row) > 5 else "")[:200],
+                }
+                for row in rows
+            ]
+        else:
+            rows = self.db.conn.execute(
+                "SELECT uid,category,source,owner,timestamp,substr(text,1,200) AS preview "
+                "FROM memories ORDER BY timestamp DESC LIMIT ? OFFSET ?",
+                (limit, offset),
+            ).fetchall()
+            items = [dict(row) for row in rows]
+        total = self.db.count_memories() if hasattr(self.db, "count_memories") else int(self.db.conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0])
+        return {"items": items, "total": total, "limit": limit, "offset": offset}
 
     def get_memory(self, uid: str) -> dict[str, Any]:
-        row = self.db.conn.execute(
-            "SELECT * FROM memories WHERE uid = ?",
-            (self._text(uid, "uid", 128),),
-        ).fetchone()
+        memory_uid = self._text(uid, "uid", 128)
+        if hasattr(self.db, "get_memory"):
+            row = self.db.get_memory(memory_uid)
+        else:
+            row = self.db.conn.execute(
+                "SELECT * FROM memories WHERE uid = ?",
+                (memory_uid,),
+            ).fetchone()
         if row is None:
             raise WikiContractError("not_found", "Memory not found")
-        return dict(row)
+        return dict(row) if not isinstance(row, dict) else row
 
     def create_memory(self, *, text: str, category: str = "general") -> dict[str, str]:
         memory_text = self._text(text, "text", 2 * 1024 * 1024)
@@ -108,9 +148,13 @@ class WikiCrud:
 
     def delete_memory(self, uid: str) -> dict[str, bool]:
         memory_uid = self._text(uid, "uid", 128)
-        with self.db._tx() as connection:
-            cursor = connection.execute("DELETE FROM memories WHERE uid = ?", (memory_uid,))
-        if cursor.rowcount == 0:
+        if hasattr(self.db, "delete_memory"):
+            ok = self.db.delete_memory(memory_uid)
+        else:
+            with self.db._tx() as connection:
+                cursor = connection.execute("DELETE FROM memories WHERE uid = ?", (memory_uid,))
+                ok = cursor.rowcount > 0
+        if not ok:
             raise WikiContractError("not_found", "Memory not found")
         return {"ok": True}
 

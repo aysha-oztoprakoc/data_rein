@@ -58,8 +58,17 @@ class WikiGraphPipeline:
         # 1. Initialize Kùzu Graph DB (if installed)
         try:
             import kuzu  # type: ignore
-            self.kuzu_dir.mkdir(parents=True, exist_ok=True)
-            db = kuzu.Database(str(self.kuzu_dir))
+            self.kuzu_dir.parent.mkdir(parents=True, exist_ok=True)
+            if self.kuzu_dir.is_dir() and not any(self.kuzu_dir.iterdir()):
+                try:
+                    self.kuzu_dir.rmdir()
+                except OSError:
+                    pass
+            db = kuzu.Database(
+                str(self.kuzu_dir),
+                max_db_size=1024 * 1024 * 1024,
+                buffer_pool_size=128 * 1024 * 1024,
+            )
             conn = kuzu.Connection(db)
             self._init_kuzu_schema(conn)
             self._kuzu_conn = conn
@@ -91,8 +100,8 @@ class WikiGraphPipeline:
     def _init_kuzu_schema(self, conn: Any) -> None:
         """Create Kùzu Node and Rel tables if not existing."""
         ddls = [
-            "CREATE NODE TABLE IF NOT EXISTS Document(slug STRING, title STRING, category STRING, PRIMARY KEY (slug));",
-            "CREATE NODE TABLE IF NOT EXISTS MemoryNode(uid STRING, category STRING, PRIMARY KEY (uid));",
+            "CREATE NODE TABLE IF NOT EXISTS Document(slug STRING, title STRING, content STRING, category STRING, source_path STRING, fmt STRING, metadata_json STRING, owner STRING, trust_score DOUBLE, is_chunked INT64, is_deleted INT64, updated_at DOUBLE, PRIMARY KEY (slug));",
+            "CREATE NODE TABLE IF NOT EXISTS MemoryNode(uid STRING, text STRING, category STRING, source STRING, owner STRING, session_id STRING, trust_score DOUBLE, is_chunked INT64, is_deleted INT64, timestamp DOUBLE, PRIMARY KEY (uid));",
             "CREATE NODE TABLE IF NOT EXISTS Chunk(id STRING, content STRING, token_count INT64, PRIMARY KEY (id));",
             "CREATE REL TABLE IF NOT EXISTS Contains(FROM Document TO Chunk);",
             "CREATE REL TABLE IF NOT EXISTS DerivesFrom(FROM MemoryNode TO Chunk);",
@@ -194,11 +203,15 @@ class WikiGraphPipeline:
                 if source_type == "page":
                     escaped_title = source_title.replace("'", "''")
                     self._kuzu_conn.execute(
-                        f"MERGE (d:Document {{slug: '{source_id}', title: '{escaped_title}', category: '{source_category}'}});"
+                        f"MERGE (d:Document {{slug: '{source_id}'}}) "
+                        f"ON CREATE SET d.title = '{escaped_title}', d.category = '{source_category}', d.is_deleted = 0, d.trust_score = 1.0 "
+                        f"ON MATCH SET d.title = '{escaped_title}', d.category = '{source_category}';"
                     )
                 else:
                     self._kuzu_conn.execute(
-                        f"MERGE (m:MemoryNode {{uid: '{source_id}', category: '{source_category}'}});"
+                        f"MERGE (m:MemoryNode {{uid: '{source_id}'}}) "
+                        f"ON CREATE SET m.category = '{source_category}', m.is_deleted = 0, m.trust_score = 1.0 "
+                        f"ON MATCH SET m.category = '{source_category}';"
                     )
             except Exception as e:
                 logger.warning("Kùzu source node error: %s", e)

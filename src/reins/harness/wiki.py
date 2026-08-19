@@ -173,8 +173,11 @@ class Memory:
     timestamp: float = 0.0
 
 
-class WikiDB:
-    """Passive accessor for the monolith Wiki database."""
+from reins.harness.kuzu_wiki import KuzuWikiDB
+
+
+class SQLiteWikiDB:
+    """Legacy SQLite accessor for the monolith Wiki database."""
 
     def __init__(self, path: Optional[Path | str] = None) -> None:
         self.path = Path(path) if path else paths.wiki_db()
@@ -466,6 +469,12 @@ class WikiDB:
         )
         return cur.fetchall()
 
+    def delete_page(self, slug: str) -> bool:
+        """Delete a page by slug."""
+        with self._tx() as conn:
+            cur = conn.execute("DELETE FROM pages WHERE slug = ?", (slug,))
+            return cur.rowcount > 0
+
     def soft_delete_memory(self, uid: str, owner: str = "harness") -> bool:
         """Soft delete a memory by setting is_deleted=1."""
         with self._tx() as conn:
@@ -485,6 +494,53 @@ class WikiDB:
                 )
                 return True
             return False
+
+    def get_memory(self, uid: str) -> Optional[sqlite3.Row]:
+        """Fetch a single memory by uid."""
+        cur = self.conn.execute("SELECT * FROM memories WHERE uid = ?", (uid,))
+        return cur.fetchone()
+
+    def delete_memory(self, uid: str) -> bool:
+        """Delete a memory by uid."""
+        with self._tx() as conn:
+            cur = conn.execute("DELETE FROM memories WHERE uid = ?", (uid,))
+            return cur.rowcount > 0
+
+    def list_memories(
+        self,
+        *,
+        category: Optional[str] = None,
+        owner: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[sqlite3.Row]:
+        """List memories with preview."""
+        where, params = [], []
+        if category:
+            where.append("category = ?")
+            params.append(category)
+        if owner:
+            where.append("owner = ?")
+            params.append(owner)
+        clause = f"WHERE {' AND '.join(where)}" if where else ""
+        cur = self.conn.execute(
+            f"SELECT uid,category,source,owner,timestamp,substr(text,1,200) AS preview "
+            f"FROM memories {clause} ORDER BY timestamp DESC LIMIT ? OFFSET ?",
+            (*params, limit, offset),
+        )
+        return cur.fetchall()
+
+    def count_memories(self, *, category: Optional[str] = None, owner: Optional[str] = None) -> int:
+        """Count memories with optional filters."""
+        where, params = [], []
+        if category:
+            where.append("category = ?")
+            params.append(category)
+        if owner:
+            where.append("owner = ?")
+            params.append(owner)
+        clause = f"WHERE {' AND '.join(where)}" if where else ""
+        return int(self.conn.execute(f"SELECT COUNT(*) FROM memories {clause}", params).fetchone()[0])
 
     def mark_memories_chunked(self, uids: list[str]) -> int:
         """Mark a list of memories as chunked."""
@@ -542,3 +598,7 @@ class WikiDB:
             ):
                 out[row["category"]] = out.get(row["category"], 0) + row["c"]
         return out
+
+
+# Primary unified Wiki database backed by Kùzu graph and ChromaDB vectors
+WikiDB = KuzuWikiDB

@@ -61,8 +61,8 @@ def _write_record(
 def _build_stage(database_path: Path, stage: Path, source_revision: str) -> dict[str, Any]:
     records: list[dict[str, str]] = []
     with WikiDB(database_path) as database:
-        pages = database.conn.execute("SELECT * FROM pages ORDER BY slug").fetchall()
-        memories = database.conn.execute("SELECT * FROM memories ORDER BY uid").fetchall()
+        pages = database.list_pages(limit=100000) if hasattr(database, "list_pages") else [dict(r) for r in database.conn.execute("SELECT * FROM pages ORDER BY slug").fetchall()]
+        memories = database.list_memories(limit=100000) if hasattr(database, "list_memories") else [dict(r) for r in database.conn.execute("SELECT * FROM memories ORDER BY uid").fetchall()]
         for row in pages:
             page = dict(row)
             records.append(

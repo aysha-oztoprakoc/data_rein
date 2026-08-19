@@ -40,9 +40,9 @@ LOW_EFFORT = {
 def _rag_context(prompt: str, max_docs: int = 3) -> str:
     """Best-effort RAG: pull top matching wiki pages as context. Degrades to ''."""
     try:
-        from reins.harness.wiki import WikiDB
+        from reins.harness.kuzu_wiki import KuzuWikiDB
 
-        with WikiDB() as db:
+        with KuzuWikiDB() as db:
             hits = db.search_pages(prompt, limit=max_docs)
         if not hits:
             return ""

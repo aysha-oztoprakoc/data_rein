@@ -12,7 +12,7 @@ import DetailLayout from '../layouts/DetailLayout.astro';
   <h2>Verification Suite</h2>
   <p>The standard verification suite checks functionality, style, and architectural compliance across the entire working tree.</p>
   <ul>
-    <li><strong>pytest Suite:</strong> Over 390 core unit and integration tests strictly verified via GitHub Actions.</li>
+    <li><strong>pytest Suite:</strong> 400 unit, integration, and contract tests strictly verified via GitHub Actions and local pre-push gates.</li>
     <li><strong>PON Tester:</strong> Validates `os.system` boundaries, circuit breaker implementations, and zero-polling limits.</li>
     <li><strong>Type & Lint:</strong> Zero-tolerance policy on Ruff and basedpyright (0 errors, 0 warnings).</li>
     <li><strong>Security Scans:</strong> Bandit and `pip-audit` to guarantee no known vulnerabilities.</li>

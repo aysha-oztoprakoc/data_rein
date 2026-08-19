@@ -25,7 +25,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from reins.harness.action_gate import ActionArgs, GateResult, gate_call, gate_validate
 from reins.harness.dispatch import TOOL_DISPATCHERS
-from reins.harness.wiki import WikiDB
+from reins.harness.kuzu_wiki import KuzuWikiDB as WikiDB
 from reins.services.task_trail import TaskTrail
 
 

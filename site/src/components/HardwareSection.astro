@@ -48,7 +48,7 @@ import TopologyDiagram from './TopologyDiagram.astro';
           amdy maintains zero local state variables. All knowledge graphs, embeddings, Task Trail journals, and Wiki memories reside exclusively in the NixOS host on tell. If amdy crashes or reboots, execution picks up instantly without state corruption.
         </p>
         <div class="stat-row">
-          <div><span class="stat-label">WikiDB Storage:</span> <strong style="color: #fff;">SQLite FTS5 + Kùzu Graph</strong></div>
+          <div><span class="stat-label">WikiDB Storage:</span> <strong style="color: #fff;">Kùzu Graph + ChromaDB Vector (KuzuWikiDB)</strong></div>
         </div>
       </div>
 

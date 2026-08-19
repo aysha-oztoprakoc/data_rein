@@ -68,8 +68,11 @@ def _cache_path() -> Path:
 
 
 def _load_cache() -> dict[str, float]:
+    path = _cache_path()
+    if not path.is_file():
+        return {}
     try:
-        return _DigestCache.model_validate_json(_cache_path().read_text(encoding="utf-8")).root
+        return _DigestCache.model_validate_json(path.read_text(encoding="utf-8")).root
     except (OSError, ValidationError):
         log_degradation(__name__)
         return {}

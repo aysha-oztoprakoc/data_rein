@@ -78,9 +78,9 @@ def wiki_search(q: str = Query(""), limit: int = Query(25, ge=1, le=100)) -> dic
                                     if p:
                                         pages_map[source_id] = dict(p)
                                 elif source_type == "memory" and source_id and source_id not in memories_map:
-                                    row = db.conn.execute("SELECT * FROM memories WHERE uid = ?", (source_id,)).fetchone()
+                                    row = db.get_memory(source_id) if hasattr(db, "get_memory") else db.conn.execute("SELECT * FROM memories WHERE uid = ?", (source_id,)).fetchone()
                                     if row:
-                                        memories_map[source_id] = dict(row)
+                                        memories_map[source_id] = dict(row) if not isinstance(row, dict) else row
         except Exception:
             pass
 
@@ -198,12 +198,12 @@ def get_memory(uid: str) -> dict[str, Any]:
     """Fetch one full memory record by uid (Ticket 2: graph click detail)."""
     try:
         with WikiDB() as db:
-            row = db.conn.execute(
+            row = db.get_memory(uid) if hasattr(db, "get_memory") else db.conn.execute(
                 "SELECT * FROM memories WHERE uid = ?", (uid,)
             ).fetchone()
-            if not row or dict(row).get("is_deleted", 0) == 1:
+            if not row or (row.get("is_deleted", 0) if isinstance(row, dict) else dict(row).get("is_deleted", 0)) == 1:
                 raise HTTPException(status_code=404, detail="Memory not found")
-            return {"memory": dict(row)}
+            return {"memory": dict(row) if not isinstance(row, dict) else row}
     except HTTPException:
         raise
     except Exception as exc:
@@ -217,11 +217,11 @@ class MemoryUpdate(BaseModel):
 def update_memory(uid: str, updates: MemoryUpdate) -> dict[str, Any]:
     try:
         with WikiDB() as db:
-            row = db.conn.execute("SELECT * FROM memories WHERE uid = ?", (uid,)).fetchone()
-            if not row or dict(row).get("is_deleted", 0) == 1:
+            row = db.get_memory(uid) if hasattr(db, "get_memory") else db.conn.execute("SELECT * FROM memories WHERE uid = ?", (uid,)).fetchone()
+            if not row or (row.get("is_deleted", 0) if isinstance(row, dict) else dict(row).get("is_deleted", 0)) == 1:
                 raise HTTPException(status_code=404, detail="Memory not found")
             
-            mdict = dict(row)
+            mdict = dict(row) if not isinstance(row, dict) else row
             db.add_memory(
                 text=updates.text if updates.text is not None else mdict["text"],
                 category=updates.category if updates.category is not None else mdict["category"],
@@ -241,11 +241,11 @@ def update_memory(uid: str, updates: MemoryUpdate) -> dict[str, Any]:
 def delete_memory(uid: str) -> dict[str, Any]:
     try:
         with WikiDB() as db:
-            row = db.conn.execute("SELECT * FROM memories WHERE uid = ?", (uid,)).fetchone()
-            if not row or dict(row).get("is_deleted", 0) == 1:
+            row = db.get_memory(uid) if hasattr(db, "get_memory") else db.conn.execute("SELECT * FROM memories WHERE uid = ?", (uid,)).fetchone()
+            if not row or (row.get("is_deleted", 0) if isinstance(row, dict) else dict(row).get("is_deleted", 0)) == 1:
                 raise HTTPException(status_code=404, detail="Memory not found or already deleted")
             
-            mdict = dict(row)
+            mdict = dict(row) if not isinstance(row, dict) else row
             cat = (mdict.get("category") or "").strip().lower()
             if cat in ("sys", "core"):
                 raise HTTPException(
@@ -271,6 +271,16 @@ def list_memories(
 ) -> dict[str, Any]:
     try:
         with WikiDB() as db:
+            if hasattr(db, "list_memories"):
+                items = db.list_memories(
+                    category=category if category and category != "all" else None,
+                    limit=limit,
+                    offset=offset,
+                )
+                if q:
+                    items = [m for m in items if q.lower() in (m.get("text", "") or m.get("preview", "")).lower() or q.lower() in (m.get("category", "")).lower() or q.lower() in (m.get("owner", "")).lower()]
+                total = db.count_memories(category=category if category and category != "all" else None)
+                return {"memories": [dict(r) if not isinstance(r, dict) else r for r in items], "total": total}
             query = "SELECT * FROM memories WHERE 1=1"
             params: list[Any] = []
             if category and category != "all":
@@ -395,11 +405,11 @@ def wiki_catalog() -> dict[str, Any]:
                 }
                 record(item, origin, domain, p_dict.get("updated_at") or p_dict.get("created_at"))
 
-            memories = db.conn.execute(
+            memories = db.list_memories(limit=10000) if hasattr(db, "list_memories") else db.conn.execute(
                 "SELECT uid, text, category, owner, timestamp FROM memories ORDER BY timestamp DESC"
             ).fetchall()
             for m in memories:
-                m_dict = dict(m)
+                m_dict = dict(m) if not isinstance(m, dict) else m
                 cat = m_dict.get("category") or "general"
                 domain = classify_domain(cat, str(m_dict.get("text") or ""))
                 origin = m_dict.get("owner") or "memory"

@@ -61,8 +61,8 @@ class KnowledgeIngestor:
         # Mirror the learned task into the single monolith Wiki DB as a memory.
         # Graceful degradation: never let this break the continuous-learning loop.
         try:
-            from reins.harness.wiki import WikiDB
-            with WikiDB() as db:
+            from reins.harness.kuzu_wiki import KuzuWikiDB
+            with KuzuWikiDB() as db:
                 db.add_memory(
                     f"TASK: {prompt}\nRESULT: {result_text}",
                     category="learned_task",

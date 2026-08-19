@@ -26,8 +26,8 @@ from reins.harness.mcp_security import (
     is_loopback_host,
     load_http_token,
 )
+from reins.harness.kuzu_wiki import KuzuWikiDB as WikiDB
 from reins.harness.provider_protocols import JsonValue
-from reins.harness.wiki import WikiDB
 from reins.harness.wiki_contract import WikiCrud, contract_result
 from reins.services.logger import log_degradation
 from reins.services.task_trail import TaskTrail
@@ -69,7 +69,9 @@ def _hardware_gaps(profiler: HardwareStatus) -> JsonValue:
     return profiler.gap_report()
 
 
-def _row_to_json(row: sqlite3.Row) -> str:
+def _row_to_json(row: Any) -> str:
+    if isinstance(row, dict):
+        return json.dumps(row)
     return json.dumps({key: row[key] for key in row.keys()})
 
 
@@ -79,8 +81,8 @@ def wiki_search(query: str, limit: int = 8) -> str:
     with WikiDB() as db:
         res = db.search(query, limit)
     # Filter by trust_score to prevent data poisoning during RAG
-    pages = ",".join(_row_to_json(row) for row in res["pages"] if dict(row).get("trust_score", 1.0) >= 0.5)
-    memories = ",".join(_row_to_json(row) for row in res["memories"] if dict(row).get("trust_score", 1.0) >= 0.5)
+    pages = ",".join(_row_to_json(row) for row in res["pages"] if (row.get("trust_score", 1.0) if isinstance(row, dict) else dict(row).get("trust_score", 1.0)) >= 0.5)
+    memories = ",".join(_row_to_json(row) for row in res["memories"] if (row.get("trust_score", 1.0) if isinstance(row, dict) else dict(row).get("trust_score", 1.0)) >= 0.5)
     return f'{{"pages":[{pages}],"memories":[{memories}]}}'
 
 

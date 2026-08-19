@@ -403,3 +403,17 @@ Core interactive processes run via `data-harness-daemon.sh` inside a resilient `
 * **Sofia³ note**: MQTT topics on the harness publish only a resume pulse
   (`data_rein/trail/updated`); per-task trail writes do NOT publish MQTT, so the dashboard's
   live signal is inotify on the trail DB with MQTT as redundant channel.
+
+## Upcoming Roadmap & Active TODOs (2026-08-18)
+
+* **Task Trail State**:
+  1. **Refactor the Test Suite** (`Task ID: 5cb7f94b-42e6-4703-a3b0-0f1b84648830`, `status: pending`):
+     - Consolidate legacy SQLite fixtures and harmonize with `KuzuWikiDB` backend tests.
+     - Modularize integration test boundaries, improve test execution speed, and parameterize contract tests.
+  2. **Unify the Skills Tree** (`Task ID: 8dfafad5-a802-4dfc-af0f-eb9376e03684`, `status: pending`):
+     - Unify skills across `skills/` and `.agents/skills/`.
+     - Standardize frontmatter, argument schemas, execution environments, and symlink installers (`reins skills install`).
+  3. **Document Entire Codebase into Wiki** (`Task ID: d93a6b06-5021-4fc9-ac9f-786af378d4a2`, `status: pending`):
+     - Ingest all core architecture modules, PON engine specs, service lifecycles, and API contracts into `KuzuWikiDB` (`Document` + `MemoryNode` tables).
+     - Link structural dependencies and ContextGraph relations (`Contains`, `DerivesFrom`, `SimilarTo`).
+

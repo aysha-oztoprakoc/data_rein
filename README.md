@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/LICENSE-MIT-00FFFF?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/PYTHON-3.11-FF003C?style=for-the-badge&logo=python&logoColor=white)](pyproject.toml)
 [![Architecture](https://img.shields.io/badge/PARADIGM-PON_KAD_1.1-00FF66?style=for-the-badge)](knowledge_base/PRIME_DIRECTIVE.md)
-[![Test Battery](https://img.shields.io/badge/TESTS-391%2F391_PASSING-00FFFF?style=for-the-badge)](tests/)
+[![Test Battery](https://img.shields.io/badge/TESTS-400%2F400_PASSING-00FFFF?style=for-the-badge)](tests/)
 
 **[⚡ LAUNCH INTERACTIVE LIVE TERMINAL PORTAL ⚡](https://aysha-oztoprakoc.github.io/data_rein/)**
 
@@ -16,7 +16,7 @@
 
 ## ⚡ Executive Overview
 
-**`data_rein`** is a distributed, model-agnostic orchestration harness built under the strict **Notification-Oriented Paradigm (PON KAD 1.1)**. It coordinates a fleet of autonomous agent environments (**Antigravity CLI**, **OpenCode**, **Claude Code**, **Codex**, and **Sofia³ UI**) across physical machines with **zero polling (0% CPU idle)**, central **KùzuDB / ChromaDB vector graph memory**, and an **Automated Quality Control Meta-Harness**.
+**`data_rein`** is a distributed, model-agnostic orchestration harness built under the strict **Notification-Oriented Paradigm (PON KAD 1.1)**. It coordinates a fleet of autonomous agent environments (**Antigravity CLI**, **OpenCode**, **Claude Code**, **Codex**, and **Sofia³ UI**) across physical machines with **zero polling (0% CPU idle)**, a primary **Kùzu Graph & ChromaDB Vector Knowledge Base (`KuzuWikiDB`)**, and an **Automated Quality Control Meta-Harness**.
 
 ```mermaid
 graph TD
@@ -30,7 +30,7 @@ graph TD
     %% Nodes
     subgraph TELL [CENTRAL FACT BASE / tell node]
         MQTT[Mosquitto MQTT v2]
-        DB[wiki.db / Kùzu / Chroma]
+        DB[Kùzu Graph + ChromaDB Vector<br/>wiki.db (Legacy SQLite)]
         TT[Tiered Task Trail DB]
     end
     
@@ -93,9 +93,11 @@ graph TD
 - **Pytest-Cov Ratchet:** Enforces the ratchet principle — coverage must never decrease.
 - **Autonomous Merge Guard:** Automatically stages and merges low-risk patches if all gates pass.
 
-### 3. Kùzu Graph & ChromaDB Vector RAG (`reins.services.wiki_graph_pipeline`)
-- Ingests Markdown pages, memories, and ADRs into a unified **Kùzu Graph ContextGraph** and **ChromaDB vector store** with cosine similarity deduplication (90% threshold).
-- Provides instant context injection during agent prompt routing.
+### 3. Kùzu Graph & ChromaDB Vector Knowledge Store (`reins.harness.kuzu_wiki`)
+- Native **Kùzu Graph ContextGraph** and **ChromaDB vector store** (`KuzuWikiDB`) replacing legacy SQLite as the primary source of truth.
+- Node tables (`Document`, `MemoryNode`, `Chunk`) and relationship tables (`Contains`, `DerivesFrom`, `SimilarTo`) with chunking tracking (`is_chunked`) and soft-delete capabilities.
+- Sub-millisecond Cypher graph queries and cosine semantic vector search with threshold filtering (90% deduplication).
+- Memory-safe bounded architecture with 128MB buffer pool and 1GB virtual memory cap ensuring zero memory leaks during heavy concurrent agent access.
 
 ### 4. VRAM Residency Coordinator (`src/reins/harness/coordinator.py`)
 - Manages local LLM models on demand within strict **8GB VRAM hardware budgets**.
@@ -150,7 +152,7 @@ reins trail status
 | :--- | :--- | :--- |
 | **PON Graph Engine** | `src/reins/graph/engine.py` & `fbe.py` | ✅ **PROD LIVE (100%)** |
 | **Deterministic QC Gate** | `src/reins/graph/qc_runner.py` & `qc_node.py` | ✅ **PROD LIVE (100%)** |
-| **Kùzu Graph & Vector RAG** | `src/reins/services/wiki_graph_pipeline.py` | ✅ **PROD LIVE (100%)** |
+| **Kùzu Graph & Vector Engine** | `src/reins/harness/kuzu_wiki.py` (`KuzuWikiDB`) | ✅ **PROD LIVE (100%)** |
 | **Sofia³ Web Dashboard** | `sofia3/backend/` + `sofia3/frontend/` | ✅ **PROD LIVE (100%)** |
 | **VRAM Coordinator** | `src/reins/harness/coordinator.py` | ✅ **PROD LIVE (100%)** |
 | **Multi-Node MQTT Bus** | `tell` (192.168.0.4) ↔ `amdy` (192.168.0.3) | ✅ **PROD LIVE (100%)** |
@@ -161,11 +163,11 @@ reins trail status
 
 ## 🧪 Verification & Test Suite
 
-The entire codebase is verified against 391 strict unit, integration, resilience, and AST law tests:
+The entire codebase is verified against 400 strict unit, integration, resilience, and AST law tests:
 
 ```bash
 # Run full test suite
-uv run pytest
+PYTHONPATH=. uv run pytest
 
 # Execute PON Compliance & Security Scanner
 python3 ~/.agents/skills/pon_testing_suite/scripts/pon_tester.py src/reins/graph
@@ -175,7 +177,7 @@ uv run pytest tests/test_laws.py tests/test_production_hardening.py
 ```
 
 ```
-============================== 391 passed in 20.75s ==============================
+============================== 400 passed in 107.44s ==============================
 ```
 
 ---

@@ -150,7 +150,14 @@ def export_jsonl(
     return ExportStats(written=written, skipped=skipped, out_path=str(output))
 
 
-def _query_pages(db: WikiDB, categories: list[str], limit: int) -> Iterator[sqlite3.Row]:
+def _query_pages(db: WikiDB, categories: list[str], limit: int) -> Iterator[Any]:
+    if hasattr(db, "list_pages"):
+        pages = db.list_pages(limit=limit or 1000000)
+        if categories:
+            pages = [p for p in pages if any(p["category"].startswith(c) for c in categories)]
+        if limit:
+            pages = pages[:limit]
+        return iter(pages)
     sql = "SELECT slug, content, category, source_path, metadata_json FROM pages"
     params: list[str | int] = []
     if categories:
@@ -162,7 +169,14 @@ def _query_pages(db: WikiDB, categories: list[str], limit: int) -> Iterator[sqli
     return db.conn.execute(sql, params)
 
 
-def _query_memories(db: WikiDB, categories: list[str], limit: int) -> Iterator[sqlite3.Row]:
+def _query_memories(db: WikiDB, categories: list[str], limit: int) -> Iterator[Any]:
+    if hasattr(db, "list_memories"):
+        mems = db.list_memories(limit=limit or 1000000)
+        if categories:
+            mems = [m for m in mems if any(m["category"].startswith(c) for c in categories)]
+        if limit:
+            mems = mems[:limit]
+        return iter(mems)
     sql = "SELECT text, category, source FROM memories"
     params: list[str | int] = []
     if categories:

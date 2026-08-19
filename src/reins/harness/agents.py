@@ -74,9 +74,9 @@ class HarnessAgent:
     def recall(self, query: str, limit: int = 5) -> RecallResult:
         """Consult the shared knowledge DB. Degrades to empty results, never raises."""
         try:
-            from reins.harness.wiki import WikiDB
+            from reins.harness.kuzu_wiki import KuzuWikiDB
 
-            with WikiDB() as db:
+            with KuzuWikiDB() as db:
                 results = db.search(query, limit)
                 return {"pages": results["pages"], "memories": results["memories"]}
         except Exception:  # noqa: BLE001  # noqa: BROAD_EXCEPT_OK
@@ -86,9 +86,9 @@ class HarnessAgent:
     def remember(self, text: str, *, category: str = "general", source: str | None = None) -> None:
         """Persist a learned fact into the shared wiki (best effort)."""
         try:
-            from reins.harness.wiki import WikiDB
+            from reins.harness.kuzu_wiki import KuzuWikiDB
 
-            with WikiDB() as db:
+            with KuzuWikiDB() as db:
                 _ = db.add_memory(text, category=category, source=source or self.role, owner=self.role)
         except Exception:  # noqa: BLE001  # noqa: BROAD_EXCEPT_OK
             log_degradation(__name__)

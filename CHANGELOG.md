@@ -15,6 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - (none)
 
+## [0.3.0] - 2026-08-18
+### Added
+- **Kùzu Graph & ChromaDB Unified Knowledge Engine (`KuzuWikiDB`):**
+  - Replaced legacy SQLite as primary monolith knowledge store with embedded Kùzu graph database and ChromaDB vector store.
+  - Native Node schemas (`Document`, `MemoryNode`, `Chunk`) and Relational schemas (`Contains`, `DerivesFrom`, `SimilarTo`) supporting hierarchical knowledge provenance and cosine similarity clustering.
+  - Fast Cypher graph traversals and semantic vector search with cosine distance thresholding.
+  - Sub-millisecond bulk insertion (`batch_insert_memories`) via CSV streaming copy.
+  - Memory-safe bounded configuration: 128MB buffer pool and 1GB virtual memory mmap boundary.
+- **Expanded Test Suite (400/400 Passing):**
+  - Parameterized `test_wiki_contract.py` across SQLite and Kùzu backends verifying latency bounds (<250ms p95 on 10,000 records) and bounded summaries.
+  - 100% test coverage across all 400 unit, integration, graph pipeline, and Ten Laws architectural compliance tests.
+
+### Changed
+- **Universal Harness Services Swapped to `KuzuWikiDB`:**
+  - `reins.harness.wiki.WikiDB` aliased to `KuzuWikiDB` (`SQLiteWikiDB` preserved for legacy database compatibility).
+  - Ingestion pipelines (`KnowledgeManager`, `KnowledgeIngestor`, `WikiGraphPipeline`), agents (`agents.py`, `judge.py`, `workflow.py`), MCP servers (`mcp_server.py`), dataset exporters (`dataset.py`, `export_to_obsidian.py`), and Sofia³ REST APIs updated to use unified `WikiDB` interfaces.
+
 ## [0.2.0] - 2026-08-16
 ### Added
 - **None** — this is a hardening/productization pass on top of 0.1.0.

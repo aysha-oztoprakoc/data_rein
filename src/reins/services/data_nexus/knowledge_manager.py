@@ -64,8 +64,8 @@ class KnowledgeManager:
 
         # Mirror into the monolith wiki (graceful degradation: never crash).
         try:
-            from reins.harness.wiki import WikiDB
-            with WikiDB() as db:
+            from reins.harness.kuzu_wiki import KuzuWikiDB
+            with KuzuWikiDB() as db:
                 db.upsert_page(
                     title=os.path.splitext(filename)[0],
                     content=content,
